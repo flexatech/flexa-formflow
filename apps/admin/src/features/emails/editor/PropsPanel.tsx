@@ -1,5 +1,6 @@
-import { Copy, Trash2 } from "lucide-react";
+import { Copy, Eye, Trash2 } from "lucide-react";
 import { ColorField } from "@/components/custom/ColorField";
+import { ConditionsBuilder, toConditionSet, type ConditionSet, type SchemaContextField } from "@/components/custom/SchemaFields";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
@@ -16,7 +17,10 @@ interface PropsPanelProps {
     element: EmailElement | null;
     settings: TreeSettings;
     fieldTokens: TokenInfo[];
+    conditionFields: SchemaContextField[];
+    hasPreviewForm: boolean;
     onChangeProps: (id: string, props: Record<string, unknown>) => void;
+    onChangeVisibility: (id: string, visibility: ConditionSet) => void;
     onChangeColumnCount: (id: string, count: number) => void;
     onDuplicate: (id: string) => void;
     onDelete: (id: string) => void;
@@ -27,7 +31,10 @@ export function PropsPanel({
     element,
     settings,
     fieldTokens,
+    conditionFields,
+    hasPreviewForm,
     onChangeProps,
+    onChangeVisibility,
     onChangeColumnCount,
     onDuplicate,
     onDelete,
@@ -149,8 +156,57 @@ export function PropsPanel({
                     onChange={(v) => setProp(field.key, v)}
                 />
             ))}
+            <VisibilitySection
+                element={element}
+                fields={conditionFields}
+                hasPreviewForm={hasPreviewForm}
+                onChange={(v) => onChangeVisibility(element.id, v)}
+            />
             <TokenHint fieldTokens={fieldTokens} />
         </div>
+    );
+}
+
+/**
+ * Conditional visibility for a single block. Rules key off the preview form's
+ * fields and are evaluated against the entry at send time (see
+ * src/Emails/Render/Visibility.php). No rules means the block always shows.
+ */
+function VisibilitySection({
+    element,
+    fields,
+    hasPreviewForm,
+    onChange,
+}: {
+    element: EmailElement;
+    fields: SchemaContextField[];
+    hasPreviewForm: boolean;
+    onChange: (value: ConditionSet) => void;
+}) {
+    const value = toConditionSet(element.visibility);
+    const active = value.rules.length > 0;
+
+    return (
+        <section className="ff:flex ff:flex-col ff:gap-2 ff:rounded-lg ff:border ff:border-slate-200 ff:bg-slate-50/60 ff:p-3">
+            <div className="ff:flex ff:items-center ff:gap-2">
+                <Eye aria-hidden className="ff:h-4 ff:w-4 ff:text-slate-500" />
+                <h4 className="ff:m-0 ff:text-xs ff:font-semibold ff:text-slate-700">{__("Visibility")}</h4>
+                {active && (
+                    <span className="ff:ml-auto ff:rounded-full ff:bg-brand-50 ff:px-2 ff:py-0.5 ff:text-[11px] ff:font-medium ff:text-brand-700">
+                        {__("Conditional")}
+                    </span>
+                )}
+            </div>
+            <p className="ff:m-0 ff:text-[11px] ff:text-slate-500">
+                {__("Show this block only when the submission matches. Leave empty to always show it.")}
+            </p>
+            {!hasPreviewForm && (
+                <p className="ff:m-0 ff:text-[11px] ff:text-amber-700">
+                    {__("Pick a preview form above to choose fields for conditions.")}
+                </p>
+            )}
+            <ConditionsBuilder value={value} disabled={false} fields={fields} onChange={onChange} />
+        </section>
     );
 }
 

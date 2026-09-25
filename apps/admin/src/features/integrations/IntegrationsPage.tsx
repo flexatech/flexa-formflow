@@ -1,9 +1,15 @@
-import { CheckCircle2, Circle, Clock, Send } from "lucide-react";
+import { CheckCircle2, Circle, Clock, Plug, Send } from "lucide-react";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { integrationConnection } from "@/lib/extensions";
 import { __ } from "@/lib/i18n";
+import { ConnectDrawer } from "./ConnectDrawer";
 import { useIntegrations, type IntegrationCard, type IntegrationStatus } from "./useIntegrations";
 
 export function IntegrationsPage() {
     const { data, isLoading } = useIntegrations();
+    const [openId, setOpenId] = useState<string | null>(null);
+    const openConnection = openId ? integrationConnection(openId) : undefined;
 
     if (isLoading || !data) {
         return (
@@ -26,9 +32,18 @@ export function IntegrationsPage() {
 
             <div className="ff:grid ff:grid-cols-1 ff:gap-3 md:ff:grid-cols-2">
                 {data.integrations.map((card) => (
-                    <IntegrationTile key={card.id} card={card} />
+                    <IntegrationTile
+                        key={card.id}
+                        card={card}
+                        canConnect={integrationConnection(card.id) !== undefined}
+                        onConnect={() => setOpenId(card.id)}
+                    />
                 ))}
             </div>
+
+            {openConnection && (
+                <ConnectDrawer integration={openConnection} open={true} onClose={() => setOpenId(null)} />
+            )}
         </div>
     );
 }
@@ -78,7 +93,15 @@ const STATUS_META: Record<IntegrationStatus, { label: string; icon: typeof Circl
     soon: { label: __("Coming soon"), icon: Clock, cls: "ff:text-slate-400" },
 };
 
-function IntegrationTile({ card }: { card: IntegrationCard }) {
+function IntegrationTile({
+    card,
+    canConnect,
+    onConnect,
+}: {
+    card: IntegrationCard;
+    canConnect: boolean;
+    onConnect: () => void;
+}) {
     const meta = STATUS_META[card.status];
     const Icon = meta.icon;
     return (
@@ -91,7 +114,15 @@ function IntegrationTile({ card }: { card: IntegrationCard }) {
                 </span>
             </div>
             <p className="ff:text-sm ff:text-slate-500">{card.description}</p>
-            <p className="ff:mt-auto ff:pt-1 ff:text-xs ff:text-slate-400">{card.detail}</p>
+            <div className="ff:mt-auto ff:flex ff:items-center ff:justify-between ff:gap-2 ff:pt-1">
+                <p className="ff:m-0 ff:text-xs ff:text-slate-400">{card.detail}</p>
+                {canConnect && (
+                    <Button variant="outline" size="sm" onClick={onConnect}>
+                        <Plug aria-hidden className="ff:h-4 ff:w-4" />
+                        {__("Connect")}
+                    </Button>
+                )}
+            </div>
         </section>
     );
 }

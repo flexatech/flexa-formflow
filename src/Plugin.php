@@ -26,6 +26,7 @@ final class Plugin {
 		Frontend\Shortcode::instance()->register();
 		Frontend\Block::instance()->register();
 		Emails\Notifications::instance()->register();
+		Emails\Render\Visibility::instance()->register();
 		Workflows\Engine::instance()->register();
 		Integrations\ActivityRecorder::instance()->register();
 

@@ -17,9 +17,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { LockedNote, SchemaFields } from "@/components/custom/SchemaFields";
 import { __ } from "@/lib/i18n";
+import { extensionIcon, integrationConnections, workflowActionTypes } from "@/lib/extensions";
 import { navigate } from "@/lib/router";
 import { useUiStore } from "@/lib/store";
+import type { ExtensionWorkflowAction } from "@/lib/wp";
 import {
     useSaveWorkflow,
     useTestWorkflow,
@@ -63,13 +66,36 @@ const ACTION_META: Record<string, { label: string; icon: LucideIcon; defaults: R
 
 const ACTION_ORDER = ["send_email", "webhook", "set_status", "add_note"];
 
+/** Extension-registered node type (the Pro plugin), or undefined for a built-in. */
+function extActionByType(type: string): ExtensionWorkflowAction | undefined {
+    return workflowActionTypes().find((a) => a.type === type);
+}
+
+/** Label + icon for any node type, built-in or extension, with a safe fallback. */
+function metaFor(type: string): { label: string; icon: LucideIcon } {
+    const builtin = ACTION_META[type];
+    if (builtin) return { label: builtin.label, icon: builtin.icon };
+    const ext = extActionByType(type);
+    if (ext) return { label: ext.label, icon: extensionIcon(ext.icon) };
+    return { label: type, icon: Mail };
+}
+
+function extDefaults(ext: ExtensionWorkflowAction | undefined): Record<string, unknown> {
+    const out: Record<string, unknown> = {};
+    for (const field of ext?.fields ?? []) {
+        if (field.default !== undefined) out[field.key] = field.default;
+    }
+    return out;
+}
+
 let actionCounter = 0;
 function newAction(type: string): WorkflowAction {
     actionCounter += 1;
+    const builtin = ACTION_META[type];
     return {
         id: `a_${Date.now().toString(36)}${actionCounter}`,
         type,
-        config: { ...(ACTION_META[type]?.defaults ?? {}) },
+        config: builtin ? { ...builtin.defaults } : extDefaults(extActionByType(type)),
     };
 }
 
@@ -240,7 +266,7 @@ export function WorkflowBuilderPage({ id }: { id: number }) {
                                     <li key={i} className="ff:flex ff:items-center ff:gap-2 ff:text-sm">
                                         <StatusDot status={entry.status} />
                                         <span className="ff:font-medium ff:text-slate-700">
-                                            {ACTION_META[entry.type]?.label ?? entry.type}
+                                            {metaFor(entry.type).label}
                                         </span>
                                         <span className="ff:text-slate-500">{entry.detail}</span>
                                     </li>
@@ -322,8 +348,8 @@ function ActionNode({
     onRemove: () => void;
     onChange: (patch: Record<string, unknown>) => void;
 }) {
-    const meta = ACTION_META[action.type];
-    const Icon = meta?.icon ?? Mail;
+    const meta = metaFor(action.type);
+    const Icon = meta.icon;
 
     return (
         <section className="ff:rounded-xl ff:border ff:border-slate-200 ff:bg-white ff:p-4 ff:shadow-sm">
@@ -332,7 +358,7 @@ function ActionNode({
                     <Icon aria-hidden className="ff:h-4 ff:w-4" />
                 </span>
                 <div className="ff:flex-1 ff:text-sm ff:font-semibold ff:text-slate-900">
-                    {meta?.label ?? action.type}
+                    {meta.label}
                 </div>
                 <div className="ff:flex ff:gap-0.5">
                     <Button variant="ghost" size="icon" aria-label={__("Move up")} onClick={onUp} disabled={isFirst}>
@@ -503,6 +529,23 @@ function ActionConfig({
         );
     }
 
+    const ext = extActionByType(action.type);
+    if (ext) {
+        const triggerForm = forms.find((f) => f.id === triggerFormId);
+        return (
+            <div className="ff:flex ff:flex-col">
+                {ext.locked && <LockedNote note={ext.lockedNote} />}
+                <SchemaFields
+                    fields={ext.fields}
+                    values={cfg}
+                    onChange={onChange}
+                    context={{ formFields: triggerForm?.fields, connections: integrationConnections() }}
+                    disabled={ext.locked}
+                />
+            </div>
+        );
+    }
+
     return null;
 }
 
@@ -516,6 +559,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 
 function AddAction({ onAdd }: { onAdd: (type: string) => void }) {
+    const extras = workflowActionTypes();
     return (
         <section className="ff:rounded-xl ff:border ff:border-dashed ff:border-slate-300 ff:bg-white ff:p-4">
             <div className="ff:mb-2 ff:flex ff:items-center ff:gap-1.5 ff:text-xs ff:font-medium ff:text-slate-500">
@@ -535,6 +579,25 @@ function AddAction({ onAdd }: { onAdd: (type: string) => void }) {
                         >
                             <Icon aria-hidden className="ff:h-4 ff:w-4" />
                             {meta.label}
+                        </button>
+                    );
+                })}
+                {extras.map((ext) => {
+                    const Icon = extensionIcon(ext.icon);
+                    return (
+                        <button
+                            key={ext.type}
+                            type="button"
+                            onClick={() => onAdd(ext.type)}
+                            className="ff:flex ff:items-center ff:gap-1.5 ff:rounded-lg ff:border ff:border-slate-200 ff:bg-white ff:px-3 ff:py-1.5 ff:text-sm ff:text-slate-700 ff:transition-colors ff:hover:border-brand-300 ff:hover:bg-brand-50 ff:hover:text-brand-700"
+                        >
+                            <Icon aria-hidden className="ff:h-4 ff:w-4" />
+                            {ext.label}
+                            {ext.group === "pro" && (
+                                <span className="ff:rounded ff:bg-violet-100 ff:px-1 ff:py-0.5 ff:text-[10px] ff:font-semibold ff:text-violet-700">
+                                    {__("Pro")}
+                                </span>
+                            )}
                         </button>
                     );
                 })}

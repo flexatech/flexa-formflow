@@ -63,6 +63,11 @@ final class TreeSanitizer {
 				'props' => self::sanitize_props( isset( $node['props'] ) && is_array( $node['props'] ) ? $node['props'] : [] ),
 			];
 
+			$visibility = self::sanitize_visibility( isset( $node['visibility'] ) && is_array( $node['visibility'] ) ? $node['visibility'] : [] );
+			if ( [] !== $visibility['rules'] ) {
+				$element['visibility'] = $visibility;
+			}
+
 			if ( 'columns' === $type && $allow_columns ) {
 				$raw_columns = isset( $node['columns'] ) && is_array( $node['columns'] ) ? $node['columns'] : [ [], [] ];
 				$columns     = [];
@@ -76,6 +81,41 @@ final class TreeSanitizer {
 		}
 
 		return $elements;
+	}
+
+	/**
+	 * A block's form-entry visibility rule set: the shared {match, rules} shape
+	 * used by the workflow conditions builder. Evaluated at send time by
+	 * {@see \Flexa\FormFlow\Emails\Render\Visibility}. Unknown keys are dropped;
+	 * an empty rule list means the block is always visible.
+	 *
+	 * @param array<string, mixed> $visibility
+	 * @return array{match: 'all'|'any', rules: list<array{field: string, op: string, value: string}>}
+	 */
+	private static function sanitize_visibility( array $visibility ): array {
+		$match = ( ( $visibility['match'] ?? 'all' ) === 'any' ) ? 'any' : 'all';
+		$rules = isset( $visibility['rules'] ) && is_array( $visibility['rules'] ) ? $visibility['rules'] : [];
+
+		$clean = [];
+		foreach ( array_slice( $rules, 0, 20 ) as $rule ) {
+			if ( ! is_array( $rule ) ) {
+				continue;
+			}
+			$field = sanitize_key( (string) ( $rule['field'] ?? '' ) );
+			if ( '' === $field ) {
+				continue;
+			}
+			$clean[] = [
+				'field' => $field,
+				'op'    => sanitize_key( (string) ( $rule['op'] ?? 'is' ) ),
+				'value' => sanitize_text_field( (string) ( $rule['value'] ?? '' ) ),
+			];
+		}
+
+		return [
+			'match' => $match,
+			'rules' => $clean,
+		];
 	}
 
 	/**

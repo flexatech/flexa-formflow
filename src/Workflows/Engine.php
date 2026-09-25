@@ -81,8 +81,32 @@ final class Engine {
 			case 'add_note':
 				return $this->do_add_note( $config, $entry, $ctx );
 			default:
-				return $this->result( $type, 'skipped', __( 'Unknown action.', 'flexa-formflow' ) );
+				return $this->run_extension_action( $type, $config, $form, $entry, $ctx );
 		}
+	}
+
+	/**
+	 * Runtime seam for extension-registered action types (the Pro plugin). An
+	 * add-on that adds a node via `flexa_formflow.workflows.action_types` handles
+	 * it here by returning a result array `{type, status, detail}`. Anything else
+	 * (no handler, malformed return) falls back to a skipped log line.
+	 *
+	 * @param array<string, mixed> $config
+	 * @return array{type: string, status: string, detail: string}
+	 */
+	private function run_extension_action( string $type, array $config, Form $form, Entry $entry, RenderContext $ctx ): array {
+		// Handlers return a result array {type, status, detail}, or null to pass.
+		$result = apply_filters( 'flexa_formflow.workflows.run_action', null, $type, $config, $form, $entry, $ctx );
+
+		if ( is_array( $result ) && isset( $result['type'], $result['status'], $result['detail'] ) ) {
+			return [
+				'type'   => (string) $result['type'],
+				'status' => (string) $result['status'],
+				'detail' => (string) $result['detail'],
+			];
+		}
+
+		return $this->result( $type, 'skipped', __( 'Unknown action.', 'flexa-formflow' ) );
 	}
 
 	/**

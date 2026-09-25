@@ -4,12 +4,17 @@ declare(strict_types=1);
 
 namespace Flexa\FormFlow\Domain\Workflows;
 
+use Flexa\FormFlow\Extensions\Registry;
+
 defined( 'ABSPATH' ) || exit;
 
 /**
  * Normalizes the workflow config document (trigger + actions) on the way into
- * storage: unknown action types are dropped and every action config is coerced
- * to its known shape, so a malformed payload can never reach the engine.
+ * storage. Built-in action types are coerced to their known shape; types added
+ * by an extension (registered via `flexa_formflow.workflows.action_types`) pass
+ * through with a generic deep-sanitize, since Free cannot know their config
+ * shape. Any type that is neither is dropped, so a malformed or spoofed payload
+ * can never reach the engine.
  */
 final class WorkflowSanitizer {
 	private const ACTION_TYPES = [ 'send_email', 'webhook', 'set_status', 'add_note' ];
@@ -25,6 +30,9 @@ final class WorkflowSanitizer {
 			'form_id' => max( 0, (int) ( $trigger_in['form_id'] ?? 0 ) ),
 		];
 
+		$extension_types = Registry::workflow_action_type_ids();
+		$allowed_types   = array_merge( self::ACTION_TYPES, $extension_types );
+
 		$actions_in = is_array( $config['actions'] ?? null ) ? $config['actions'] : [];
 		$actions    = [];
 		$index      = 0;
@@ -33,7 +41,7 @@ final class WorkflowSanitizer {
 				continue;
 			}
 			$type = (string) ( $action['type'] ?? '' );
-			if ( ! in_array( $type, self::ACTION_TYPES, true ) ) {
+			if ( ! in_array( $type, $allowed_types, true ) ) {
 				continue;
 			}
 			++$index;
@@ -64,6 +72,12 @@ final class WorkflowSanitizer {
 	 * @return array<string, mixed>
 	 */
 	private static function action_config( string $type, array $config ): array {
+		if ( ! in_array( $type, self::ACTION_TYPES, true ) ) {
+			// Extension-registered type: Free does not know its shape, so deep
+			// sanitize generically. The add-on's runtime re-validates its own config.
+			return self::sanitize_deep( $config );
+		}
+
 		switch ( $type ) {
 			case 'send_email':
 				$to_mode = in_array( $config['to_mode'] ?? '', [ 'admin', 'field', 'fixed' ], true )
@@ -93,5 +107,28 @@ final class WorkflowSanitizer {
 			default:
 				return [];
 		}
+	}
+
+	/**
+	 * Generic recursive sanitize for extension action config: scalars are kept
+	 * as-is (bool/int/float) or run through sanitize_textarea_field (strings),
+	 * arrays recurse with sanitized keys.
+	 *
+	 * @param mixed $value
+	 * @return mixed
+	 */
+	private static function sanitize_deep( $value ) {
+		if ( is_array( $value ) ) {
+			$out = [];
+			foreach ( $value as $key => $item ) {
+				$out[ is_string( $key ) ? sanitize_key( $key ) : (int) $key ] = self::sanitize_deep( $item );
+			}
+			return $out;
+		}
+		if ( is_bool( $value ) || is_int( $value ) || is_float( $value ) ) {
+			return $value;
+		}
+
+		return sanitize_textarea_field( (string) $value );
 	}
 }

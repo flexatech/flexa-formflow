@@ -20,6 +20,7 @@ import { useFormsList } from "@/features/forms/useForms";
 import { LayerList } from "./LayerList";
 import { PreviewPane } from "./PreviewPane";
 import { PropsPanel } from "./PropsPanel";
+import type { ConditionSet } from "@/components/custom/SchemaFields";
 import { useEmailTemplate, useSaveEmailTemplate, useTestSend } from "../useEmailTemplates";
 import {
     emptyTree,
@@ -41,6 +42,9 @@ function cloneWithIds(source: EmailElement): EmailElement {
     const copy: EmailElement = { ...newElement(source.type), props: { ...source.props } };
     if (source.columns) {
         copy.columns = source.columns.map((col) => col.map(cloneWithIds));
+    }
+    if (source.visibility) {
+        copy.visibility = { match: source.visibility.match, rules: source.visibility.rules.map((r) => ({ ...r })) };
     }
     return copy;
 }
@@ -107,6 +111,19 @@ export function EmailEditorPage({ id }: { id: number }) {
         }));
     }, [forms, previewFormId]);
 
+    // Condition subjects for the visibility panel: the preview form's fields.
+    // A template is reusable, so the subjects follow whichever form is picked
+    // for preview; the stored rules key off field ids, which are stable.
+    const conditionFields = useMemo(() => {
+        const form = forms.find((f) => f.id === previewFormId);
+        if (!form) return [];
+        return form.config.fields.map((field) => ({
+            id: field.id,
+            label: field.label || field.id,
+            type: field.type,
+        }));
+    }, [forms, previewFormId]);
+
     if (isLoading || !template || !draft) {
         return (
             <div className="ff:p-6">
@@ -149,6 +166,16 @@ export function EmailEditorPage({ id }: { id: number }) {
     };
     const onChangeProps = (elId: string, props: Record<string, unknown>) =>
         setElements(updateInTree(elements, elId, (el) => ({ ...el, props })));
+    const onChangeVisibility = (elId: string, visibility: ConditionSet) =>
+        setElements(
+            updateInTree(elements, elId, (el) => {
+                if (visibility.rules.length === 0) {
+                    const { visibility: _drop, ...rest } = el;
+                    return rest;
+                }
+                return { ...el, visibility };
+            }),
+        );
     const onChangeColumnCount = (elId: string, count: number) =>
         setElements(updateInTree(elements, elId, (el) => resizeColumns(el, count)));
     const onChangeSettings = (settings: TreeSettings) => setTree({ ...draft.tree, settings });
@@ -228,7 +255,10 @@ export function EmailEditorPage({ id }: { id: number }) {
                         element={selected}
                         settings={draft.tree.settings}
                         fieldTokens={fieldTokens}
+                        conditionFields={conditionFields}
+                        hasPreviewForm={previewFormId > 0}
                         onChangeProps={onChangeProps}
+                        onChangeVisibility={onChangeVisibility}
                         onChangeColumnCount={onChangeColumnCount}
                         onDuplicate={onDuplicate}
                         onDelete={onDelete}

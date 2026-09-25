@@ -15,6 +15,7 @@ import {
     type LucideIcon,
 } from "lucide-react";
 import { __ } from "@/lib/i18n";
+import type { ConditionSet } from "@/components/custom/SchemaFields";
 
 /**
  * TS mirror of the email tree contract (see docs/M2_PLAN.md) and of the PHP
@@ -40,6 +41,12 @@ export interface EmailElement {
      * Nesting is one level deep (a column cannot itself hold a `columns` block).
      */
     columns?: EmailElement[][];
+    /**
+     * Optional form-entry visibility rules. When present with rules, the block
+     * is hidden at send time unless the entry matches (see src/Emails/Render/
+     * Visibility.php). Absent or empty means the block is always shown.
+     */
+    visibility?: ConditionSet;
 }
 
 /** The block type that holds columns of child blocks. */

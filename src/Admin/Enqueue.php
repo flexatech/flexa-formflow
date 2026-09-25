@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Flexa\FormFlow\Admin;
 
 use Flexa\FormFlow\Concerns\HasInstance;
+use Flexa\FormFlow\Extensions\Registry;
 use Flexa\FormFlow\Support\Capabilities;
 use Flexa\FormFlow\Support\OnboardingState;
 
@@ -53,6 +54,7 @@ final class Enqueue {
 				'canManageSettings' => Capabilities::can_manage_settings(),
 				'hasWooCommerce'    => class_exists( \WooCommerce::class ),
 				'onboarding'        => OnboardingState::all(),
+				'extensions'        => Registry::all(),
 			]
 		);
 	}
