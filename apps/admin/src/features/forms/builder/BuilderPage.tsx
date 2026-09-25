@@ -5,7 +5,9 @@ import { Switch } from "@/components/ui/switch";
 import { __ } from "@/lib/i18n";
 import { cn } from "@/lib/cn";
 import { navigate } from "@/lib/router";
+import { SHOW_UPCOMING } from "@/lib/flags";
 import { useUiStore } from "@/lib/store";
+import { SaveToLibraryButton } from "@/features/library/SaveToLibrary";
 import { useForm, useSaveForm } from "../useForms";
 import type { FormConfig, FormStatus } from "../types";
 import { BuildTab } from "./BuildTab";
@@ -104,6 +106,14 @@ export function BuilderPage({ id }: { id: number }) {
                     />
                     {draft.status === "published" ? __("Published") : __("Draft")}
                 </label>
+                {SHOW_UPCOMING && (
+                    <SaveToLibraryButton
+                        type="template"
+                        kind="form"
+                        defaultName={draft.title}
+                        getPayload={() => draft.config as unknown as Record<string, unknown>}
+                    />
+                )}
                 <Button variant="outline" size="sm" onClick={() => setTab("share")}>
                     <Share2 aria-hidden className="ff:h-4 ff:w-4" />
                     {__("Share")}

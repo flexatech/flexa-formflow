@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Flexa\FormFlow\Library;
 
+use Flexa\FormFlow\Packs\InstallState;
+use Flexa\FormFlow\Packs\Registry;
+
 defined( 'ABSPATH' ) || exit;
 
 /**
@@ -33,53 +36,25 @@ final class Catalog {
 	}
 
 	/**
-	 * Pack listings. Metadata only; the importable content and the entitlement
-	 * check arrive with the Pack import pipeline. Catering deliberately needs no
-	 * Pro (its workflows use only Free capabilities) so it sells on its own.
+	 * Pack listings, from the pack registry, with install state merged in so the
+	 * card can show an Installed or Update chip. Content counts come straight
+	 * from each manifest, so the store and the importer never disagree.
 	 *
 	 * @return list<array<string, mixed>>
 	 */
 	private static function packs(): array {
-		return [
-			[
-				'id'            => 'pack-catering',
-				'type'          => 'pack',
-				'name'          => __( 'Catering Business Pack', 'flexa-formflow' ),
-				'description'   => __( 'Build a complete catering inquiry and quote pipeline without starting from scratch.', 'flexa-formflow' ),
-				'category'      => __( 'Hospitality', 'flexa-formflow' ),
-				'kind'          => 'form',
-				'ownership'     => 'paid',
-				'price'         => '$29',
-				'requiresPro'   => false,
-				'version'       => '1.0',
-				'compatibility' => 'FormFlow 1.x',
-				'contents'      => [
-					'forms'     => 6,
-					'emails'    => 10,
-					'workflows' => 5,
-					'patterns'  => 18,
-				],
-			],
-			[
-				'id'            => 'pack-events',
-				'type'          => 'pack',
-				'name'          => __( 'Events Pack', 'flexa-formflow' ),
-				'description'   => __( 'Registration, RSVP and reminder flows for events of any size.', 'flexa-formflow' ),
-				'category'      => __( 'Events', 'flexa-formflow' ),
-				'kind'          => 'form',
-				'ownership'     => 'paid',
-				'price'         => '$24',
-				'requiresPro'   => false,
-				'version'       => '1.0',
-				'compatibility' => 'FormFlow 1.x',
-				'contents'      => [
-					'forms'     => 5,
-					'emails'    => 8,
-					'workflows' => 4,
-					'patterns'  => 14,
-				],
-			],
-		];
+		$items = [];
+		foreach ( Registry::all() as $pack ) {
+			$entry     = $pack->to_catalog_array();
+			$installed = InstallState::is_installed( $pack->id );
+			if ( $installed ) {
+				$entry['installed']       = true;
+				$entry['updateAvailable'] = InstallState::version_of( $pack->id ) !== $pack->version;
+			}
+			$items[] = $entry;
+		}
+
+		return $items;
 	}
 
 	/**

@@ -6,6 +6,10 @@ namespace Flexa\FormFlow\Api;
 
 use Flexa\FormFlow\Domain\Library\LibraryRepository;
 use Flexa\FormFlow\Library\Catalog;
+use Flexa\FormFlow\Packs\Entitlement;
+use Flexa\FormFlow\Packs\InstallState;
+use Flexa\FormFlow\Packs\Installer;
+use Flexa\FormFlow\Packs\Registry;
 use WP_Error;
 use WP_REST_Request;
 use WP_REST_Response;
@@ -28,6 +32,32 @@ final class LibraryEndpoint extends Endpoint {
 					'methods'             => 'GET',
 					'callback'            => [ $this, 'catalog' ],
 					'permission_callback' => [ $this, 'manage_permission' ],
+				],
+			]
+		);
+
+		register_rest_route(
+			self::NAMESPACE,
+			'/library/packs/(?P<id>[a-z0-9-]+)',
+			[
+				[
+					'methods'             => 'GET',
+					'callback'            => [ $this, 'pack' ],
+					'permission_callback' => [ $this, 'manage_permission' ],
+					'args'                => [ 'id' => [ 'sanitize_callback' => 'sanitize_key' ] ],
+				],
+			]
+		);
+
+		register_rest_route(
+			self::NAMESPACE,
+			'/library/packs/(?P<id>[a-z0-9-]+)/import',
+			[
+				[
+					'methods'             => 'POST',
+					'callback'            => [ $this, 'import' ],
+					'permission_callback' => [ $this, 'manage_permission' ],
+					'args'                => [ 'id' => [ 'sanitize_callback' => 'sanitize_key' ] ],
 				],
 			]
 		);
@@ -65,6 +95,37 @@ final class LibraryEndpoint extends Endpoint {
 
 	public function catalog(): WP_REST_Response {
 		return new WP_REST_Response( [ 'items' => Catalog::items() ], 200 );
+	}
+
+	public function pack( WP_REST_Request $request ): WP_REST_Response|WP_Error {
+		$manifest = Registry::find( (string) $request->get_param( 'id' ) );
+		if ( null === $manifest ) {
+			return new WP_Error( 'flexa_formflow_pack_not_found', __( 'Pack not found.', 'flexa-formflow' ), [ 'status' => 404 ] );
+		}
+
+		$detail                    = $manifest->to_detail_array();
+		$detail['canInstall']      = Entitlement::can_install( $manifest );
+		$detail['installed']       = InstallState::is_installed( $manifest->id );
+		$detail['updateAvailable'] = $detail['installed'] && InstallState::version_of( $manifest->id ) !== $manifest->version;
+
+		return new WP_REST_Response( [ 'pack' => $detail ], 200 );
+	}
+
+	public function import( WP_REST_Request $request ): WP_REST_Response|WP_Error {
+		$manifest = Registry::find( (string) $request->get_param( 'id' ) );
+		if ( null === $manifest ) {
+			return new WP_Error( 'flexa_formflow_pack_not_found', __( 'Pack not found.', 'flexa-formflow' ), [ 'status' => 404 ] );
+		}
+		if ( ! Entitlement::can_install( $manifest ) ) {
+			return new WP_Error( 'flexa_formflow_pack_requires_pro', __( 'This pack needs FormFlow Pro.', 'flexa-formflow' ), [ 'status' => 403 ] );
+		}
+		if ( InstallState::is_installed( $manifest->id ) ) {
+			return new WP_Error( 'flexa_formflow_pack_installed', __( 'This pack is already installed.', 'flexa-formflow' ), [ 'status' => 409 ] );
+		}
+
+		$summary = Installer::instance()->import( $manifest );
+
+		return new WP_REST_Response( [ 'summary' => $summary ], 201 );
 	}
 
 	public function index(): WP_REST_Response {

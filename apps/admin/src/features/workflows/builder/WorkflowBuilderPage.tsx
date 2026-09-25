@@ -21,7 +21,9 @@ import { LockedNote, SchemaFields } from "@/components/custom/SchemaFields";
 import { __ } from "@/lib/i18n";
 import { extensionIcon, integrationConnections, workflowActionTypes } from "@/lib/extensions";
 import { navigate } from "@/lib/router";
+import { SHOW_UPCOMING } from "@/lib/flags";
 import { useUiStore } from "@/lib/store";
+import { SaveToLibraryButton } from "@/features/library/SaveToLibrary";
 import type { ExtensionWorkflowAction } from "@/lib/wp";
 import {
     useSaveWorkflow,
@@ -215,6 +217,17 @@ export function WorkflowBuilderPage({ id }: { id: number }) {
                             onCheckedChange={(on) => setDraft({ ...draft, status: on ? "active" : "inactive" })}
                         />
                     </label>
+                    {SHOW_UPCOMING && (
+                        <SaveToLibraryButton
+                            type="recipe"
+                            kind="workflow"
+                            defaultName={draft.title}
+                            getPayload={() => ({
+                                trigger: { type: "form_submitted", form_id: draft.triggerFormId },
+                                actions: draft.actions,
+                            })}
+                        />
+                    )}
                     <Button variant="outline" onClick={onTest} disabled={test.isPending || save.isPending}>
                         <Play aria-hidden className="ff:h-4 ff:w-4" />
                         {test.isPending ? __("Running…") : __("Run test")}

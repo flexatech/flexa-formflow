@@ -1,10 +1,26 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { __ } from "@/lib/i18n";
-import type { AssetKind, AssetType, LibraryAsset, Pack, SavedAsset } from "./types";
+import type {
+    AssetKind,
+    AssetType,
+    ImportSummary,
+    LibraryAsset,
+    Pack,
+    PackDetail,
+    SavedAsset,
+} from "./types";
 
 interface CatalogResponse {
     items: LibraryAsset[];
+}
+
+interface PackResponse {
+    pack: PackDetail;
+}
+
+interface ImportResponse {
+    summary: ImportSummary;
 }
 
 interface MineResponse {
@@ -31,6 +47,30 @@ export function usePacks() {
         ...query,
         data: (query.data ?? []).filter((a): a is Pack => a.type === "pack"),
     };
+}
+
+/** Full pack detail (named contents + install eligibility) for the pack page. */
+export function usePackDetail(id: string) {
+    return useQuery<PackDetail>({
+        queryKey: ["library", "pack", id],
+        queryFn: async () => (await api.get<PackResponse>(`/library/packs/${id}`)).pack,
+        staleTime: 60_000,
+    });
+}
+
+/** Import a pack: materializes its contents, then refreshes the catalog + My Library. */
+export function useImportPack(id: string) {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: async () => (await api.post<ImportResponse>(`/library/packs/${id}/import`, {})).summary,
+        onSuccess: () => {
+            void queryClient.invalidateQueries({ queryKey: ["library"] });
+            void queryClient.invalidateQueries({ queryKey: ["forms"] });
+            void queryClient.invalidateQueries({ queryKey: ["workflows"] });
+            void queryClient.invalidateQueries({ queryKey: ["email-templates"] });
+            void queryClient.invalidateQueries({ queryKey: ["stats"] });
+        },
+    });
 }
 
 /** My Library: the user's saved reusable assets, mapped to the card display shape. */

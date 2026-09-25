@@ -15,7 +15,9 @@ import {
 import { __ } from "@/lib/i18n";
 import { cn } from "@/lib/cn";
 import { navigate } from "@/lib/router";
+import { SHOW_UPCOMING } from "@/lib/flags";
 import { useUiStore } from "@/lib/store";
+import { SaveToLibraryButton } from "@/features/library/SaveToLibrary";
 import { useFormsList } from "@/features/forms/useForms";
 import { LayerList } from "./LayerList";
 import { PreviewPane } from "./PreviewPane";
@@ -221,6 +223,14 @@ export function EmailEditorPage({ id }: { id: number }) {
                         <Smartphone className="ff:h-4 ff:w-4" />
                     </Button>
                 </div>
+                {SHOW_UPCOMING && (
+                    <SaveToLibraryButton
+                        type="template"
+                        kind="email"
+                        defaultName={draft.title}
+                        getPayload={() => draft.tree as unknown as Record<string, unknown>}
+                    />
+                )}
                 <Button variant="outline" size="sm" onClick={() => setTestOpen(true)}>
                     <Send aria-hidden className="ff:h-4 ff:w-4" />
                     {__("Send test")}

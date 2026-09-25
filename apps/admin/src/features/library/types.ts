@@ -47,6 +47,32 @@ export interface Pack extends LibraryAsset {
     compatibility: string;
 }
 
+/** One named item in a pack, for the detail / import review list. */
+export interface PackItem {
+    ref: string;
+    name: string;
+    requiresPro: boolean;
+}
+
+/** A Pack plus its named content lists and this site's install eligibility. */
+export interface PackDetail extends Pack {
+    items: {
+        forms: PackItem[];
+        emails: PackItem[];
+        workflows: PackItem[];
+        patterns: PackItem[];
+    };
+    /** False when the pack needs Pro this site does not have. */
+    canInstall: boolean;
+}
+
+/** What an import created and what it skipped (Pro-only content on Free). */
+export interface ImportSummary {
+    pack: string;
+    created: { forms: number; emails: number; workflows: number; patterns: number };
+    skipped: { name: string; reason: string }[];
+}
+
 /** The raw My Library row as stored and returned by the server. */
 export interface SavedAsset {
     id: number;

@@ -59,22 +59,34 @@ To view Slice 1 in wp-admin, flip `SHOW_UPCOMING` to `true` in
 - [x] `useLibrary` reads the REST endpoints; placeholder catalog deleted.
       `usePacks` derives packs from the catalog (Dashboard + pack detail).
 - [x] My Library tab: lists saved assets, remove action, toast.
-- [ ] 3b: "Save to Library" action in the form builder, email editor, workflow
-      builder (minimal: one action + a name dialog).
+- [x] 3b: "Save to Library" action in the form builder, email editor, workflow
+      builder. Shared `SaveToLibraryButton` (button + name dialog) in
+      `features/library/SaveToLibrary.tsx`; form/email save as `template`,
+      workflow as `recipe`; each builder passes its live document via
+      `getPayload`. Gated behind `SHOW_UPCOMING` in every builder header.
 - [ ] Asset preview: open the read-only builder chrome for a template/recipe.
-- [ ] Remove the `upcoming` gate on Library once import + save round-trips.
+- [ ] Remove the `upcoming` gate on Library once import + save round-trips
+      (deferred until Slice 4 lands the import path — the gate covers both).
 
-### Slice 4 — Pack v1 · TODO
+### Slice 4 — Pack v1 · DONE
 
-- [ ] Pack manifest format + a `Domain\Packs\` reader; one authored Catering
-      Pack whose workflows use only Free capabilities (sell before Pro nodes).
-- [ ] Entitlement check: on Free, free-capable packs install; Pro-required
-      content imports disabled with a "needs Pro" state. Rides the license
-      service entitlement list (empty on Free).
-- [ ] Pack detail page (section L), 3-step import flow (review → import →
-      done), provenance stamping, shared-pattern dedupe on import.
-- [ ] Imported workflows arrive disabled; nothing is written before Step 1
-      confirm.
+- [x] Pack manifest format (`Domain\Packs\{PackManifest, PackContent}`) + a
+      reader (`Packs\Registry`, filter seam `flexa_formflow.packs`); one authored
+      Catering Pack (`Packs\CateringPack`: 1 form, 1 email, 1 workflow, 1 shared
+      pattern) whose workflow uses only Free capabilities (send email, set
+      status).
+- [x] Entitlement check (`Packs\Entitlement`): the gate is the Pro *capability*
+      (filter `flexa_formflow.pro.is_licensed`, default false), not the store
+      purchase, so a free-capable pack installs on Free. Pro-only content is
+      skipped and reported. Install state tracked in `Packs\InstallState`
+      (option `flexa_formflow_installed_packs`).
+- [x] Pack detail page (real named contents via `GET /library/packs/{id}`),
+      3-step import flow (`ImportPackDialog`: review → import → done),
+      provenance stamping + shared-pattern dedupe by content id
+      (`LibraryRepository::find_by_content_id`) in `Packs\Installer`.
+- [x] Imported workflows arrive inactive (the repository forces it) with
+      form/template refs resolved to the new ids; nothing is written before the
+      review step's confirm (`POST /library/packs/{id}/import`).
 
 ### Slice 5 — Locked states applied + nav restructure · TODO
 

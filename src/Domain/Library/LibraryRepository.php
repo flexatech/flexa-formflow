@@ -68,6 +68,30 @@ final class LibraryRepository {
 	}
 
 	/**
+	 * Dedupe lookup by content id alone: a shared pattern keeps the same content
+	 * id across packs, so once any pack has installed it we link rather than
+	 * duplicate. Distinct from {@see find_by_source}, which is pack-scoped.
+	 */
+	public function find_by_content_id( string $content_id ): ?LibraryAsset {
+		global $wpdb;
+
+		if ( '' === $content_id ) {
+			return null;
+		}
+
+		$table = Schema::library_table();
+		$row   = $wpdb->get_row(
+			$wpdb->prepare(
+				"SELECT * FROM {$table} WHERE source_content_id = %s LIMIT 1",
+				$content_id
+			),
+			ARRAY_A
+		);
+
+		return is_array( $row ) ? LibraryAsset::from_row( $row ) : null;
+	}
+
+	/**
 	 * @param array<string, mixed> $payload
 	 * @param array{pack?: string, contentId?: string, version?: string} $source
 	 */
