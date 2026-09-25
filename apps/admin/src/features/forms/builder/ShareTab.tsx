@@ -9,12 +9,42 @@ interface ShareTabProps {
     status: FormStatus;
 }
 
+/** navigator.clipboard only exists on secure contexts (https/localhost); plain-http dev sites need the execCommand fallback. */
+async function copyText(text: string): Promise<boolean> {
+    if (navigator.clipboard?.writeText) {
+        try {
+            await navigator.clipboard.writeText(text);
+            return true;
+        } catch {
+            // fall through to execCommand
+        }
+    }
+    const el = document.createElement("textarea");
+    el.value = text;
+    el.setAttribute("readonly", "");
+    el.style.position = "fixed";
+    el.style.opacity = "0";
+    document.body.appendChild(el);
+    el.select();
+    let ok = false;
+    try {
+        ok = document.execCommand("copy");
+    } catch {
+        ok = false;
+    }
+    document.body.removeChild(el);
+    return ok;
+}
+
 export function ShareTab({ form, status }: ShareTabProps) {
     const shortcode = `[flexa_formflow id="${form.id}"]`;
     const [copied, setCopied] = useState(false);
 
     const copy = () => {
-        void navigator.clipboard.writeText(shortcode).then(() => {
+        void copyText(shortcode).then((ok) => {
+            if (!ok) {
+                return;
+            }
             setCopied(true);
             window.setTimeout(() => setCopied(false), 1600);
         });
