@@ -11,6 +11,10 @@ declare(strict_types=1);
 
 defined( 'ABSPATH' ) || exit;
 
+// These $ff_* variables are locals scoped to this template include (rendered by
+// Frontend\Shortcode::render()), not true globals; the plugin's short `ff` prefix
+// sits below the sniff's length threshold, so it flags them as unprefixed.
+// phpcs:disable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound -- template-scoped locals; see note above.
 $ff_settings     = $form->settings();
 $ff_submit_label = (string) ( $ff_settings['submit_label'] ?? '' );
 if ( '' === $ff_submit_label ) {
@@ -121,3 +125,4 @@ if ( '' === $ff_submit_label ) {
 		<span><?php echo esc_html( $ff_submit_label ); ?></span>
 	</button>
 </form>
+<?php // phpcs:enable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound ?>

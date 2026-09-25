@@ -9,7 +9,7 @@ use Flexa\FormFlow\Database\Schema;
 
 defined( 'ABSPATH' ) || exit;
 
-// phpcs:disable WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders -- data-access class for our own tables; table names come from Schema, values go through $wpdb->prepare() with dynamically built %d/%s placeholder lists the sniff cannot follow statically.
+// phpcs:disable WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders, PluginCheck.Security.DirectDB.UnescapedDBParameter -- data-access class for our own tables; table names come from Schema, values go through $wpdb->prepare() with dynamically built %d/%s placeholder lists the sniff cannot follow statically.
 
 final class FormRepository {
 	use HasInstance;

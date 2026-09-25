@@ -10,7 +10,7 @@ use Flexa\FormFlow\Emails\TreeSanitizer;
 
 defined( 'ABSPATH' ) || exit;
 
-// phpcs:disable WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- data-access class for our own tables; table names come from Schema, values go through $wpdb->prepare().
+// phpcs:disable WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- data-access class for our own tables; table names come from Schema, values go through $wpdb->prepare().
 
 final class EmailTemplateRepository {
 	use HasInstance;
