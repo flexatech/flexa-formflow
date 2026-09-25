@@ -1,0 +1,30 @@
+includes:
+    - vendor/szepeviktor/phpstan-wordpress/extension.neon
+
+parameters:
+    level: 6
+    # Runtime floor is PHP 8.1 (readonly promoted properties), so the parser
+    # cannot go lower than 80100. The version_compare() guard in flexa-formflow.php
+    # for sub-8.1 hosts is therefore "always false" to the analyser; that is
+    # accepted — the guard stays as live code for old hosts.
+    phpVersion:
+        min: 80100
+        max: 80400
+    paths:
+        - src
+        - flexa-formflow.php
+        - uninstall.php
+    ignoreErrors:
+        # The sub-8.1 guard in flexa-formflow.php is live code on old hosts, but
+        # the parser floor is 8.1 (readonly syntax) so the analyser folds it.
+        -
+            identifier: if.alwaysFalse
+            path: flexa-formflow.php
+    excludePaths:
+        - vendor
+        - node_modules
+        - assets/dist (?)
+    bootstrapFiles:
+        - vendor/szepeviktor/phpstan-wordpress/bootstrap.php
+        - vendor/php-stubs/woocommerce-stubs/woocommerce-stubs.php
+        - phpstan-bootstrap.php

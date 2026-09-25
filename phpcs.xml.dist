@@ -1,0 +1,129 @@
+<?xml version="1.0"?>
+<ruleset name="Flexa FormFlow">
+    <description>Coding standards for Flexa FormFlow.</description>
+
+    <file>./src</file>
+    <file>./flexa-formflow.php</file>
+    <file>./uninstall.php</file>
+    <file>./templates</file>
+
+    <exclude-pattern>*/vendor/*</exclude-pattern>
+    <exclude-pattern>*/node_modules/*</exclude-pattern>
+    <exclude-pattern>*/assets/dist/*</exclude-pattern>
+    <exclude-pattern>*/apps/*</exclude-pattern>
+
+    <arg value="sp"/>
+    <arg name="extensions" value="php"/>
+    <arg name="colors"/>
+
+    <config name="testVersion" value="8.1-"/>
+    <config name="minimum_supported_wp_version" value="5.9"/>
+
+    <rule ref="WordPress">
+        <exclude name="WordPress.Files.FileName"/>
+        <exclude name="Universal.Operators.DisallowShortTernary"/>
+
+        <!--
+            Deliberate Flexa house style (documented in the
+            flexa-plugin-conventions skill). These are NOT debt to be fixed;
+            "fixing" them would violate the lineage conventions and diverge
+            from the canonical sibling plugin.
+        -->
+
+        <!-- Short array syntax `[]` is the house style, everywhere. -->
+        <exclude name="Universal.Arrays.DisallowShortArraySyntax"/>
+
+        <!--
+            Hooks are intentionally dot-namespaced (flexa_formflow.domain.event)
+            so they read as a hierarchy and never collide. Never "fix" these
+            to underscores for phpcs.
+        -->
+        <exclude name="WordPress.NamingConventions.ValidHookName"/>
+
+        <!--
+            Sparse / terse typed docblocks are the documented convention:
+            a docblock is written only for non-trivial logic or array shapes,
+            and then carries only the non-trivial @param (e.g. an
+            `@param array<string,mixed> $data`), not a full positional tag
+            list with prose. Squiz's FunctionComment sniff assumes a 1:1
+            positional @param↔parameter mapping, so a single-tag docblock
+            produces cascades of false ParamNameNoMatch / IncorrectTypeHint /
+            MissingParamTag errors. phpstan level 6 (clean, gated on every
+            commit) is the *real* type-correctness gate here — these Squiz
+            doc-completeness opinions are redundant noise against the terse
+            docblock style and the minimal-file-header convention.
+        -->
+        <exclude name="Squiz.Commenting.FileComment"/>
+        <exclude name="Squiz.Commenting.ClassComment"/>
+        <exclude name="Squiz.Commenting.FunctionComment"/>
+        <exclude name="Squiz.Commenting.VariableComment"/>
+        <exclude name="Generic.Commenting.DocComment"/>
+        <exclude name="Squiz.Commenting.FunctionCommentThrowTag"/>
+
+        <!--
+            Yoda conditions: the codebase relies on declare(strict_types=1)
+            plus strict (===/!==) comparisons; the assignment-in-condition
+            class of bug Yoda guards against cannot occur. A common,
+            defensible modern-WP choice, in the same spirit as the
+            DisallowShortTernary exclude above.
+        -->
+        <exclude name="WordPress.PHP.YodaConditions"/>
+
+        <!--
+            $new / $old are the documented parameter names of the
+            flexa_formflow.settings.updated ( $new, $old ) hook contract, and
+            $class is the conventional PSR-4 autoloader parameter. (Warning
+            only — never blocked a build.)
+        -->
+        <exclude name="Universal.NamingConventions.NoReservedKeywordParameterNames"/>
+
+        <!--
+            base64 is used for binary-safe transport, never obfuscation:
+            AES-256-GCM ciphertext of the AI API key (Support\Encryption).
+        -->
+        <exclude name="WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_encode"/>
+        <exclude name="WordPress.PHP.DiscouragedPHPFunctions.obfuscation_base64_decode"/>
+    </rule>
+    <rule ref="PHPCompatibilityWP"/>
+
+    <!--
+        Documented deliberate design exceptions, scoped to the exact files
+        whose architecture requires them. Each is intentional; a blanket rule
+        would hide real findings elsewhere, so the exclusion is path-scoped.
+    -->
+
+    <!--
+        Enqueue reads the local Vite manifest.json (a bundled local file, not
+        a URL); file_get_contents is correct here — wp_remote_get is for
+        remote resources.
+    -->
+    <rule ref="WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents">
+        <exclude-pattern>*/src/Admin/Enqueue.php</exclude-pattern>
+    </rule>
+
+    <!--
+        uninstall.php removes the plugin's own posts/options on the explicit
+        delete_data_on_uninstall opt-in — direct, uncached queries are the
+        point there.
+    -->
+    <rule ref="WordPress.DB.DirectDatabaseQuery">
+        <exclude-pattern>*/uninstall.php</exclude-pattern>
+    </rule>
+
+    <!-- manage_woocommerce is registered by WooCommerce, the required parent plugin. -->
+    <rule ref="WordPress.WP.Capabilities">
+        <properties>
+            <property name="custom_capabilities" type="array">
+                <element value="manage_woocommerce"/>
+            </property>
+        </properties>
+    </rule>
+
+    <rule ref="WordPress.WP.I18n">
+        <properties>
+            <property name="text_domain" type="array">
+                <element value="flexa-formflow"/>
+            </property>
+        </properties>
+    </rule>
+</ruleset>
