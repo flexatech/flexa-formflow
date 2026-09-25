@@ -114,12 +114,19 @@ export interface FormSummary extends FormDetail {
 
 export type EntryStatus = "unread" | "read";
 
+export interface ActivityEvent {
+    kind: string;
+    type?: string;
+    label: string;
+    at: string;
+}
+
 export interface EntryRow {
     id: number;
     form_id: number;
     status: EntryStatus;
     data: Record<string, unknown>;
-    meta: { user_agent?: string; referer?: string };
+    meta: { user_agent?: string; referer?: string; activity?: ActivityEvent[] };
     created_at: string;
 }
 
