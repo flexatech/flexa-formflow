@@ -26,6 +26,12 @@ consideration in Phase 7.
 Each milestone maps to phases in `IMPLEMENTATION_PLAN.md` and ends in a
 tagged, releasable state.
 
+Build status (see `IMPLEMENTATION_PLAN.md` for detail): M1 and M2 shipped;
+M3 hardening done bar the directory art and the manual smoke test; **M4, M5,
+M6, and M7 are now built and pass static checks** (phpstan L6, phpcs, `pnpm
+build` all green). The version tag and per-milestone release sequencing are a
+separate decision from the code being ready.
+
 ### M1 · "A form plugin that works" (0.5.0) — Phases 1 + 2 + email slice
 
 The minimum version that is honestly useful and passes WP.org review.

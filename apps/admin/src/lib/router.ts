@@ -20,8 +20,11 @@ export type Route =
     | { name: "entry"; id: number }
     | { name: "emails" }
     | { name: "emailEditor"; id: number }
+    | { name: "woocommerce" }
     | { name: "workflows" }
+    | { name: "workflowEditor"; id: number }
     | { name: "integrations" }
+    | { name: "ai" }
     | { name: "settings" };
 
 export function parseHash(hash: string): Route {
@@ -44,10 +47,17 @@ export function parseHash(hash: string): Route {
                 return { name: "emailEditor", id: parseInt(second, 10) };
             }
             return { name: "emails" };
+        case "woocommerce":
+            return { name: "woocommerce" };
         case "workflows":
+            if (second && /^\d+$/.test(second) && third === "edit") {
+                return { name: "workflowEditor", id: parseInt(second, 10) };
+            }
             return { name: "workflows" };
         case "integrations":
             return { name: "integrations" };
+        case "ai":
+            return { name: "ai" };
         case "settings":
             return { name: "settings" };
         default:

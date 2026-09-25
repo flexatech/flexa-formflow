@@ -26,10 +26,15 @@ final class Plugin {
 		Frontend\Shortcode::instance()->register();
 		Frontend\Block::instance()->register();
 		Emails\Notifications::instance()->register();
+		Workflows\Engine::instance()->register();
+		Integrations\ActivityRecorder::instance()->register();
 
-		// Future domain subsystems (email builder, workflows) register here.
-		// WooCommerce email takeover gates on class_exists( \WooCommerce::class )
-		// at that point, never at boot.
+		// WooCommerce email takeover: only wire the interceptor and render
+		// extensions when WooCommerce is active. The plugin keeps working without
+		// it; the settings screen still loads and explains the requirement.
+		if ( class_exists( \WooCommerce::class ) ) {
+			WooCommerce\Bootstrap::instance()->register();
+		}
 
 		if ( is_admin() ) {
 			Admin\Menu::instance()->register();
