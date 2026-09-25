@@ -1,0 +1,229 @@
+# Copyright (C) 2026 FlexaTech
+# This file is distributed under the GPL v2 or later.
+msgid ""
+msgstr ""
+"Project-Id-Version: Flexa FormFlow 0.1.0\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/flexa-formflow\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"POT-Creation-Date: 2026-09-25T02:21:31+00:00\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"X-Generator: WP-CLI 2.10.0\n"
+"X-Domain: flexa-formflow\n"
+
+#. Plugin Name of the plugin
+#: flexa-formflow.php
+#: src/Admin/Menu.php:39
+#: src/Admin/Menu.php:40
+msgid "Flexa FormFlow"
+msgstr ""
+
+#. Description of the plugin
+#: flexa-formflow.php
+msgid "Build forms, design emails, automate workflows. Form submissions become structured data you can use in visual emails and automations."
+msgstr ""
+
+#. Author of the plugin
+#: flexa-formflow.php
+msgid "FlexaTech"
+msgstr ""
+
+#: flexa-formflow.php:24
+msgid "Flexa FormFlow requires PHP 8.1 or higher. The plugin has been disabled."
+msgstr ""
+
+#: src/Admin/ActivationRedirect.php:90
+msgid "Flexa FormFlow is ready."
+msgstr ""
+
+#: src/Admin/ActivationRedirect.php:91
+msgid "Build your first form and its emails in a couple of minutes."
+msgstr ""
+
+#: src/Admin/ActivationRedirect.php:93
+msgid "Open the guide"
+msgstr ""
+
+#: src/Admin/ActivationRedirect.php:94
+msgid "Dismiss"
+msgstr ""
+
+#: src/Admin/Menu.php:29
+msgid "Open FormFlow"
+msgstr ""
+
+#: src/Api/Endpoint.php:27
+msgid "You do not have permission to perform this action."
+msgstr ""
+
+#: src/Api/Endpoint.php:39
+msgid "You do not have permission to update settings."
+msgstr ""
+
+#: templates/admin-app.php:10
+msgid "Flexa FormFlow needs JavaScript enabled to run its editor."
+msgstr ""
+
+#: i18n/extracted-strings.js:2
+#: i18n/extracted-strings.js:13
+#: i18n/extracted-strings.js:43
+msgid "Forms"
+msgstr ""
+
+#: i18n/extracted-strings.js:3
+#: i18n/extracted-strings.js:17
+#: i18n/extracted-strings.js:44
+msgid "Entries"
+msgstr ""
+
+#: i18n/extracted-strings.js:4
+msgid "Emails sent"
+msgstr ""
+
+#: i18n/extracted-strings.js:5
+msgid "Active workflows"
+msgstr ""
+
+#: i18n/extracted-strings.js:6
+#: i18n/extracted-strings.js:42
+msgid "Dashboard"
+msgstr ""
+
+#: i18n/extracted-strings.js:7
+msgid "Recent activity"
+msgstr ""
+
+#: i18n/extracted-strings.js:8
+msgid "Submissions, sent emails, and workflow runs will show up here."
+msgstr ""
+
+#: i18n/extracted-strings.js:9
+msgid "Quick actions"
+msgstr ""
+
+#: i18n/extracted-strings.js:10
+msgid "Create Form"
+msgstr ""
+
+#: i18n/extracted-strings.js:11
+msgid "Design Email"
+msgstr ""
+
+#: i18n/extracted-strings.js:12
+msgid "Build Workflow"
+msgstr ""
+
+#: i18n/extracted-strings.js:14
+msgid "Every flow starts with a form"
+msgstr ""
+
+#: i18n/extracted-strings.js:15
+msgid "Build one in about two minutes. Its fields become data you can use in emails and workflows."
+msgstr ""
+
+#: i18n/extracted-strings.js:16
+msgid "The form builder ships in an upcoming release."
+msgstr ""
+
+#: i18n/extracted-strings.js:18
+msgid "Submissions will land here"
+msgstr ""
+
+#: i18n/extracted-strings.js:19
+msgid "Share or embed a form to start collecting entries, each with a full activity timeline."
+msgstr ""
+
+#: i18n/extracted-strings.js:20
+msgid "Entries arrive once the form builder ships."
+msgstr ""
+
+#: i18n/extracted-strings.js:21
+#: i18n/extracted-strings.js:45
+msgid "Emails"
+msgstr ""
+
+#: i18n/extracted-strings.js:22
+msgid "Design emails once"
+msgstr ""
+
+#: i18n/extracted-strings.js:23
+msgid "Your form data fills them in automatically. WooCommerce order emails are designed in the same builder."
+msgstr ""
+
+#: i18n/extracted-strings.js:24
+msgid "The email builder ships in an upcoming release."
+msgstr ""
+
+#: i18n/extracted-strings.js:25
+#: i18n/extracted-strings.js:46
+msgid "Workflows"
+msgstr ""
+
+#: i18n/extracted-strings.js:26
+msgid "Decide what happens after Send"
+msgstr ""
+
+#: i18n/extracted-strings.js:27
+msgid "Connect forms, emails, and integrations on a visual canvas with conditions and branches."
+msgstr ""
+
+#: i18n/extracted-strings.js:28
+msgid "The workflow builder ships in an upcoming release."
+msgstr ""
+
+#: i18n/extracted-strings.js:29
+#: i18n/extracted-strings.js:47
+msgid "Integrations"
+msgstr ""
+
+#: i18n/extracted-strings.js:30
+msgid "Send your data where your team works"
+msgstr ""
+
+#: i18n/extracted-strings.js:31
+msgid "CRM, email marketing, messaging, and webhooks connect here. Delivery stays with your mail bridge plugin."
+msgstr ""
+
+#: i18n/extracted-strings.js:32
+msgid "Integrations ship in an upcoming release."
+msgstr ""
+
+#: i18n/extracted-strings.js:33
+msgid "Settings saved."
+msgstr ""
+
+#: i18n/extracted-strings.js:34
+msgid "Could not save settings."
+msgstr ""
+
+#: i18n/extracted-strings.js:35
+#: i18n/extracted-strings.js:48
+msgid "Settings"
+msgstr ""
+
+#: i18n/extracted-strings.js:36
+msgid "Saving…"
+msgstr ""
+
+#: i18n/extracted-strings.js:37
+msgid "Save changes"
+msgstr ""
+
+#: i18n/extracted-strings.js:38
+msgid "Brand color"
+msgstr ""
+
+#: i18n/extracted-strings.js:39
+msgid "Used as the default accent in your email templates."
+msgstr ""
+
+#: i18n/extracted-strings.js:40
+msgid "Delete data on uninstall"
+msgstr ""
+
+#: i18n/extracted-strings.js:41
+msgid "Remove all plugin data when the plugin is deleted. Forms and entries are kept unless this is on."
+msgstr ""
