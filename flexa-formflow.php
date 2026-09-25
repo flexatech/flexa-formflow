@@ -1,8 +1,8 @@
 <?php
 /**
  * Plugin Name:       Flexa FormFlow
- * Description:       Build forms, design emails, automate workflows. Form submissions become structured data you can use in visual emails and automations.
- * Version:           0.1.0
+ * Description:       Build forms, collect entries, and design the emails they trigger. Every form field becomes a token you can drop into a visual email.
+ * Version:           1.0.0
  * Requires at least: 6.2
  * Requires PHP:      8.1
  * Author:            FlexaTech
@@ -28,7 +28,7 @@ if ( version_compare( PHP_VERSION, '8.1', '<' ) ) {
 	return;
 }
 
-define( 'FLEXA_FORMFLOW_VERSION', '0.1.0' );
+define( 'FLEXA_FORMFLOW_VERSION', '1.0.0' );
 define( 'FLEXA_FORMFLOW_FILE', __FILE__ );
 define( 'FLEXA_FORMFLOW_PATH', plugin_dir_path( __FILE__ ) );
 define( 'FLEXA_FORMFLOW_URL', plugin_dir_url( __FILE__ ) );

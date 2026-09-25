@@ -65,8 +65,8 @@ final class SubmitEndpoint extends Endpoint {
 			if ( '' === $field_id ) {
 				continue;
 			}
-			$error               = null;
-			$data[ $field_id ]   = FieldTypes::sanitize_value( $field, $values[ $field_id ] ?? '', $error );
+			$error             = null;
+			$data[ $field_id ] = FieldTypes::sanitize_value( $field, $values[ $field_id ] ?? '', $error );
 			if ( null !== $error ) {
 				$errors[ $field_id ] = $error;
 			}
@@ -96,7 +96,7 @@ final class SubmitEndpoint extends Endpoint {
 			$form->id,
 			$data,
 			[
-				'user_agent' => sanitize_text_field( (string) ( $_SERVER['HTTP_USER_AGENT'] ?? '' ) ), // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotUnslashed
+				'user_agent' => sanitize_text_field( wp_unslash( (string) ( $_SERVER['HTTP_USER_AGENT'] ?? '' ) ) ),
 				'referer'    => esc_url_raw( (string) wp_get_referer() ),
 			]
 		);

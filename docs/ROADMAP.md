@@ -109,15 +109,15 @@ advertising features that do not exist, and any unaudited input handling.
 
 ## Pre-submission checklist (M3 gate)
 
-- [ ] No placeholder/"coming soon" screens in the shipped UI
-- [ ] Every REST route: real `permission_callback` + per-arg sanitization
-- [ ] All output escaped; all frontend submits nonce-protected
-- [ ] `uninstall.php` respects the delete-data toggle
-- [ ] readme.txt: description, FAQ, screenshots, changelog, Stable tag
-- [ ] Assets for the directory: banner 1544x500, icon 256x256, screenshots
-- [ ] `.pot` regenerated; all UI strings extractable (literals only)
-- [ ] phpstan L6 clean; phpcs reconciled once codebase-wide
-- [ ] `release.sh` zip inspected: only runtime files plus `readme.txt` and
-      `apps/admin/src`
+- [x] No placeholder/"coming soon" screens in the shipped UI (audited: Workflows/Integrations gated behind `SHOW_UPCOMING = false`)
+- [x] Every REST route: real `permission_callback` + per-arg sanitization (audited: 9/9 routes; public submit justified by honeypot + time-trap)
+- [x] All output escaped; all frontend submits nonce-protected (audited: templates + email render escape all dynamic output; `wp_rest` nonce localized)
+- [x] `uninstall.php` respects the delete-data toggle (audited: off by default, drops the three tables + options only on opt-in)
+- [x] readme.txt: description, FAQ, screenshots, changelog, Stable tag (rewritten for the real 1.0.0 scope; Installation + Screenshots sections added)
+- [ ] Assets for the directory: banner 1544x500, icon 256x256, screenshots (PNG files must be produced by hand; readme screenshot captions are in place)
+- [x] `.pot` regenerated; all UI strings extractable (literals only)
+- [x] phpstan L6 clean; phpcs reconciled once codebase-wide (25 DB false positives scoped with `phpcs:disable` + reason; `$_SERVER` unslashed; cosmetic fixes applied)
+- [x] `release.sh` zip inspected: only runtime files plus `readme.txt` and
+      `apps/admin/src` (build/flexa-formflow-1.0.0.zip verified: no `*.md`/vendor/docs leaks; all runtime files present)
 - [ ] Fresh-install smoke test from the zip on a clean WP site, with and
-      without WooCommerce active
+      without WooCommerce active (manual; still pending, together with the M2 editor smoke test)

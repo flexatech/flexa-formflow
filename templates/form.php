@@ -21,12 +21,12 @@ if ( '' === $ff_submit_label ) {
 	<div class="flexa-formflow-form__fields">
 		<?php foreach ( $form->fields() as $ff_field ) : ?>
 			<?php
-			$ff_id       = (string) ( $ff_field['id'] ?? '' );
-			$ff_type     = (string) ( $ff_field['type'] ?? 'text' );
-			$ff_label    = (string) ( $ff_field['label'] ?? '' );
-			$ff_required = ! empty( $ff_field['required'] );
-			$ff_ph       = (string) ( $ff_field['placeholder'] ?? '' );
-			$ff_options  = is_array( $ff_field['options'] ?? null ) ? $ff_field['options'] : [];
+			$ff_id        = (string) ( $ff_field['id'] ?? '' );
+			$ff_type      = (string) ( $ff_field['type'] ?? 'text' );
+			$ff_label     = (string) ( $ff_field['label'] ?? '' );
+			$ff_required  = ! empty( $ff_field['required'] );
+			$ff_ph        = (string) ( $ff_field['placeholder'] ?? '' );
+			$ff_options   = is_array( $ff_field['options'] ?? null ) ? $ff_field['options'] : [];
 			$ff_width_map = [
 				'full'       => 'full',
 				'half'       => 'half',
@@ -36,8 +36,8 @@ if ( '' === $ff_submit_label ) {
 			$ff_width     = $ff_width_map[ $ff_field['width'] ?? 'full' ] ?? 'full';
 			// Tablet/mobile: 'inherit' (or unknown) yields '' so no attribute is
 			// emitted and the field keeps the larger breakpoint's width.
-			$ff_w_tablet  = $ff_width_map[ $ff_field['widthTablet'] ?? 'inherit' ] ?? '';
-			$ff_w_mobile  = $ff_width_map[ $ff_field['widthMobile'] ?? 'inherit' ] ?? '';
+			$ff_w_tablet = $ff_width_map[ $ff_field['widthTablet'] ?? 'inherit' ] ?? '';
+			$ff_w_mobile = $ff_width_map[ $ff_field['widthMobile'] ?? 'inherit' ] ?? '';
 			$ff_dom_id   = 'ff-' . $form->uuid . '-' . $ff_id;
 			if ( '' === $ff_id ) {
 				continue;
@@ -52,7 +52,10 @@ if ( '' === $ff_submit_label ) {
 					<fieldset>
 						<legend>
 							<?php echo esc_html( $ff_label ); ?>
-							<?php if ( $ff_required ) : ?><span class="flexa-formflow-required" aria-hidden="true">*</span><?php endif; ?>
+							<?php
+							if ( $ff_required ) :
+								?>
+								<span class="flexa-formflow-required" aria-hidden="true">*</span><?php endif; ?>
 						</legend>
 						<?php foreach ( $ff_options as $ff_index => $ff_option ) : ?>
 							<label class="flexa-formflow-choice">
@@ -69,7 +72,10 @@ if ( '' === $ff_submit_label ) {
 				<?php else : ?>
 					<label for="<?php echo esc_attr( $ff_dom_id ); ?>">
 						<?php echo esc_html( $ff_label ); ?>
-						<?php if ( $ff_required ) : ?><span class="flexa-formflow-required" aria-hidden="true">*</span><?php endif; ?>
+						<?php
+						if ( $ff_required ) :
+							?>
+							<span class="flexa-formflow-required" aria-hidden="true">*</span><?php endif; ?>
 					</label>
 					<?php if ( 'textarea' === $ff_type ) : ?>
 						<textarea

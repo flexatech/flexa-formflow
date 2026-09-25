@@ -133,7 +133,7 @@ final class Tokens {
 			}
 
 			if ( array_key_exists( $field_id, $data ) ) {
-				$value                 = $data[ $field_id ];
+				$value               = $data[ $field_id ];
 				$values[ $field_id ] = is_array( $value ) ? implode( ', ', array_map( 'strval', $value ) ) : (string) $value;
 			} elseif ( $ctx->is_preview ) {
 				$values[ $field_id ] = FieldTypes::sample_value( $field );
