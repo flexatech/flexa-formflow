@@ -1,4 +1,5 @@
 import { Copy, Trash2 } from "lucide-react";
+import { ColorField } from "@/components/custom/ColorField";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
@@ -188,15 +189,7 @@ function FieldEditor({
                 />
             )}
             {field.type === "color" && (
-                <div className="ff:flex ff:items-center ff:gap-2">
-                    <input
-                        type="color"
-                        value={/^#[0-9a-fA-F]{6}$/.test(str) ? str : "#000000"}
-                        onChange={(e) => onChange(e.target.value)}
-                        className="ff:h-9 ff:w-10 ff:cursor-pointer ff:rounded ff:border ff:border-slate-300 ff:bg-white ff:p-0.5"
-                    />
-                    <Input value={str} placeholder={__("inherit")} onChange={(e) => onChange(e.target.value)} />
-                </div>
+                <ColorField value={str} placeholder={__("inherit")} onChange={onChange} />
             )}
             {field.type === "select" && (
                 <Select value={str} options={field.options ?? []} onChange={(e) => onChange(e.target.value)} />
@@ -209,15 +202,7 @@ function DesignField({ label, value, onChange }: { label: string; value: string;
     return (
         <div className="ff:flex ff:flex-col ff:gap-1.5">
             <Label className="ff:block">{label}</Label>
-            <div className="ff:flex ff:items-center ff:gap-2">
-                <input
-                    type="color"
-                    value={/^#[0-9a-fA-F]{6}$/.test(value) ? value : "#000000"}
-                    onChange={(e) => onChange(e.target.value)}
-                    className="ff:h-9 ff:w-10 ff:cursor-pointer ff:rounded ff:border ff:border-slate-300 ff:bg-white ff:p-0.5"
-                />
-                <Input value={value} placeholder={__("inherit")} onChange={(e) => onChange(e.target.value)} />
-            </div>
+            <ColorField value={value} placeholder={__("inherit")} onChange={onChange} />
         </div>
     );
 }

@@ -1,6 +1,7 @@
 import { Palette, Sparkles, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { ColorField } from "@/components/custom/ColorField";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
@@ -95,12 +96,12 @@ export function SettingsPage() {
                             {__("Used as the default accent in your email templates.")}
                         </p>
                     </div>
-                    <Input
+                    <ColorField
                         id="ff-brand-color"
+                        swatchLabel={__("Pick brand color")}
                         value={draft.brand_color}
-                        onChange={(e) => setDraft({ ...draft, brand_color: e.target.value })}
-                        className="ff:w-32"
-                        spellCheck={false}
+                        onChange={(brand_color) => setDraft({ ...draft, brand_color })}
+                        inputClassName="ff:w-28"
                     />
                 </div>
                 <div className="ff:flex ff:items-center ff:gap-3 ff:border-t ff:border-slate-100 ff:px-5 ff:py-4">
