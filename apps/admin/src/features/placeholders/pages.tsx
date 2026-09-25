@@ -1,11 +1,11 @@
-import { FileText, Inbox, Mail, Plug, Workflow } from "lucide-react";
+import { Mail, Plug, Workflow } from "lucide-react";
 import { EmptyState } from "@/components/custom/EmptyState";
 import { __ } from "@/lib/i18n";
 
 /**
- * Placeholder pages for the sections whose builders are not implemented yet.
- * Each renders the designed empty state (DESIGN.md Part 5.22) so the shell
- * demonstrates the final information architecture from day one.
+ * Placeholder pages for sections whose builders are not implemented yet.
+ * Hidden behind SHOW_UPCOMING in main.tsx (WP.org gate: never advertise a
+ * section that does not work). Forms and Entries got real pages in M1.
  */
 
 function PageFrame({ title, children }: { title: string; children: React.ReactNode }) {
@@ -14,32 +14,6 @@ function PageFrame({ title, children }: { title: string; children: React.ReactNo
             <h1 className="ff:text-2xl ff:font-semibold ff:text-slate-900">{title}</h1>
             {children}
         </div>
-    );
-}
-
-export function FormsPage() {
-    return (
-        <PageFrame title={__("Forms")}>
-            <EmptyState
-                icon={FileText}
-                title={__("Every flow starts with a form")}
-                description={__("Build one in about two minutes. Its fields become data you can use in emails and workflows.")}
-                caption={__("The form builder ships in an upcoming release.")}
-            />
-        </PageFrame>
-    );
-}
-
-export function EntriesPage() {
-    return (
-        <PageFrame title={__("Entries")}>
-            <EmptyState
-                icon={Inbox}
-                title={__("Submissions will land here")}
-                description={__("Share or embed a form to start collecting entries, each with a full activity timeline.")}
-                caption={__("Entries arrive once the form builder ships.")}
-            />
-        </PageFrame>
     );
 }
 

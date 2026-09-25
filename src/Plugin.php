@@ -21,9 +21,15 @@ final class Plugin {
 
 		Api\Router::instance()->register();
 
-		// Domain subsystems (forms, entries, emails, workflows) register here
-		// as they are built. WooCommerce email takeover gates on
-		// class_exists( \WooCommerce::class ) at that point, never at boot.
+		add_action( 'admin_init', [ Database\Schema::class, 'maybe_upgrade' ] );
+
+		Frontend\Shortcode::instance()->register();
+		Frontend\Block::instance()->register();
+		Emails\Notifications::instance()->register();
+
+		// Future domain subsystems (email builder, workflows) register here.
+		// WooCommerce email takeover gates on class_exists( \WooCommerce::class )
+		// at that point, never at boot.
 
 		if ( is_admin() ) {
 			Admin\Menu::instance()->register();

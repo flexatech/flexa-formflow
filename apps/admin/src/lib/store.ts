@@ -11,6 +11,9 @@ interface UiState {
     toast: ToastState | null;
     showToast: (message: string, tone?: ToastState["tone"]) => void;
     dismissToast: () => void;
+    /** Builder UI state: the selected field id on the canvas. */
+    selectedFieldId: string | null;
+    setSelectedField: (id: string | null) => void;
 }
 
 export const useUiStore = create<UiState>()((set) => ({
@@ -18,4 +21,6 @@ export const useUiStore = create<UiState>()((set) => ({
     showToast: (message, tone = "success") =>
         set({ toast: { id: Date.now(), message, tone } }),
     dismissToast: () => set({ toast: null }),
+    selectedFieldId: null,
+    setSelectedField: (id) => set({ selectedFieldId: id }),
 }));

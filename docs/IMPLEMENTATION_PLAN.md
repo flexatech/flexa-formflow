@@ -6,9 +6,9 @@ launch gate: `docs/ROADMAP.md`. Architecture and naming mirror `flexa-mail` (new
 ## Status
 
 - [x] Phase 0: Scaffold. Bootstrap, Plugin, Api\Router + Endpoint, Settings (schema + partial-merge save), Onboarding state + endpoint, ActivationRedirect, Eraser, uninstall, Menu + Enqueue, admin shell (sidebar, dashboard, empty states, working Settings page), tooling (phpstan L6 clean, phpcs config, makepot, release.sh, .distignore).
-- [ ] Phase 1: Forms domain. Custom tables via `Database\Schema` (decided; see `docs/M1_PLAN.md`), Forms list, form builder (needs `@dnd-kit/*`, re-add to package.json), frontend render + submit endpoint.
-- [ ] Phase 2: Entries. Storage, list + peek panel, entry detail with activity timeline.
-- Phases 1 + 2 plus a notification-email slice of Phase 3 ship together as milestone M1; the decision-complete build plan is `docs/M1_PLAN.md`.
+- [x] Phase 1: Forms domain. Custom tables via `Database\Schema`, Forms list, dnd-kit form builder (palette/canvas/inspector, autosave), shortcode + block render, public submit endpoint (honeypot + time trap).
+- [x] Phase 2: Entries. Storage, list + peek panel, entry detail. (Activity timeline arrives with workflows.)
+- Phases 1 + 2 plus the notification-email slice of Phase 3 shipped together as milestone M1 (build plan: `docs/M1_PLAN.md`). Static checks green; the manual wp-admin smoke test from M1_PLAN step 5 is still pending.
 - [ ] Phase 3: Emails. Builder (port the flexa-mail editor as the starting point), field tokens, template library, Global Styles backed by `Support\Settings`.
 - [ ] Phase 4: WooCommerce email takeover. Port flexa-mail's `Emails\Interceptor`, `Render`, `Conditions`, `Placeholders`; Emails → WooCommerce tab; flexa-mail template importer + deactivation handover (DESIGN.md Part 8.2).
 - [ ] Phase 5: Workflows. Vertical node canvas, trigger/action/logic nodes, test run.

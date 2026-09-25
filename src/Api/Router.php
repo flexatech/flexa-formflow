@@ -25,6 +25,10 @@ final class Router {
 	public function register_routes(): void {
 		( new SettingsEndpoint() )->register_routes();
 		( new OnboardingEndpoint() )->register_routes();
+		( new FormsEndpoint() )->register_routes();
+		( new EntriesEndpoint() )->register_routes();
+		( new StatsEndpoint() )->register_routes();
+		( new SubmitEndpoint() )->register_routes();
 
 		do_action( 'flexa_formflow.rest.register_routes' );
 	}

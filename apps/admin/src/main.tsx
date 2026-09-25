@@ -13,64 +13,104 @@ import {
 import { AppProviders } from "@/app/providers";
 import { Toaster } from "@/components/Toaster";
 import { DashboardPage } from "@/features/dashboard/DashboardPage";
-import {
-    EmailsPage,
-    EntriesPage,
-    FormsPage,
-    IntegrationsPage,
-    WorkflowsPage,
-} from "@/features/placeholders/pages";
+import { EmailsPage, IntegrationsPage, WorkflowsPage } from "@/features/placeholders/pages";
+import { FormsListPage } from "@/features/forms/FormsListPage";
+import { BuilderPage } from "@/features/forms/builder/BuilderPage";
+import { EntriesPage } from "@/features/entries/EntriesPage";
+import { EntryDetailPage } from "@/features/entries/EntryDetailPage";
 import { SettingsPage } from "@/features/settings/SettingsPage";
 import { __ } from "@/lib/i18n";
 import { cn } from "@/lib/cn";
+import { currentRoute, type Route } from "@/lib/router";
 import "./styles/index.css";
 
-type RouteName =
-    | "dashboard"
-    | "forms"
-    | "entries"
-    | "emails"
-    | "workflows"
-    | "integrations"
-    | "settings";
+/**
+ * WP.org gate (docs/ROADMAP.md): sections that are designed but not built
+ * stay invisible until their milestone ships. Flip to true during development
+ * of M2+ to see the placeholder screens again.
+ */
+const SHOW_UPCOMING = false;
 
-const ROUTES: RouteName[] = [
-    "dashboard",
-    "forms",
-    "entries",
-    "emails",
-    "workflows",
-    "integrations",
-    "settings",
-];
-
-function parseHash(): RouteName {
-    const hash = window.location.hash.replace(/^#\/?/, "").split("/")[0];
-    return (ROUTES as string[]).includes(hash) ? (hash as RouteName) : "dashboard";
+interface NavItem {
+    route: string;
+    href: string;
+    icon: typeof LayoutDashboard;
+    label: () => string;
+    upcoming?: boolean;
 }
 
-export function navigate(path: string): void {
-    window.location.hash = path;
-}
-
-const NAV: Array<{ route: RouteName; icon: typeof LayoutDashboard; label: () => string }> = [
-    { route: "dashboard", icon: LayoutDashboard, label: () => __("Dashboard") },
-    { route: "forms", icon: FileText, label: () => __("Forms") },
-    { route: "entries", icon: Inbox, label: () => __("Entries") },
-    { route: "emails", icon: Mail, label: () => __("Emails") },
-    { route: "workflows", icon: Workflow, label: () => __("Workflows") },
-    { route: "integrations", icon: Plug, label: () => __("Integrations") },
-    { route: "settings", icon: Settings, label: () => __("Settings") },
+const NAV: NavItem[] = [
+    { route: "dashboard", href: "#/", icon: LayoutDashboard, label: () => __("Dashboard") },
+    { route: "forms", href: "#/forms", icon: FileText, label: () => __("Forms") },
+    { route: "entries", href: "#/entries", icon: Inbox, label: () => __("Entries") },
+    { route: "emails", href: "#/emails", icon: Mail, label: () => __("Emails"), upcoming: true },
+    { route: "workflows", href: "#/workflows", icon: Workflow, label: () => __("Workflows"), upcoming: true },
+    { route: "integrations", href: "#/integrations", icon: Plug, label: () => __("Integrations"), upcoming: true },
+    { route: "settings", href: "#/settings", icon: Settings, label: () => __("Settings") },
 ];
 
-function App() {
-    const [route, setRoute] = useState<RouteName>(parseHash);
+function useRoute(): Route {
+    const [route, setRoute] = useState<Route>(currentRoute);
 
     useEffect(() => {
-        const onChange = () => setRoute(parseHash());
+        const onChange = () => setRoute(currentRoute());
         window.addEventListener("hashchange", onChange);
         return () => window.removeEventListener("hashchange", onChange);
     }, []);
+
+    return route;
+}
+
+/** Builder detail routes group under their list section for nav highlighting. */
+function navSection(route: Route): string {
+    switch (route.name) {
+        case "builder":
+            return "forms";
+        case "entry":
+            return "entries";
+        default:
+            return route.name;
+    }
+}
+
+function screenFor(route: Route): ReactNode {
+    switch (route.name) {
+        case "forms":
+            return <FormsListPage />;
+        case "builder":
+            return <BuilderPage key={route.id} id={route.id} />;
+        case "entries":
+            return <EntriesPage />;
+        case "entry":
+            return <EntryDetailPage key={route.id} id={route.id} />;
+        case "emails":
+            return SHOW_UPCOMING ? <EmailsPage /> : <DashboardPage />;
+        case "workflows":
+            return SHOW_UPCOMING ? <WorkflowsPage /> : <DashboardPage />;
+        case "integrations":
+            return SHOW_UPCOMING ? <IntegrationsPage /> : <DashboardPage />;
+        case "settings":
+            return <SettingsPage />;
+        case "dashboard":
+        default:
+            return <DashboardPage />;
+    }
+}
+
+function App() {
+    const route = useRoute();
+    const section = navSection(route);
+    const items = NAV.filter((item) => SHOW_UPCOMING || !item.upcoming);
+
+    // The builder is a full-area takeover: no sidebar, maximum canvas.
+    if (route.name === "builder") {
+        return (
+            <div className="ff:flex ff:min-h-screen ff:bg-slate-50">
+                {screenFor(route)}
+                <Toaster />
+            </div>
+        );
+    }
 
     return (
         <div className="ff:flex ff:min-h-screen ff:bg-slate-50">
@@ -89,23 +129,15 @@ function App() {
                     </div>
                 </div>
                 <nav className="ff:flex ff:flex-1 ff:flex-col ff:gap-0.5 ff:px-2 ff:py-2">
-                    {NAV.map(({ route: r, icon: Icon, label }) => (
-                        <NavLink key={r} href={`#/${r}`} active={route === r}>
+                    {items.map(({ route: r, href, icon: Icon, label }) => (
+                        <NavLink key={r} href={href} active={section === r}>
                             <Icon aria-hidden className="ff:h-4 ff:w-4" />
                             {label()}
                         </NavLink>
                     ))}
                 </nav>
             </aside>
-            <main className="ff:min-w-0 ff:flex-1">
-                {route === "dashboard" && <DashboardPage />}
-                {route === "forms" && <FormsPage />}
-                {route === "entries" && <EntriesPage />}
-                {route === "emails" && <EmailsPage />}
-                {route === "workflows" && <WorkflowsPage />}
-                {route === "integrations" && <IntegrationsPage />}
-                {route === "settings" && <SettingsPage />}
-            </main>
+            <main className="ff:min-w-0 ff:flex-1">{screenFor(route)}</main>
             <Toaster />
         </div>
     );

@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-09-25T02:21:31+00:00\n"
+"POT-Creation-Date: 2026-09-25T02:49:13+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.10.0\n"
 "X-Domain: flexa-formflow\n"
@@ -63,41 +63,210 @@ msgstr ""
 msgid "You do not have permission to update settings."
 msgstr ""
 
+#: src/Api/EntriesEndpoint.php:105
+msgid "Invalid entry status."
+msgstr ""
+
+#: src/Api/EntriesEndpoint.php:125
+msgid "Entry not found."
+msgstr ""
+
+#: src/Api/FormsEndpoint.php:110
+#: i18n/extracted-strings.js:16
+#: i18n/extracted-strings.js:30
+#: i18n/extracted-strings.js:36
+#: i18n/extracted-strings.js:49
+#: i18n/extracted-strings.js:66
+#: i18n/extracted-strings.js:72
+#: i18n/extracted-strings.js:85
+msgid "Untitled form"
+msgstr ""
+
+#: src/Api/FormsEndpoint.php:115
+msgid "The form could not be created."
+msgstr ""
+
+#: src/Api/FormsEndpoint.php:172
+msgid "Form not found."
+msgstr ""
+
+#: src/Api/SubmitEndpoint.php:43
+msgid "This form is not available."
+msgstr ""
+
+#: src/Api/SubmitEndpoint.php:50
+#: i18n/extracted-strings.js:100
+msgid "Thanks, we got your message."
+msgstr ""
+
+#: src/Api/SubmitEndpoint.php:87
+msgid "Please fix the highlighted fields."
+msgstr ""
+
+#: src/Domain/Forms/FieldTypes.php:21
+#: i18n/extracted-strings.js:134
+msgid "Text"
+msgstr ""
+
+#: src/Domain/Forms/FieldTypes.php:25
+#: i18n/extracted-strings.js:135
+msgid "Email"
+msgstr ""
+
+#: src/Domain/Forms/FieldTypes.php:29
+#: i18n/extracted-strings.js:136
+msgid "Paragraph"
+msgstr ""
+
+#: src/Domain/Forms/FieldTypes.php:33
+#: i18n/extracted-strings.js:137
+msgid "Dropdown"
+msgstr ""
+
+#: src/Domain/Forms/FieldTypes.php:37
+#: i18n/extracted-strings.js:138
+msgid "Radio choice"
+msgstr ""
+
+#: src/Domain/Forms/FieldTypes.php:41
+#: i18n/extracted-strings.js:139
+msgid "Checkboxes"
+msgstr ""
+
+#: src/Domain/Forms/FieldTypes.php:45
+#: i18n/extracted-strings.js:140
+msgid "Number"
+msgstr ""
+
+#: src/Domain/Forms/FieldTypes.php:49
+#: i18n/extracted-strings.js:141
+msgid "Date"
+msgstr ""
+
+#: src/Domain/Forms/FieldTypes.php:53
+#: i18n/extracted-strings.js:142
+msgid "Hidden"
+msgstr ""
+
+#: src/Domain/Forms/FieldTypes.php:87
+#: src/Domain/Forms/FieldTypes.php:96
+msgid "This field is required."
+msgstr ""
+
+#: src/Domain/Forms/FieldTypes.php:105
+msgid "Please enter a valid email address."
+msgstr ""
+
+#: src/Domain/Forms/FieldTypes.php:115
+msgid "Please enter a number."
+msgstr ""
+
+#: src/Domain/Forms/FieldTypes.php:122
+msgid "Please enter a valid date."
+msgstr ""
+
+#: src/Domain/Forms/FieldTypes.php:130
+msgid "Please pick one of the offered options."
+msgstr ""
+
+#. translators: %s: title of the form being duplicated.
+#: src/Domain/Forms/FormRepository.php:157
+msgid "%s (copy)"
+msgstr ""
+
+#. translators: 1: site name, 2: form title.
+#: src/Emails/Notifications.php:59
+msgid "[%1$s] New submission: %2$s"
+msgstr ""
+
+#. translators: %s: form title.
+#: src/Emails/Notifications.php:64
+msgid "You received a new submission through \"%s\"."
+msgstr ""
+
+#. translators: %s: site name.
+#: src/Emails/Notifications.php:87
+msgid "We received your message, %s"
+msgstr ""
+
+#: src/Emails/Notifications.php:92
+#: i18n/extracted-strings.js:126
+msgid "Thanks for reaching out. We will get back to you soon."
+msgstr ""
+
+#: src/Frontend/Shortcode.php:62
+msgid "Flexa FormFlow: this form is not published or has no fields, so visitors see nothing here."
+msgstr ""
+
 #: templates/admin-app.php:10
 msgid "Flexa FormFlow needs JavaScript enabled to run its editor."
 msgstr ""
 
+#: templates/form.php:17
+#: i18n/extracted-strings.js:98
+msgid "Send"
+msgstr ""
+
+#: templates/form.php:74
+msgid "Choose…"
+msgstr ""
+
+#: templates/form.php:96
+msgid "Leave this field empty"
+msgstr ""
+
+#: assets/blocks/form/editor.js:25
+msgid "Pick a form to embed."
+msgstr ""
+
+#: assets/blocks/form/editor.js:66
+msgid "Choose a form…"
+msgstr ""
+
+#: assets/blocks/form/editor.js:70
+msgid "draft"
+msgstr ""
+
+#: assets/blocks/form/editor.js:75
+#: i18n/extracted-strings.js:27
+#: i18n/extracted-strings.js:61
+msgid "Form"
+msgstr ""
+
 #: i18n/extracted-strings.js:2
-#: i18n/extracted-strings.js:13
-#: i18n/extracted-strings.js:43
+#: i18n/extracted-strings.js:55
+#: i18n/extracted-strings.js:167
 msgid "Forms"
 msgstr ""
 
 #: i18n/extracted-strings.js:3
-#: i18n/extracted-strings.js:17
-#: i18n/extracted-strings.js:44
+#: i18n/extracted-strings.js:13
+#: i18n/extracted-strings.js:63
+#: i18n/extracted-strings.js:168
 msgid "Entries"
 msgstr ""
 
 #: i18n/extracted-strings.js:4
-msgid "Emails sent"
+#: i18n/extracted-strings.js:19
+#: i18n/extracted-strings.js:29
+msgid "Unread"
 msgstr ""
 
 #: i18n/extracted-strings.js:5
-msgid "Active workflows"
+msgid "Last 7 days"
 msgstr ""
 
 #: i18n/extracted-strings.js:6
-#: i18n/extracted-strings.js:42
+#: i18n/extracted-strings.js:166
 msgid "Dashboard"
 msgstr ""
 
 #: i18n/extracted-strings.js:7
-msgid "Recent activity"
+msgid "Recent entries"
 msgstr ""
 
 #: i18n/extracted-strings.js:8
-msgid "Submissions, sent emails, and workflow runs will show up here."
+msgid "Submissions will show up here once a published form is shared."
 msgstr ""
 
 #: i18n/extracted-strings.js:9
@@ -105,125 +274,508 @@ msgid "Quick actions"
 msgstr ""
 
 #: i18n/extracted-strings.js:10
+#: i18n/extracted-strings.js:57
+#: i18n/extracted-strings.js:60
 msgid "Create Form"
 msgstr ""
 
 #: i18n/extracted-strings.js:11
-msgid "Design Email"
+msgid "View entries"
 msgstr ""
 
 #: i18n/extracted-strings.js:12
-msgid "Build Workflow"
+msgid "Open settings"
 msgstr ""
 
 #: i18n/extracted-strings.js:14
-msgid "Every flow starts with a form"
+msgid "Filter by form"
 msgstr ""
 
 #: i18n/extracted-strings.js:15
-msgid "Build one in about two minutes. Its fields become data you can use in emails and workflows."
+msgid "All forms"
 msgstr ""
 
-#: i18n/extracted-strings.js:16
-msgid "The form builder ships in an upcoming release."
+#: i18n/extracted-strings.js:17
+msgid "Filter by status"
 msgstr ""
 
 #: i18n/extracted-strings.js:18
-msgid "Submissions will land here"
-msgstr ""
-
-#: i18n/extracted-strings.js:19
-msgid "Share or embed a form to start collecting entries, each with a full activity timeline."
+msgid "All statuses"
 msgstr ""
 
 #: i18n/extracted-strings.js:20
-msgid "Entries arrive once the form builder ships."
+msgid "Read"
 msgstr ""
 
 #: i18n/extracted-strings.js:21
-#: i18n/extracted-strings.js:45
-msgid "Emails"
+msgid "Nothing matches these filters."
 msgstr ""
 
 #: i18n/extracted-strings.js:22
-msgid "Design emails once"
+msgid "Try a different form or status."
 msgstr ""
 
 #: i18n/extracted-strings.js:23
-msgid "Your form data fills them in automatically. WooCommerce order emails are designed in the same builder."
+msgid "Clear filters"
 msgstr ""
 
 #: i18n/extracted-strings.js:24
-msgid "The email builder ships in an upcoming release."
+msgid "Submissions will land here"
 msgstr ""
 
 #: i18n/extracted-strings.js:25
-#: i18n/extracted-strings.js:46
-msgid "Workflows"
+msgid "Share or embed a published form to start collecting entries."
 msgstr ""
 
 #: i18n/extracted-strings.js:26
-msgid "Decide what happens after Send"
-msgstr ""
-
-#: i18n/extracted-strings.js:27
-msgid "Connect forms, emails, and integrations on a visual canvas with conditions and branches."
+#: i18n/extracted-strings.js:31
+#: i18n/extracted-strings.js:37
+msgid "Entry"
 msgstr ""
 
 #: i18n/extracted-strings.js:28
-msgid "The workflow builder ships in an upcoming release."
-msgstr ""
-
-#: i18n/extracted-strings.js:29
-#: i18n/extracted-strings.js:47
-msgid "Integrations"
-msgstr ""
-
-#: i18n/extracted-strings.js:30
-msgid "Send your data where your team works"
-msgstr ""
-
-#: i18n/extracted-strings.js:31
-msgid "CRM, email marketing, messaging, and webhooks connect here. Delivery stays with your mail bridge plugin."
+#: i18n/extracted-strings.js:40
+msgid "Received"
 msgstr ""
 
 #: i18n/extracted-strings.js:32
-msgid "Integrations ship in an upcoming release."
+msgid "Open full view"
 msgstr ""
 
 #: i18n/extracted-strings.js:33
-msgid "Settings saved."
+msgid "Entry deleted."
 msgstr ""
 
 #: i18n/extracted-strings.js:34
-msgid "Could not save settings."
+msgid "Could not delete the entry."
 msgstr ""
 
 #: i18n/extracted-strings.js:35
-#: i18n/extracted-strings.js:48
-msgid "Settings"
-msgstr ""
-
-#: i18n/extracted-strings.js:36
-msgid "Saving…"
-msgstr ""
-
-#: i18n/extracted-strings.js:37
-msgid "Save changes"
+msgid "Back to entries"
 msgstr ""
 
 #: i18n/extracted-strings.js:38
-msgid "Brand color"
+msgid "Delete"
 msgstr ""
 
 #: i18n/extracted-strings.js:39
-msgid "Used as the default accent in your email templates."
-msgstr ""
-
-#: i18n/extracted-strings.js:40
-msgid "Delete data on uninstall"
+msgid "Details"
 msgstr ""
 
 #: i18n/extracted-strings.js:41
+msgid "Page"
+msgstr ""
+
+#: i18n/extracted-strings.js:42
+msgid "Browser"
+msgstr ""
+
+#: i18n/extracted-strings.js:43
+msgid "Delete this entry?"
+msgstr ""
+
+#: i18n/extracted-strings.js:44
+msgid "The submission and its data will be permanently deleted."
+msgstr ""
+
+#: i18n/extracted-strings.js:45
+#: i18n/extracted-strings.js:73
+msgid "Cancel"
+msgstr ""
+
+#: i18n/extracted-strings.js:46
+#: i18n/extracted-strings.js:74
+msgid "Deleting…"
+msgstr ""
+
+#: i18n/extracted-strings.js:47
+msgid "Delete entry"
+msgstr ""
+
+#: i18n/extracted-strings.js:48
+msgid "(empty entry)"
+msgstr ""
+
+#: i18n/extracted-strings.js:50
+msgid "Could not create the form."
+msgstr ""
+
+#: i18n/extracted-strings.js:51
+msgid "Form duplicated."
+msgstr ""
+
+#: i18n/extracted-strings.js:52
+msgid "Could not duplicate the form."
+msgstr ""
+
+#: i18n/extracted-strings.js:53
+msgid "Form deleted."
+msgstr ""
+
+#: i18n/extracted-strings.js:54
+msgid "Could not delete the form."
+msgstr ""
+
+#: i18n/extracted-strings.js:56
+msgid "Search forms…"
+msgstr ""
+
+#: i18n/extracted-strings.js:58
+msgid "Every flow starts with a form"
+msgstr ""
+
+#: i18n/extracted-strings.js:59
+msgid "Build one in about two minutes. Its fields become data you can use in emails and workflows."
+msgstr ""
+
+#: i18n/extracted-strings.js:62
+msgid "Status"
+msgstr ""
+
+#: i18n/extracted-strings.js:64
+msgid "Updated"
+msgstr ""
+
+#: i18n/extracted-strings.js:65
+msgid "Nothing matches this search."
+msgstr ""
+
+#: i18n/extracted-strings.js:67
+msgid "Edit form"
+msgstr ""
+
+#: i18n/extracted-strings.js:68
+msgid "Duplicate form"
+msgstr ""
+
+#: i18n/extracted-strings.js:69
+#: i18n/extracted-strings.js:75
+msgid "Delete form"
+msgstr ""
+
+#: i18n/extracted-strings.js:70
+msgid "Delete this form?"
+msgstr ""
+
+#: i18n/extracted-strings.js:71
+msgid "\"%1$s\" and its %2$d entries will be permanently deleted."
+msgstr ""
+
+#: i18n/extracted-strings.js:76
+#: i18n/extracted-strings.js:87
+msgid "Published"
+msgstr ""
+
+#: i18n/extracted-strings.js:77
+#: i18n/extracted-strings.js:88
+msgid "Draft"
+msgstr ""
+
+#: i18n/extracted-strings.js:78
+msgid "Fields"
+msgstr ""
+
+#: i18n/extracted-strings.js:79
+msgid "Click or drag a field from the left to start."
+msgstr ""
+
+#: i18n/extracted-strings.js:80
+msgid "Reorder field"
+msgstr ""
+
+#: i18n/extracted-strings.js:81
+#: i18n/extracted-strings.js:109
+msgid "Half width"
+msgstr ""
+
+#: i18n/extracted-strings.js:82
+msgid "Delete field"
+msgstr ""
+
+#: i18n/extracted-strings.js:83
+msgid "Autosave failed. Your latest change is not stored yet."
+msgstr ""
+
+#: i18n/extracted-strings.js:84
+msgid "Back to forms"
+msgstr ""
+
+#: i18n/extracted-strings.js:86
+msgid "Form title"
+msgstr ""
+
+#: i18n/extracted-strings.js:89
+#: i18n/extracted-strings.js:92
+msgid "Share"
+msgstr ""
+
+#: i18n/extracted-strings.js:90
+msgid "Build"
+msgstr ""
+
+#: i18n/extracted-strings.js:91
+msgid "Notifications"
+msgstr ""
+
+#: i18n/extracted-strings.js:93
+#: i18n/extracted-strings.js:160
+msgid "Saving…"
+msgstr ""
+
+#: i18n/extracted-strings.js:94
+msgid "Unsaved changes"
+msgstr ""
+
+#: i18n/extracted-strings.js:95
+msgid "Saved"
+msgstr ""
+
+#: i18n/extracted-strings.js:96
+msgid "Form settings"
+msgstr ""
+
+#: i18n/extracted-strings.js:97
+msgid "Submit button label"
+msgstr ""
+
+#: i18n/extracted-strings.js:99
+msgid "Success message"
+msgstr ""
+
+#: i18n/extracted-strings.js:101
+msgid "Select a field on the canvas to edit its options."
+msgstr ""
+
+#: i18n/extracted-strings.js:102
+msgid "Label"
+msgstr ""
+
+#: i18n/extracted-strings.js:103
+msgid "Placeholder"
+msgstr ""
+
+#: i18n/extracted-strings.js:104
+msgid "Value"
+msgstr ""
+
+#: i18n/extracted-strings.js:105
+msgid "Options (one per line)"
+msgstr ""
+
+#: i18n/extracted-strings.js:106
+msgid "Required"
+msgstr ""
+
+#: i18n/extracted-strings.js:107
+msgid "Width"
+msgstr ""
+
+#: i18n/extracted-strings.js:108
+msgid "Full width"
+msgstr ""
+
+#: i18n/extracted-strings.js:110
+msgid "Notify you"
+msgstr ""
+
+#: i18n/extracted-strings.js:111
+msgid "An email with every submitted field, sent on each new entry."
+msgstr ""
+
+#: i18n/extracted-strings.js:112
+msgid "Enable the admin notification"
+msgstr ""
+
+#: i18n/extracted-strings.js:113
+msgid "Send to"
+msgstr ""
+
+#: i18n/extracted-strings.js:114
+msgid "Site admin email"
+msgstr ""
+
+#: i18n/extracted-strings.js:115
+#: i18n/extracted-strings.js:123
+msgid "Subject"
+msgstr ""
+
+#: i18n/extracted-strings.js:116
+msgid "New submission"
+msgstr ""
+
+#: i18n/extracted-strings.js:117
+msgid "Confirm to the visitor"
+msgstr ""
+
+#: i18n/extracted-strings.js:118
+msgid "A short reply sent to the email address they entered."
+msgstr ""
+
+#: i18n/extracted-strings.js:119
+msgid "Enable the confirmation email"
+msgstr ""
+
+#: i18n/extracted-strings.js:120
+msgid "Add an Email field to the form first, so there is an address to reply to."
+msgstr ""
+
+#: i18n/extracted-strings.js:121
+msgid "Email field"
+msgstr ""
+
+#: i18n/extracted-strings.js:122
+msgid "Choose a field…"
+msgstr ""
+
+#: i18n/extracted-strings.js:124
+msgid "We received your message"
+msgstr ""
+
+#: i18n/extracted-strings.js:125
+msgid "Message"
+msgstr ""
+
+#: i18n/extracted-strings.js:127
+msgid "This form is a draft. Publish it (toggle in the top bar) before sharing, or visitors will see nothing."
+msgstr ""
+
+#: i18n/extracted-strings.js:128
+msgid "Shortcode"
+msgstr ""
+
+#: i18n/extracted-strings.js:129
+msgid "Paste this into any post, page, or widget."
+msgstr ""
+
+#: i18n/extracted-strings.js:130
+msgid "Copied"
+msgstr ""
+
+#: i18n/extracted-strings.js:131
+msgid "Copy"
+msgstr ""
+
+#: i18n/extracted-strings.js:132
+msgid "Block"
+msgstr ""
+
+#: i18n/extracted-strings.js:133
+msgid "In the block editor, add the \"FormFlow Form\" block and pick this form from the dropdown."
+msgstr ""
+
+#: i18n/extracted-strings.js:143
+msgid "Option 1"
+msgstr ""
+
+#: i18n/extracted-strings.js:144
+msgid "Option 2"
+msgstr ""
+
+#: i18n/extracted-strings.js:145
+#: i18n/extracted-strings.js:169
+msgid "Emails"
+msgstr ""
+
+#: i18n/extracted-strings.js:146
+msgid "Design emails once"
+msgstr ""
+
+#: i18n/extracted-strings.js:147
+msgid "Your form data fills them in automatically. WooCommerce order emails are designed in the same builder."
+msgstr ""
+
+#: i18n/extracted-strings.js:148
+msgid "The email builder ships in an upcoming release."
+msgstr ""
+
+#: i18n/extracted-strings.js:149
+#: i18n/extracted-strings.js:170
+msgid "Workflows"
+msgstr ""
+
+#: i18n/extracted-strings.js:150
+msgid "Decide what happens after Send"
+msgstr ""
+
+#: i18n/extracted-strings.js:151
+msgid "Connect forms, emails, and integrations on a visual canvas with conditions and branches."
+msgstr ""
+
+#: i18n/extracted-strings.js:152
+msgid "The workflow builder ships in an upcoming release."
+msgstr ""
+
+#: i18n/extracted-strings.js:153
+#: i18n/extracted-strings.js:171
+msgid "Integrations"
+msgstr ""
+
+#: i18n/extracted-strings.js:154
+msgid "Send your data where your team works"
+msgstr ""
+
+#: i18n/extracted-strings.js:155
+msgid "CRM, email marketing, messaging, and webhooks connect here. Delivery stays with your mail bridge plugin."
+msgstr ""
+
+#: i18n/extracted-strings.js:156
+msgid "Integrations ship in an upcoming release."
+msgstr ""
+
+#: i18n/extracted-strings.js:157
+msgid "Settings saved."
+msgstr ""
+
+#: i18n/extracted-strings.js:158
+msgid "Could not save settings."
+msgstr ""
+
+#: i18n/extracted-strings.js:159
+#: i18n/extracted-strings.js:172
+msgid "Settings"
+msgstr ""
+
+#: i18n/extracted-strings.js:161
+msgid "Save changes"
+msgstr ""
+
+#: i18n/extracted-strings.js:162
+msgid "Brand color"
+msgstr ""
+
+#: i18n/extracted-strings.js:163
+msgid "Used as the default accent in your email templates."
+msgstr ""
+
+#: i18n/extracted-strings.js:164
+msgid "Delete data on uninstall"
+msgstr ""
+
+#: i18n/extracted-strings.js:165
 msgid "Remove all plugin data when the plugin is deleted. Forms and entries are kept unless this is on."
+msgstr ""
+
+#: assets/blocks/form/block.json
+msgctxt "block title"
+msgid "FormFlow Form"
+msgstr ""
+
+#: assets/blocks/form/block.json
+msgctxt "block description"
+msgid "Embed a Flexa FormFlow form."
+msgstr ""
+
+#: assets/blocks/form/block.json
+msgctxt "block keyword"
+msgid "form"
+msgstr ""
+
+#: assets/blocks/form/block.json
+msgctxt "block keyword"
+msgid "contact"
+msgstr ""
+
+#: assets/blocks/form/block.json
+msgctxt "block keyword"
+msgid "formflow"
 msgstr ""
