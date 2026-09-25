@@ -12,7 +12,7 @@ defined( 'ABSPATH' ) || exit;
  * need a manual re-activation.
  */
 final class Schema {
-	public const DB_VERSION  = 2;
+	public const DB_VERSION  = 3;
 	public const VERSION_KEY = 'flexa_formflow_db_version';
 
 	public static function forms_table(): string {
@@ -30,6 +30,11 @@ final class Schema {
 		return $wpdb->prefix . 'flexa_formflow_email_templates';
 	}
 
+	public static function workflows_table(): string {
+		global $wpdb;
+		return $wpdb->prefix . 'flexa_formflow_workflows';
+	}
+
 	public static function maybe_upgrade(): void {
 		if ( (int) get_option( self::VERSION_KEY, 0 ) < self::DB_VERSION ) {
 			self::migrate();
@@ -45,6 +50,7 @@ final class Schema {
 		$forms           = self::forms_table();
 		$entries         = self::entries_table();
 		$email_templates = self::email_templates_table();
+		$workflows       = self::workflows_table();
 
 		dbDelta(
 			"CREATE TABLE {$forms} (
@@ -86,13 +92,27 @@ final class Schema {
 			) {$charset_collate};"
 		);
 
+		dbDelta(
+			"CREATE TABLE {$workflows} (
+				id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+				title VARCHAR(190) NOT NULL DEFAULT '',
+				status VARCHAR(20) NOT NULL DEFAULT 'inactive',
+				config LONGTEXT NOT NULL,
+				created_at DATETIME NOT NULL,
+				updated_at DATETIME NOT NULL,
+				PRIMARY KEY  (id),
+				KEY status (status)
+			) {$charset_collate};"
+		);
+
 		update_option( self::VERSION_KEY, self::DB_VERSION );
 	}
 
 	public static function drop(): void {
 		global $wpdb;
 
-		// phpcs:disable WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- destructive teardown of our own tables; names are not user input.
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- destructive teardown of our own tables; names are not user input.
+		$wpdb->query( 'DROP TABLE IF EXISTS ' . self::workflows_table() );
 		$wpdb->query( 'DROP TABLE IF EXISTS ' . self::email_templates_table() );
 		$wpdb->query( 'DROP TABLE IF EXISTS ' . self::entries_table() );
 		$wpdb->query( 'DROP TABLE IF EXISTS ' . self::forms_table() );
