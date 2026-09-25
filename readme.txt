@@ -43,6 +43,18 @@ FormFlow does not send mail in any special way; it hands the finished message to
 3. Open Flexa FormFlow in the admin menu, create a form, and copy its shortcode.
 4. Paste the shortcode into any post or page, or add the Flexa FormFlow block.
 
+== External services ==
+
+FormFlow works fully offline by default and calls no external service on its own. One optional feature reaches a third party, and only when you turn it on:
+
+**AI assistant (optional).** If you add an AI provider API key in Settings and use the AI tools (generate a form, or the writing assistant), the text you submit and your form description are sent to the provider you selected so it can return a result. No visitor or entry data is sent, and nothing is sent automatically. You choose the provider:
+
+* Anthropic (Claude): sent to `https://api.anthropic.com`. See the [Anthropic Terms](https://www.anthropic.com/legal/consumer-terms) and [Privacy Policy](https://www.anthropic.com/legal/privacy).
+* OpenAI: sent to `https://api.openai.com`. See the [OpenAI Terms](https://openai.com/policies/terms-of-use/) and [Privacy Policy](https://openai.com/policies/privacy-policy/).
+* Google Gemini: sent to `https://generativelanguage.googleapis.com`. See the [Google Terms](https://policies.google.com/terms) and [Privacy Policy](https://policies.google.com/privacy).
+
+Your API key is stored encrypted and is never shown in the browser after you save it.
+
 == Frequently Asked Questions ==
 
 = Does it require WooCommerce? =
@@ -64,6 +76,10 @@ In your own database, in the plugin's tables. You can view, read, and delete ent
 = What happens to my data when I uninstall? =
 
 Nothing is removed unless you turn on "Delete data on uninstall" in Settings first. With it off, your forms, entries, and templates survive a reinstall.
+
+= How is the admin interface built, and where is the source? =
+
+The admin app is written in React and TypeScript and compiled to the files in `assets/dist/`. The full, unminified source ships inside the plugin under `apps/admin/src/`, and the public repository is https://github.com/flexatech/flexa-formflow. To build it yourself: install Node 20+ and pnpm 9+, run `pnpm install`, then `pnpm build`. The `README.md` in the repository has the full developer setup.
 
 == Screenshots ==
 
