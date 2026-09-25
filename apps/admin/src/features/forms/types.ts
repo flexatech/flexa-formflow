@@ -29,6 +29,40 @@ export type FieldType =
     | "date"
     | "hidden";
 
+/** Field width within the flex-wrap row. Adjacent fields flow into columns. */
+export type FieldWidth = "full" | "half" | "third" | "two_thirds";
+
+/** Tablet/mobile width; `inherit` keeps the width of the larger breakpoint. */
+export type ResponsiveWidth = FieldWidth | "inherit";
+
+/** Width choices for the inspector Select, in display order. */
+export const WIDTH_OPTIONS: Array<{ value: FieldWidth; label: () => string }> = [
+    { value: "full", label: () => __("Full width") },
+    { value: "half", label: () => __("Half (1/2)") },
+    { value: "third", label: () => __("Third (1/3)") },
+    { value: "two_thirds", label: () => __("Two thirds (2/3)") },
+];
+
+/** Tablet/mobile width choices: the desktop set plus an inherit default. */
+export const RESPONSIVE_WIDTH_OPTIONS: Array<{ value: ResponsiveWidth; label: () => string }> = [
+    { value: "inherit", label: () => __("Inherit") },
+    ...WIDTH_OPTIONS,
+];
+
+/** Short badge shown on a field card; empty for full width. */
+export function widthLabel(width: FieldWidth): string {
+    switch (width) {
+        case "half":
+            return __("1/2");
+        case "third":
+            return __("1/3");
+        case "two_thirds":
+            return __("2/3");
+        default:
+            return "";
+    }
+}
+
 export interface FormField {
     id: string;
     type: FieldType;
@@ -36,7 +70,12 @@ export interface FormField {
     required: boolean;
     placeholder: string;
     options: string[];
-    width: "full" | "half";
+    /** Desktop / base width. */
+    width: FieldWidth;
+    /** Width at tablet (<=1024px); `inherit` (default) keeps the desktop width. */
+    widthTablet?: ResponsiveWidth;
+    /** Width at mobile (<=640px); `inherit` (default) keeps the tablet/desktop width. */
+    widthMobile?: ResponsiveWidth;
 }
 
 export interface FormConfig {
@@ -122,5 +161,7 @@ export function newField(type: FieldType): FormField {
         placeholder: "",
         options: meta.hasOptions ? [__("Option 1"), __("Option 2")] : [],
         width: "full",
+        widthTablet: "inherit",
+        widthMobile: "inherit",
     };
 }

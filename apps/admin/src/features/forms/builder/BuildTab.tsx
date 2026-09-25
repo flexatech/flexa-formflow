@@ -16,7 +16,15 @@ import { useState } from "react";
 import { __ } from "@/lib/i18n";
 import { cn } from "@/lib/cn";
 import { useUiStore } from "@/lib/store";
-import { FIELD_TYPES, fieldTypeMeta, newField, type FieldType, type FormConfig, type FormField } from "../types";
+import {
+    FIELD_TYPES,
+    fieldTypeMeta,
+    newField,
+    widthLabel,
+    type FieldType,
+    type FormConfig,
+    type FormField,
+} from "../types";
 import { Inspector } from "./Inspector";
 
 interface BuildTabProps {
@@ -252,7 +260,11 @@ function FieldCard({
                 </p>
                 <p className="ff:text-xs ff:text-slate-400">
                     {meta.label()}
-                    {field.width === "half" ? " · " + __("Half width") : ""}
+                    {widthLabel(field.width) ? " · " + widthLabel(field.width) : ""}
+                    {(field.widthTablet && field.widthTablet !== "inherit") ||
+                    (field.widthMobile && field.widthMobile !== "inherit")
+                        ? " · " + __("responsive")
+                        : ""}
                 </p>
             </div>
             <button

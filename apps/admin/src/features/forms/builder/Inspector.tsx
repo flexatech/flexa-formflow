@@ -4,7 +4,15 @@ import { Select } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { __ } from "@/lib/i18n";
-import { fieldTypeMeta, type FormConfig, type FormField } from "../types";
+import {
+    fieldTypeMeta,
+    RESPONSIVE_WIDTH_OPTIONS,
+    WIDTH_OPTIONS,
+    type FieldWidth,
+    type FormConfig,
+    type FormField,
+    type ResponsiveWidth,
+} from "../types";
 
 interface InspectorProps {
     config: FormConfig;
@@ -125,17 +133,33 @@ export function Inspector({ config, field, onChange, onFieldChange }: InspectorP
                             onCheckedChange={(next) => onFieldChange({ required: next })}
                         />
                     </div>
-                    <Row label={__("Width")} htmlFor="ff-field-width">
+                    <Row label={__("Width (desktop)")} htmlFor="ff-field-width">
                         <Select
                             id="ff-field-width"
                             value={field.width}
-                            options={[
-                                { value: "full", label: __("Full width") },
-                                { value: "half", label: __("Half width") },
-                            ]}
-                            onChange={(e) => onFieldChange({ width: e.target.value as "full" | "half" })}
+                            options={WIDTH_OPTIONS.map((w) => ({ value: w.value, label: w.label() }))}
+                            onChange={(e) => onFieldChange({ width: e.target.value as FieldWidth })}
                         />
                     </Row>
+                    <Row label={__("Width (tablet ≤ 1024px)")} htmlFor="ff-field-width-tablet">
+                        <Select
+                            id="ff-field-width-tablet"
+                            value={field.widthTablet ?? "inherit"}
+                            options={RESPONSIVE_WIDTH_OPTIONS.map((w) => ({ value: w.value, label: w.label() }))}
+                            onChange={(e) => onFieldChange({ widthTablet: e.target.value as ResponsiveWidth })}
+                        />
+                    </Row>
+                    <Row label={__("Width (mobile ≤ 640px)")} htmlFor="ff-field-width-mobile">
+                        <Select
+                            id="ff-field-width-mobile"
+                            value={field.widthMobile ?? "inherit"}
+                            options={RESPONSIVE_WIDTH_OPTIONS.map((w) => ({ value: w.value, label: w.label() }))}
+                            onChange={(e) => onFieldChange({ widthMobile: e.target.value as ResponsiveWidth })}
+                        />
+                    </Row>
+                    <p className="ff:text-xs ff:text-slate-400">
+                        {__("Inherit keeps the width of the larger screen. Fields flow into columns and wrap when they no longer fit.")}
+                    </p>
                 </>
             ) : null}
         </div>

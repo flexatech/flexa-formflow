@@ -18,9 +18,63 @@
 	min-width: 0;
 }
 
-.flexa-formflow-field--half {
-	flex: 1 1 calc( 50% - 0.5rem );
+/* Desktop / base width. min-width keeps a sane auto-wrap safety net so a field
+   never collapses too narrow when no smaller-breakpoint width is set. */
+.flexa-formflow-field[data-ff-w='half'] {
+	flex-basis: calc( 50% - 0.5rem );
 	min-width: 240px;
+}
+
+.flexa-formflow-field[data-ff-w='third'] {
+	flex-basis: calc( 33.333% - 0.667rem );
+	min-width: 200px;
+}
+
+.flexa-formflow-field[data-ff-w='two-thirds'] {
+	flex-basis: calc( 66.666% - 0.333rem );
+	min-width: 260px;
+}
+
+/* Tablet override. min-width drops to 0 so the chosen fraction is honored on
+   smaller screens instead of the desktop safety net forcing a wrap. */
+@media ( max-width: 1024px ) {
+	.flexa-formflow-field[data-ff-w-tablet='full'] {
+		flex-basis: 100%;
+		min-width: 0;
+	}
+	.flexa-formflow-field[data-ff-w-tablet='half'] {
+		flex-basis: calc( 50% - 0.5rem );
+		min-width: 0;
+	}
+	.flexa-formflow-field[data-ff-w-tablet='third'] {
+		flex-basis: calc( 33.333% - 0.667rem );
+		min-width: 0;
+	}
+	.flexa-formflow-field[data-ff-w-tablet='two-thirds'] {
+		flex-basis: calc( 66.666% - 0.333rem );
+		min-width: 0;
+	}
+}
+
+/* Mobile override. Placed after the tablet block so that when both queries
+   match (very narrow viewports) the mobile width wins on equal specificity. */
+@media ( max-width: 640px ) {
+	.flexa-formflow-field[data-ff-w-mobile='full'] {
+		flex-basis: 100%;
+		min-width: 0;
+	}
+	.flexa-formflow-field[data-ff-w-mobile='half'] {
+		flex-basis: calc( 50% - 0.5rem );
+		min-width: 0;
+	}
+	.flexa-formflow-field[data-ff-w-mobile='third'] {
+		flex-basis: calc( 33.333% - 0.667rem );
+		min-width: 0;
+	}
+	.flexa-formflow-field[data-ff-w-mobile='two-thirds'] {
+		flex-basis: calc( 66.666% - 0.333rem );
+		min-width: 0;
+	}
 }
 
 .flexa-formflow-field > label,

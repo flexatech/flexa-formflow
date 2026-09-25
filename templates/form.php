@@ -27,7 +27,17 @@ if ( '' === $ff_submit_label ) {
 			$ff_required = ! empty( $ff_field['required'] );
 			$ff_ph       = (string) ( $ff_field['placeholder'] ?? '' );
 			$ff_options  = is_array( $ff_field['options'] ?? null ) ? $ff_field['options'] : [];
-			$ff_width    = 'half' === ( $ff_field['width'] ?? 'full' ) ? 'half' : 'full';
+			$ff_width_map = [
+				'full'       => 'full',
+				'half'       => 'half',
+				'third'      => 'third',
+				'two_thirds' => 'two-thirds',
+			];
+			$ff_width     = $ff_width_map[ $ff_field['width'] ?? 'full' ] ?? 'full';
+			// Tablet/mobile: 'inherit' (or unknown) yields '' so no attribute is
+			// emitted and the field keeps the larger breakpoint's width.
+			$ff_w_tablet  = $ff_width_map[ $ff_field['widthTablet'] ?? 'inherit' ] ?? '';
+			$ff_w_mobile  = $ff_width_map[ $ff_field['widthMobile'] ?? 'inherit' ] ?? '';
 			$ff_dom_id   = 'ff-' . $form->uuid . '-' . $ff_id;
 			if ( '' === $ff_id ) {
 				continue;
@@ -37,7 +47,7 @@ if ( '' === $ff_submit_label ) {
 				<input type="hidden" name="<?php echo esc_attr( $ff_id ); ?>" value="<?php echo esc_attr( $ff_ph ); ?>" />
 				<?php continue; ?>
 			<?php endif; ?>
-			<div class="flexa-formflow-field flexa-formflow-field--<?php echo esc_attr( $ff_width ); ?>" data-field="<?php echo esc_attr( $ff_id ); ?>">
+			<div class="flexa-formflow-field" data-field="<?php echo esc_attr( $ff_id ); ?>" data-ff-w="<?php echo esc_attr( $ff_width ); ?>"<?php echo '' !== $ff_w_tablet ? ' data-ff-w-tablet="' . esc_attr( $ff_w_tablet ) . '"' : ''; ?><?php echo '' !== $ff_w_mobile ? ' data-ff-w-mobile="' . esc_attr( $ff_w_mobile ) . '"' : ''; ?>>
 				<?php if ( in_array( $ff_type, [ 'radio', 'checkbox' ], true ) ) : ?>
 					<fieldset>
 						<legend>

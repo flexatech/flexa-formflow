@@ -163,7 +163,9 @@ final class FieldTypes {
 				'options'     => self::has_options( $type )
 					? array_values( array_map( static fn( $o ): string => sanitize_text_field( (string) $o ), array_filter( (array) ( $field['options'] ?? [] ), 'is_scalar' ) ) )
 					: [],
-				'width'       => in_array( $field['width'] ?? 'full', [ 'full', 'half' ], true ) ? (string) $field['width'] : 'full',
+				'width'       => in_array( $field['width'] ?? 'full', [ 'full', 'half', 'third', 'two_thirds' ], true ) ? (string) $field['width'] : 'full',
+				'widthTablet' => in_array( $field['widthTablet'] ?? 'inherit', [ 'inherit', 'full', 'half', 'third', 'two_thirds' ], true ) ? (string) ( $field['widthTablet'] ?? 'inherit' ) : 'inherit',
+				'widthMobile' => in_array( $field['widthMobile'] ?? 'inherit', [ 'inherit', 'full', 'half', 'third', 'two_thirds' ], true ) ? (string) ( $field['widthMobile'] ?? 'inherit' ) : 'inherit',
 			];
 		}
 
