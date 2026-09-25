@@ -4,6 +4,7 @@ import {
     FileText,
     Inbox,
     LayoutDashboard,
+    Library,
     Mail,
     Plug,
     Settings,
@@ -15,6 +16,8 @@ import {
 import { AppProviders } from "@/app/providers";
 import { Toaster } from "@/components/Toaster";
 import { DashboardPage } from "@/features/dashboard/DashboardPage";
+import { LibraryPage } from "@/features/library/LibraryPage";
+import { PackDetailPage } from "@/features/library/PackDetailPage";
 import { IntegrationsPage } from "@/features/integrations/IntegrationsPage";
 import { WorkflowsListPage } from "@/features/workflows/WorkflowsListPage";
 import { WorkflowBuilderPage } from "@/features/workflows/builder/WorkflowBuilderPage";
@@ -31,14 +34,8 @@ import { SettingsPage } from "@/features/settings/SettingsPage";
 import { __ } from "@/lib/i18n";
 import { cn } from "@/lib/cn";
 import { currentRoute, type Route } from "@/lib/router";
+import { SHOW_UPCOMING } from "@/lib/flags";
 import "./styles/index.css";
-
-/**
- * WP.org gate (docs/ROADMAP.md): sections that are designed but not built
- * stay invisible until their milestone ships. Flip to true during development
- * of M2+ to see the placeholder screens again.
- */
-const SHOW_UPCOMING = false;
 
 interface NavItem {
     route: string;
@@ -59,6 +56,7 @@ const NAV: NavItem[] = [
     { route: "emails", href: "#/emails", icon: Mail, label: () => __("Emails") },
     { route: "woocommerce", href: "#/woocommerce", icon: ShoppingCart, label: () => __("WooCommerce"), wooOnly: true },
     { route: "workflows", href: "#/workflows", icon: Workflow, label: () => __("Workflows") },
+    { route: "library", href: "#/library", icon: Library, label: () => __("Library"), upcoming: true },
     { route: "integrations", href: "#/integrations", icon: Plug, label: () => __("Integrations") },
     { route: "ai", href: "#/ai", icon: Sparkles, label: () => __("AI"), settingsOnly: true },
     { route: "settings", href: "#/settings", icon: Settings, label: () => __("Settings") },
@@ -87,6 +85,8 @@ function navSection(route: Route): string {
             return "emails";
         case "workflowEditor":
             return "workflows";
+        case "pack":
+            return "library";
         default:
             return route.name;
     }
@@ -114,6 +114,10 @@ function screenFor(route: Route): ReactNode {
             return <WorkflowBuilderPage key={route.id} id={route.id} />;
         case "integrations":
             return <IntegrationsPage />;
+        case "library":
+            return <LibraryPage />;
+        case "pack":
+            return <PackDetailPage key={route.id} id={route.id} />;
         case "ai":
             return <AiPage />;
         case "settings":

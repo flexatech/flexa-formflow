@@ -12,7 +12,7 @@ defined( 'ABSPATH' ) || exit;
  * need a manual re-activation.
  */
 final class Schema {
-	public const DB_VERSION  = 3;
+	public const DB_VERSION  = 4;
 	public const VERSION_KEY = 'flexa_formflow_db_version';
 
 	public static function forms_table(): string {
@@ -35,6 +35,11 @@ final class Schema {
 		return $wpdb->prefix . 'flexa_formflow_workflows';
 	}
 
+	public static function library_table(): string {
+		global $wpdb;
+		return $wpdb->prefix . 'flexa_formflow_library';
+	}
+
 	public static function maybe_upgrade(): void {
 		if ( (int) get_option( self::VERSION_KEY, 0 ) < self::DB_VERSION || ! self::tables_present() ) {
 			self::migrate();
@@ -49,7 +54,7 @@ final class Schema {
 	private static function tables_present(): bool {
 		global $wpdb;
 
-		$table = self::workflows_table();
+		$table = self::library_table();
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- schema probe on our own table name; value is escaped with esc_like + prepare.
 		$found = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table ) ) );
 
@@ -66,6 +71,7 @@ final class Schema {
 		$entries         = self::entries_table();
 		$email_templates = self::email_templates_table();
 		$workflows       = self::workflows_table();
+		$library         = self::library_table();
 
 		dbDelta(
 			"CREATE TABLE {$forms} (
@@ -120,6 +126,28 @@ final class Schema {
 			) {$charset_collate};"
 		);
 
+		// My Library: user-saved reusable assets (patterns, templates, recipes).
+		// The source_* columns carry pack provenance so a Pack update can tell
+		// which saved items came from it and whether the user has modified them.
+		dbDelta(
+			"CREATE TABLE {$library} (
+				id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+				uuid CHAR(36) NOT NULL,
+				type VARCHAR(20) NOT NULL DEFAULT 'pattern',
+				name VARCHAR(190) NOT NULL DEFAULT '',
+				kind VARCHAR(20) NOT NULL DEFAULT 'form',
+				payload LONGTEXT NOT NULL,
+				source_pack VARCHAR(100) NOT NULL DEFAULT '',
+				source_content_id VARCHAR(100) NOT NULL DEFAULT '',
+				source_version VARCHAR(20) NOT NULL DEFAULT '',
+				created_at DATETIME NOT NULL,
+				updated_at DATETIME NOT NULL,
+				PRIMARY KEY  (id),
+				UNIQUE KEY uuid (uuid),
+				KEY type_kind (type, kind)
+			) {$charset_collate};"
+		);
+
 		update_option( self::VERSION_KEY, self::DB_VERSION );
 	}
 
@@ -127,6 +155,7 @@ final class Schema {
 		global $wpdb;
 
 		// phpcs:disable WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- destructive teardown of our own tables; names are not user input.
+		$wpdb->query( 'DROP TABLE IF EXISTS ' . self::library_table() );
 		$wpdb->query( 'DROP TABLE IF EXISTS ' . self::workflows_table() );
 		$wpdb->query( 'DROP TABLE IF EXISTS ' . self::email_templates_table() );
 		$wpdb->query( 'DROP TABLE IF EXISTS ' . self::entries_table() );

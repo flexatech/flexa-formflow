@@ -36,6 +36,7 @@ final class Router {
 		( new WorkflowsEndpoint() )->register_routes();
 		( new IntegrationsEndpoint() )->register_routes();
 		( new AiEndpoint() )->register_routes();
+		( new LibraryEndpoint() )->register_routes();
 
 		do_action( 'flexa_formflow.rest.register_routes' );
 	}

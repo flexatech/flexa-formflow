@@ -24,6 +24,8 @@ export type Route =
     | { name: "workflows" }
     | { name: "workflowEditor"; id: number }
     | { name: "integrations" }
+    | { name: "library" }
+    | { name: "pack"; id: string }
     | { name: "ai" }
     | { name: "settings" };
 
@@ -56,6 +58,11 @@ export function parseHash(hash: string): Route {
             return { name: "workflows" };
         case "integrations":
             return { name: "integrations" };
+        case "library":
+            if (second === "pack" && third) {
+                return { name: "pack", id: third };
+            }
+            return { name: "library" };
         case "ai":
             return { name: "ai" };
         case "settings":
