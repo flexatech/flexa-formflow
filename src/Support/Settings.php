@@ -11,9 +11,18 @@ defined( 'ABSPATH' ) || exit;
  * schema, defaults, coerced reads, and the sanitizer used on every write.
  * REST and renderers both go through here so the schema can never drift.
  * Saves are partial-merge: sanitize the incoming keys, merge over stored.
+ *
+ * The AI API key is a secret: stored encrypted, decrypted only in all() for
+ * outbound calls, and masked in for_rest() so the plaintext never reaches the
+ * browser.
  */
 final class Settings {
 	public const OPTION_KEY = 'flexa_formflow_settings';
+
+	/** Sent to the browser in place of a stored key; ignored on the way back. */
+	public const SECRET_MASK = '__ff_secret__';
+
+	private const AI_PROVIDERS = [ 'anthropic', 'openai', 'gemini' ];
 
 	private const BOOL_KEYS = [
 		'delete_data_on_uninstall',
@@ -26,6 +35,7 @@ final class Settings {
 		'text_color',
 		'footer_text',
 		'font_family',
+		'ai_model',
 	];
 
 	private const INT_KEYS = [
@@ -45,13 +55,31 @@ final class Settings {
 			'footer_text'              => '© {year} {site_title}',
 			'font_family'              => 'Helvetica Neue, Helvetica, Arial, sans-serif',
 			'container_width'          => 600,
+			'ai_provider'              => 'anthropic',
+			'ai_model'                 => '',
+			'ai_api_key'               => '',
 		];
 	}
 
 	/**
+	 * Typed settings with the API key decrypted (for outbound API calls).
+	 *
 	 * @return array<string, mixed>
 	 */
 	public static function all(): array {
+		$raw               = self::raw();
+		$raw['ai_api_key'] = Encryption::decrypt( (string) $raw['ai_api_key'] );
+
+		return $raw;
+	}
+
+	/**
+	 * Typed settings exactly as stored (API key still encrypted). The merge base
+	 * for save(), so a partial save never rewrites the ciphertext as plaintext.
+	 *
+	 * @return array<string, mixed>
+	 */
+	public static function raw(): array {
 		$stored = get_option( self::OPTION_KEY, [] );
 		if ( ! is_array( $stored ) ) {
 			$stored = [];
@@ -65,15 +93,21 @@ final class Settings {
 	}
 
 	/**
+	 * Browser-safe settings: the API key is masked to a sentinel so the
+	 * plaintext never leaves the server, while the UI still knows one is set.
+	 *
 	 * @return array<string, mixed>
 	 */
 	public static function for_rest(): array {
-		return self::all();
+		$all               = self::all();
+		$all['ai_api_key'] = '' !== (string) $all['ai_api_key'] ? self::SECRET_MASK : '';
+
+		return $all;
 	}
 
 	/**
 	 * Sanitize a (possibly partial) payload, merge over stored, persist, fire
-	 * the update hook. Returns the new settings.
+	 * the update hook. Returns the new settings (browser-safe shape).
 	 *
 	 * @param array<string, mixed> $incoming
 	 * @return array<string, mixed>
@@ -81,13 +115,13 @@ final class Settings {
 	public static function save( array $incoming ): array {
 		$old   = self::all();
 		$clean = self::sanitize( $incoming );
-		$new   = array_merge( $old, $clean );
+		$new   = array_merge( self::raw(), $clean );
 
 		update_option( self::OPTION_KEY, $new );
 
-		do_action( 'flexa_formflow.settings.updated', $new, $old );
+		do_action( 'flexa_formflow.settings.updated', self::all(), $old );
 
-		return $new;
+		return self::for_rest();
 	}
 
 	/**
@@ -110,6 +144,19 @@ final class Settings {
 		foreach ( self::INT_KEYS as $key ) {
 			if ( array_key_exists( $key, $incoming ) ) {
 				$clean[ $key ] = is_numeric( $incoming[ $key ] ) ? max( 320, min( 800, (int) $incoming[ $key ] ) ) : 600;
+			}
+		}
+
+		if ( array_key_exists( 'ai_provider', $incoming ) ) {
+			$provider             = is_string( $incoming['ai_provider'] ) ? $incoming['ai_provider'] : '';
+			$clean['ai_provider'] = in_array( $provider, self::AI_PROVIDERS, true ) ? $provider : 'anthropic';
+		}
+
+		if ( array_key_exists( 'ai_api_key', $incoming ) && is_string( $incoming['ai_api_key'] ) ) {
+			$value = trim( $incoming['ai_api_key'] );
+			// The mask means "unchanged": leave the stored ciphertext alone.
+			if ( self::SECRET_MASK !== $value ) {
+				$clean['ai_api_key'] = '' === $value ? '' : Encryption::encrypt( $value );
 			}
 		}
 
@@ -137,6 +184,13 @@ final class Settings {
 			if ( isset( $stored[ $key ] ) && is_numeric( $stored[ $key ] ) ) {
 				$out[ $key ] = (int) $stored[ $key ];
 			}
+		}
+
+		if ( isset( $stored['ai_provider'] ) && in_array( $stored['ai_provider'], self::AI_PROVIDERS, true ) ) {
+			$out['ai_provider'] = (string) $stored['ai_provider'];
+		}
+		if ( isset( $stored['ai_api_key'] ) && is_string( $stored['ai_api_key'] ) ) {
+			$out['ai_api_key'] = $stored['ai_api_key'];
 		}
 
 		return $out;
