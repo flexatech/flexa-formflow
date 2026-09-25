@@ -43,6 +43,13 @@ final class Renderer {
 				continue;
 			}
 
+			// Conditional visibility. Core is condition-agnostic; the WooCommerce
+			// takeover hooks this filter to hide nodes whose conditions the order
+			// fails. Preview always shows everything (handled by the evaluator).
+			if ( ! (bool) apply_filters( 'flexa_formflow.emails.node_visible', true, $node, $ctx ) ) {
+				continue;
+			}
+
 			if ( 'columns' === $node['type'] ) {
 				$html = $this->render_columns( $node, $ctx, $design );
 			} else {

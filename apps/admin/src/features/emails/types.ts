@@ -8,6 +8,7 @@ import {
     Minus,
     MousePointerClick,
     MoveVertical,
+    Receipt,
     Share2,
     Table,
     Text,
@@ -232,6 +233,17 @@ export const ELEMENT_TYPES: ElementDef[] = [
         description: __("A table of the form's answers"),
         icon: Table,
         defaults: { title: __("Submission"), borderColor: "#e6e6e6" },
+        fields: [
+            { key: "title", label: __("Title"), type: "text" },
+            { key: "borderColor", label: __("Border color"), type: "color" },
+        ],
+    },
+    {
+        type: "order_details",
+        label: __("Order details"),
+        description: __("WooCommerce line items and totals"),
+        icon: Receipt,
+        defaults: { title: __("Order summary"), borderColor: "#e6e6e6" },
         fields: [
             { key: "title", label: __("Title"), type: "text" },
             { key: "borderColor", label: __("Border color"), type: "color" },
