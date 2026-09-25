@@ -1,7 +1,8 @@
-import { CalendarClock, FileText, Inbox, MailWarning, Plus, Settings } from "lucide-react";
+import { CalendarClock, Compass, FileText, Inbox, MailWarning, Plus, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { __ } from "@/lib/i18n";
 import { cn } from "@/lib/cn";
+import { useUiStore } from "@/lib/store";
 import { useEntriesList } from "@/features/entries/useEntries";
 import { entryExcerpt } from "@/features/entries/EntryFields";
 import { useFormsList } from "@/features/forms/useForms";
@@ -9,6 +10,7 @@ import { formatDate } from "@/features/forms/FormsListPage";
 import { useStats } from "./useStats";
 
 export function DashboardPage() {
+    const setGuideOpen = useUiStore((s) => s.setGuideOpen);
     const { data: stats } = useStats();
     const { data: recent } = useEntriesList({ per_page: 5 });
     const { data: formsData } = useFormsList({ per_page: 100 });
@@ -108,6 +110,14 @@ export function DashboardPage() {
                                 <Settings aria-hidden className="ff:h-4 ff:w-4" />
                                 {__("Open settings")}
                             </a>
+                        </Button>
+                        <Button
+                            variant="outline"
+                            className="ff:justify-start"
+                            onClick={() => setGuideOpen(true)}
+                        >
+                            <Compass aria-hidden className="ff:h-4 ff:w-4" />
+                            {__("Setup guide")}
                         </Button>
                     </div>
                 </div>

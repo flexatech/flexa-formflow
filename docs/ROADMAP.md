@@ -90,8 +90,10 @@ The identity feature. FORM → EMAIL becomes visual.
 
 ### Later — Phase 7
 
-- Onboarding wizard, AI form generation and writing assistant (needs
-  `Support\Encryption` port), CRM/marketing integrations move to Pro
+- AI form generation and writing assistant (needs `Support\Encryption`
+  port): built. Onboarding wizard: built (multi-step first-run tour over
+  the existing onboarding state/endpoint). CRM/marketing integrations move
+  to Pro: still pending.
 
 ## When can it go on WP.org?
 

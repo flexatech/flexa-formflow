@@ -19,6 +19,7 @@ import { IntegrationsPage } from "@/features/integrations/IntegrationsPage";
 import { WorkflowsListPage } from "@/features/workflows/WorkflowsListPage";
 import { WorkflowBuilderPage } from "@/features/workflows/builder/WorkflowBuilderPage";
 import { AiPage } from "@/features/ai/AiPage";
+import { OnboardingWizard } from "@/features/onboarding/OnboardingWizard";
 import { FormsListPage } from "@/features/forms/FormsListPage";
 import { BuilderPage } from "@/features/forms/builder/BuilderPage";
 import { EntriesPage } from "@/features/entries/EntriesPage";
@@ -171,6 +172,7 @@ function App() {
                 </nav>
             </aside>
             <main className="ff:min-w-0 ff:flex-1">{screenFor(route)}</main>
+            <OnboardingWizard />
             <Toaster />
         </div>
     );
