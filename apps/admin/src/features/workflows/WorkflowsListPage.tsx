@@ -31,7 +31,13 @@ export function WorkflowsListPage() {
 
     const onCreate = () => {
         createWorkflow.mutate(__("Untitled workflow"), {
-            onSuccess: (workflow) => navigate(`/workflows/${workflow.id}/edit`),
+            onSuccess: (workflow) => {
+                if (workflow?.id) {
+                    navigate(`/workflows/${workflow.id}/edit`);
+                } else {
+                    showToast(__("Could not create the workflow."), "error");
+                }
+            },
             onError: () => showToast(__("Could not create the workflow."), "error"),
         });
     };

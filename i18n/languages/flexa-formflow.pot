@@ -9,7 +9,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"POT-Creation-Date: 2026-09-25T08:54:57+00:00\n"
+"POT-Creation-Date: 2026-09-25T09:32:37+00:00\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "X-Generator: WP-CLI 2.10.0\n"
 "X-Domain: flexa-formflow\n"
@@ -163,7 +163,7 @@ msgstr ""
 #: i18n/extracted-strings.js:246
 #: i18n/extracted-strings.js:252
 #: i18n/extracted-strings.js:265
-#: i18n/extracted-strings.js:459
+#: i18n/extracted-strings.js:460
 msgid "Untitled form"
 msgstr ""
 
@@ -193,18 +193,22 @@ msgstr ""
 msgid "Unknown email."
 msgstr ""
 
-#: src/Api/WorkflowsEndpoint.php:125
+#: src/Api/WorkflowsEndpoint.php:129
 #: i18n/extracted-strings.js:417
-#: i18n/extracted-strings.js:431
-#: i18n/extracted-strings.js:437
+#: i18n/extracted-strings.js:432
+#: i18n/extracted-strings.js:438
 msgid "Untitled workflow"
 msgstr ""
 
-#: src/Api/WorkflowsEndpoint.php:188
+#: src/Api/WorkflowsEndpoint.php:139
+msgid "The workflow could not be created. Please reload the page and try again."
+msgstr ""
+
+#: src/Api/WorkflowsEndpoint.php:200
 msgid "No entries yet to test against. Submit the form once, then run the test."
 msgstr ""
 
-#: src/Api/WorkflowsEndpoint.php:211
+#: src/Api/WorkflowsEndpoint.php:223
 msgid "Workflow not found."
 msgstr ""
 
@@ -450,7 +454,7 @@ msgid "No delivery plugin detected. Install one such as Flexa MailBridge."
 msgstr ""
 
 #: src/Integrations/Catalog.php:43
-#: i18n/extracted-strings.js:491
+#: i18n/extracted-strings.js:492
 msgid "WooCommerce"
 msgstr ""
 
@@ -788,7 +792,7 @@ msgstr ""
 #: assets/blocks/form/editor.js:75
 #: i18n/extracted-strings.js:205
 #: i18n/extracted-strings.js:241
-#: i18n/extracted-strings.js:462
+#: i18n/extracted-strings.js:463
 msgid "Form"
 msgstr ""
 
@@ -885,21 +889,21 @@ msgstr ""
 
 #: i18n/extracted-strings.js:24
 #: i18n/extracted-strings.js:235
-#: i18n/extracted-strings.js:488
+#: i18n/extracted-strings.js:489
 msgid "Forms"
 msgstr ""
 
 #: i18n/extracted-strings.js:25
 #: i18n/extracted-strings.js:191
 #: i18n/extracted-strings.js:243
-#: i18n/extracted-strings.js:489
+#: i18n/extracted-strings.js:490
 msgid "Entries"
 msgstr ""
 
 #: i18n/extracted-strings.js:26
 #: i18n/extracted-strings.js:197
 #: i18n/extracted-strings.js:207
-#: i18n/extracted-strings.js:483
+#: i18n/extracted-strings.js:484
 msgid "Unread"
 msgstr ""
 
@@ -908,7 +912,7 @@ msgid "Last 7 days"
 msgstr ""
 
 #: i18n/extracted-strings.js:28
-#: i18n/extracted-strings.js:487
+#: i18n/extracted-strings.js:488
 msgid "Dashboard"
 msgstr ""
 
@@ -959,7 +963,7 @@ msgid "Could not delete the template."
 msgstr ""
 
 #: i18n/extracted-strings.js:42
-#: i18n/extracted-strings.js:490
+#: i18n/extracted-strings.js:491
 msgid "Emails"
 msgstr ""
 
@@ -982,7 +986,7 @@ msgstr ""
 
 #: i18n/extracted-strings.js:48
 #: i18n/extracted-strings.js:414
-#: i18n/extracted-strings.js:477
+#: i18n/extracted-strings.js:478
 msgid "Template"
 msgstr ""
 
@@ -1016,14 +1020,14 @@ msgstr ""
 #: i18n/extracted-strings.js:76
 #: i18n/extracted-strings.js:223
 #: i18n/extracted-strings.js:253
-#: i18n/extracted-strings.js:432
+#: i18n/extracted-strings.js:433
 msgid "Cancel"
 msgstr ""
 
 #: i18n/extracted-strings.js:58
 #: i18n/extracted-strings.js:224
 #: i18n/extracted-strings.js:254
-#: i18n/extracted-strings.js:433
+#: i18n/extracted-strings.js:434
 msgid "Deleting…"
 msgstr ""
 
@@ -1071,7 +1075,7 @@ msgstr ""
 
 #: i18n/extracted-strings.js:72
 #: i18n/extracted-strings.js:294
-#: i18n/extracted-strings.js:467
+#: i18n/extracted-strings.js:468
 msgid "Send to"
 msgstr ""
 
@@ -1091,7 +1095,7 @@ msgstr ""
 #: i18n/extracted-strings.js:79
 #: i18n/extracted-strings.js:273
 #: i18n/extracted-strings.js:382
-#: i18n/extracted-strings.js:454
+#: i18n/extracted-strings.js:455
 msgid "Saving…"
 msgstr ""
 
@@ -1457,7 +1461,7 @@ msgid "All statuses"
 msgstr ""
 
 #: i18n/extracted-strings.js:198
-#: i18n/extracted-strings.js:482
+#: i18n/extracted-strings.js:483
 msgid "Read"
 msgstr ""
 
@@ -1718,7 +1722,7 @@ msgstr ""
 
 #: i18n/extracted-strings.js:296
 #: i18n/extracted-strings.js:304
-#: i18n/extracted-strings.js:475
+#: i18n/extracted-strings.js:476
 msgid "Subject"
 msgstr ""
 
@@ -1743,7 +1747,7 @@ msgid "Add an Email field to the form first, so there is an address to reply to.
 msgstr ""
 
 #: i18n/extracted-strings.js:302
-#: i18n/extracted-strings.js:471
+#: i18n/extracted-strings.js:472
 msgid "Email field"
 msgstr ""
 
@@ -1756,7 +1760,7 @@ msgid "We received your message"
 msgstr ""
 
 #: i18n/extracted-strings.js:306
-#: i18n/extracted-strings.js:478
+#: i18n/extracted-strings.js:479
 msgid "Message"
 msgstr ""
 
@@ -1774,7 +1778,7 @@ msgstr ""
 
 #: i18n/extracted-strings.js:310
 #: i18n/extracted-strings.js:406
-#: i18n/extracted-strings.js:466
+#: i18n/extracted-strings.js:467
 msgid "Default design"
 msgstr ""
 
@@ -1852,7 +1856,7 @@ msgstr ""
 
 #: i18n/extracted-strings.js:341
 #: i18n/extracted-strings.js:375
-#: i18n/extracted-strings.js:493
+#: i18n/extracted-strings.js:494
 msgid "Integrations"
 msgstr ""
 
@@ -1873,8 +1877,8 @@ msgid "Not set up"
 msgstr ""
 
 #: i18n/extracted-strings.js:347
-#: i18n/extracted-strings.js:435
-#: i18n/extracted-strings.js:450
+#: i18n/extracted-strings.js:436
+#: i18n/extracted-strings.js:451
 msgid "Active"
 msgstr ""
 
@@ -1963,7 +1967,7 @@ msgid "Skip"
 msgstr ""
 
 #: i18n/extracted-strings.js:368
-#: i18n/extracted-strings.js:448
+#: i18n/extracted-strings.js:449
 msgid "Back"
 msgstr ""
 
@@ -1976,8 +1980,8 @@ msgid "Next"
 msgstr ""
 
 #: i18n/extracted-strings.js:371
-#: i18n/extracted-strings.js:423
-#: i18n/extracted-strings.js:492
+#: i18n/extracted-strings.js:424
+#: i18n/extracted-strings.js:493
 msgid "Workflows"
 msgstr ""
 
@@ -2014,7 +2018,7 @@ msgid "Could not save settings."
 msgstr ""
 
 #: i18n/extracted-strings.js:381
-#: i18n/extracted-strings.js:495
+#: i18n/extracted-strings.js:496
 msgid "Settings"
 msgstr ""
 
@@ -2104,7 +2108,7 @@ msgid "Could not render the preview."
 msgstr ""
 
 #: i18n/extracted-strings.js:408
-#: i18n/extracted-strings.js:446
+#: i18n/extracted-strings.js:447
 msgid "Could not save."
 msgstr ""
 
@@ -2129,190 +2133,191 @@ msgid "Leave blank to keep the WooCommerce default"
 msgstr ""
 
 #: i18n/extracted-strings.js:418
+#: i18n/extracted-strings.js:419
 msgid "Could not create the workflow."
 msgstr ""
 
-#: i18n/extracted-strings.js:419
+#: i18n/extracted-strings.js:420
 msgid "Workflow deleted."
 msgstr ""
 
-#: i18n/extracted-strings.js:420
+#: i18n/extracted-strings.js:421
 msgid "Could not delete the workflow."
 msgstr ""
 
-#: i18n/extracted-strings.js:421
-#: i18n/extracted-strings.js:458
+#: i18n/extracted-strings.js:422
+#: i18n/extracted-strings.js:459
 msgid "Any form"
 msgstr ""
 
-#: i18n/extracted-strings.js:422
+#: i18n/extracted-strings.js:423
 msgid "A form"
 msgstr ""
 
-#: i18n/extracted-strings.js:424
+#: i18n/extracted-strings.js:425
 msgid "Run actions automatically when a form is submitted: send an email, call a webhook, mark the entry read."
 msgstr ""
 
-#: i18n/extracted-strings.js:425
-#: i18n/extracted-strings.js:428
+#: i18n/extracted-strings.js:426
+#: i18n/extracted-strings.js:429
 msgid "New workflow"
 msgstr ""
 
-#: i18n/extracted-strings.js:426
+#: i18n/extracted-strings.js:427
 msgid "Automate what happens after a submit"
 msgstr ""
 
-#: i18n/extracted-strings.js:427
+#: i18n/extracted-strings.js:428
 msgid "A workflow watches for submissions and runs a chain of actions. Start with a notification email or a webhook to another app."
 msgstr ""
 
-#: i18n/extracted-strings.js:429
+#: i18n/extracted-strings.js:430
 msgid "Delete this workflow?"
 msgstr ""
 
-#: i18n/extracted-strings.js:430
+#: i18n/extracted-strings.js:431
 msgid "\"%s\" will be permanently deleted."
 msgstr ""
 
-#: i18n/extracted-strings.js:434
-#: i18n/extracted-strings.js:440
+#: i18n/extracted-strings.js:435
+#: i18n/extracted-strings.js:441
 msgid "Delete workflow"
 msgstr ""
 
-#: i18n/extracted-strings.js:436
-#: i18n/extracted-strings.js:451
+#: i18n/extracted-strings.js:437
+#: i18n/extracted-strings.js:452
 msgid "Inactive"
 msgstr ""
 
-#: i18n/extracted-strings.js:438
+#: i18n/extracted-strings.js:439
 msgid "When %1$s is submitted · %2$d action(s)"
 msgstr ""
 
-#: i18n/extracted-strings.js:439
+#: i18n/extracted-strings.js:440
 msgid "Edit workflow"
 msgstr ""
 
-#: i18n/extracted-strings.js:441
+#: i18n/extracted-strings.js:442
 msgid "Send email"
 msgstr ""
 
-#: i18n/extracted-strings.js:442
+#: i18n/extracted-strings.js:443
 msgid "Send webhook"
 msgstr ""
 
-#: i18n/extracted-strings.js:443
+#: i18n/extracted-strings.js:444
 msgid "Set entry status"
 msgstr ""
 
-#: i18n/extracted-strings.js:444
+#: i18n/extracted-strings.js:445
 msgid "Add note"
 msgstr ""
 
-#: i18n/extracted-strings.js:445
+#: i18n/extracted-strings.js:446
 msgid "Workflow saved."
 msgstr ""
 
-#: i18n/extracted-strings.js:447
+#: i18n/extracted-strings.js:448
 msgid "Test run failed."
 msgstr ""
 
-#: i18n/extracted-strings.js:449
+#: i18n/extracted-strings.js:450
 msgid "Workflow name"
 msgstr ""
 
-#: i18n/extracted-strings.js:452
+#: i18n/extracted-strings.js:453
 msgid "Running…"
 msgstr ""
 
-#: i18n/extracted-strings.js:453
+#: i18n/extracted-strings.js:454
 msgid "Run test"
 msgstr ""
 
-#: i18n/extracted-strings.js:455
+#: i18n/extracted-strings.js:456
 msgid "Save"
 msgstr ""
 
-#: i18n/extracted-strings.js:456
+#: i18n/extracted-strings.js:457
 msgid "Test run"
 msgstr ""
 
-#: i18n/extracted-strings.js:457
+#: i18n/extracted-strings.js:458
 msgid "No actions to run."
 msgstr ""
 
-#: i18n/extracted-strings.js:460
+#: i18n/extracted-strings.js:461
 msgid "When a form is submitted"
 msgstr ""
 
-#: i18n/extracted-strings.js:461
+#: i18n/extracted-strings.js:462
 msgid "The trigger that starts this workflow"
 msgstr ""
 
-#: i18n/extracted-strings.js:463
+#: i18n/extracted-strings.js:464
 msgid "Move up"
 msgstr ""
 
-#: i18n/extracted-strings.js:464
+#: i18n/extracted-strings.js:465
 msgid "Move down"
 msgstr ""
 
-#: i18n/extracted-strings.js:465
+#: i18n/extracted-strings.js:466
 msgid "Remove action"
 msgstr ""
 
-#: i18n/extracted-strings.js:468
+#: i18n/extracted-strings.js:469
 msgid "Site admin"
 msgstr ""
 
-#: i18n/extracted-strings.js:469
+#: i18n/extracted-strings.js:470
 msgid "A form field"
 msgstr ""
 
-#: i18n/extracted-strings.js:470
+#: i18n/extracted-strings.js:471
 msgid "A fixed address"
 msgstr ""
 
-#: i18n/extracted-strings.js:472
+#: i18n/extracted-strings.js:473
 msgid "No suitable fields"
 msgstr ""
 
-#: i18n/extracted-strings.js:473
+#: i18n/extracted-strings.js:474
 msgid "Field ID"
 msgstr ""
 
-#: i18n/extracted-strings.js:474
+#: i18n/extracted-strings.js:475
 msgid "Email address"
 msgstr ""
 
-#: i18n/extracted-strings.js:476
+#: i18n/extracted-strings.js:477
 msgid "Leave blank for a default subject"
 msgstr ""
 
-#: i18n/extracted-strings.js:479
+#: i18n/extracted-strings.js:480
 msgid "Optional intro text above the submission table. Tokens like {form_title} work."
 msgstr ""
 
-#: i18n/extracted-strings.js:480
+#: i18n/extracted-strings.js:481
 msgid "POST URL"
 msgstr ""
 
-#: i18n/extracted-strings.js:481
+#: i18n/extracted-strings.js:482
 msgid "Mark entry as"
 msgstr ""
 
-#: i18n/extracted-strings.js:484
+#: i18n/extracted-strings.js:485
 msgid "Note"
 msgstr ""
 
-#: i18n/extracted-strings.js:485
+#: i18n/extracted-strings.js:486
 msgid "Internal note. Tokens like {field:ID} work."
 msgstr ""
 
-#: i18n/extracted-strings.js:486
+#: i18n/extracted-strings.js:487
 msgid "Add an action"
 msgstr ""
 
-#: i18n/extracted-strings.js:494
+#: i18n/extracted-strings.js:495
 msgid "AI"
 msgstr ""
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Flexa\FormFlow\Api;
 
+use Flexa\FormFlow\Database\Schema;
 use Flexa\FormFlow\Domain\EmailTemplates\EmailTemplateRepository;
 use Flexa\FormFlow\Domain\Entries\EntryRepository;
 use Flexa\FormFlow\Domain\Forms\FormRepository;
@@ -118,7 +119,10 @@ final class WorkflowsEndpoint extends Endpoint {
 		);
 	}
 
-	public function create( WP_REST_Request $request ): WP_REST_Response {
+	public function create( WP_REST_Request $request ): WP_REST_Response|WP_Error {
+		// REST requests do not fire admin_init, so heal a missing table here too.
+		Schema::maybe_upgrade();
+
 		$params = (array) $request->get_json_params();
 		$title  = sanitize_text_field( (string) ( $params['title'] ?? '' ) );
 		if ( '' === $title ) {
@@ -127,9 +131,17 @@ final class WorkflowsEndpoint extends Endpoint {
 		$config = is_array( $params['config'] ?? null ) ? $params['config'] : [];
 
 		$id       = WorkflowRepository::instance()->create( $title, $config );
-		$workflow = WorkflowRepository::instance()->find( $id );
+		$workflow = $id > 0 ? WorkflowRepository::instance()->find( $id ) : null;
 
-		return new WP_REST_Response( [ 'workflow' => $workflow?->to_array() ], 201 );
+		if ( null === $workflow ) {
+			return new WP_Error(
+				'flexa_formflow_workflow_create_failed',
+				__( 'The workflow could not be created. Please reload the page and try again.', 'flexa-formflow' ),
+				[ 'status' => 500 ]
+			);
+		}
+
+		return new WP_REST_Response( [ 'workflow' => $workflow->to_array() ], 201 );
 	}
 
 	public function show( WP_REST_Request $request ): WP_REST_Response|WP_Error {

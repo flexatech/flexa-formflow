@@ -36,9 +36,24 @@ final class Schema {
 	}
 
 	public static function maybe_upgrade(): void {
-		if ( (int) get_option( self::VERSION_KEY, 0 ) < self::DB_VERSION ) {
+		if ( (int) get_option( self::VERSION_KEY, 0 ) < self::DB_VERSION || ! self::tables_present() ) {
 			self::migrate();
 		}
+	}
+
+	/**
+	 * Guards against a stuck upgrade: if the version option says we are current
+	 * but the newest table never got created (an interrupted or in-place update),
+	 * `maybe_upgrade()` re-migrates instead of trusting the version alone.
+	 */
+	private static function tables_present(): bool {
+		global $wpdb;
+
+		$table = self::workflows_table();
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- schema probe on our own table name; value is escaped with esc_like + prepare.
+		$found = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table ) ) );
+
+		return null !== $found;
 	}
 
 	public static function migrate(): void {
