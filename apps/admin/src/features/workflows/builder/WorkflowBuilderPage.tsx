@@ -14,13 +14,16 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { LockedExplainer } from "@/components/custom/LockedExplainer";
 import { LockedNote, SchemaFields } from "@/components/custom/SchemaFields";
 import { __ } from "@/lib/i18n";
 import { extensionIcon, integrationConnections, workflowActionTypes } from "@/lib/extensions";
 import { navigate } from "@/lib/router";
+import { PRO_UPGRADE_URL } from "@/lib/links";
 import { SHOW_UPCOMING } from "@/lib/flags";
 import { useUiStore } from "@/lib/store";
 import { SaveToLibraryButton } from "@/features/library/SaveToLibrary";
@@ -597,21 +600,30 @@ function AddAction({ onAdd }: { onAdd: (type: string) => void }) {
                 })}
                 {extras.map((ext) => {
                     const Icon = extensionIcon(ext.icon);
+                    // Lock type 1 (Pro capability): the node stays addable and explorable
+                    // (dropping it shows a read-only config with a LockedNote). The Pro chip
+                    // opens the compact explainer; no modal, no separate paywall.
+                    const locked = ext.locked === true;
                     return (
-                        <button
-                            key={ext.type}
-                            type="button"
-                            onClick={() => onAdd(ext.type)}
-                            className="ff:flex ff:items-center ff:gap-1.5 ff:rounded-lg ff:border ff:border-slate-200 ff:bg-white ff:px-3 ff:py-1.5 ff:text-sm ff:text-slate-700 ff:transition-colors ff:hover:border-brand-300 ff:hover:bg-brand-50 ff:hover:text-brand-700"
-                        >
-                            <Icon aria-hidden className="ff:h-4 ff:w-4" />
-                            {ext.label}
-                            {ext.group === "pro" && (
-                                <span className="ff:rounded ff:bg-violet-100 ff:px-1 ff:py-0.5 ff:text-[10px] ff:font-semibold ff:text-violet-700">
-                                    {__("Pro")}
-                                </span>
+                        <div key={ext.type} className="ff:flex ff:items-center ff:gap-1">
+                            <button
+                                type="button"
+                                onClick={() => onAdd(ext.type)}
+                                className="ff:flex ff:items-center ff:gap-1.5 ff:rounded-lg ff:border ff:border-slate-200 ff:bg-white ff:px-3 ff:py-1.5 ff:text-sm ff:text-slate-700 ff:transition-colors ff:hover:border-brand-300 ff:hover:bg-brand-50 ff:hover:text-brand-700"
+                            >
+                                <Icon aria-hidden className="ff:h-4 ff:w-4" />
+                                {ext.label}
+                            </button>
+                            {locked && (
+                                <LockedExplainer
+                                    title={ext.summary || __("A Pro workflow action.")}
+                                    unlocks={ext.lockedNote || __("Included in FormFlow Pro.")}
+                                    upgradeUrl={PRO_UPGRADE_URL}
+                                >
+                                    <Badge variant="pro">{__("Pro")}</Badge>
+                                </LockedExplainer>
                             )}
-                        </button>
+                        </div>
                     );
                 })}
             </div>

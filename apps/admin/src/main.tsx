@@ -8,8 +8,6 @@ import {
     Mail,
     Plug,
     Settings,
-    ShoppingCart,
-    Sparkles,
     Workflow,
     Zap,
 } from "lucide-react";
@@ -21,15 +19,13 @@ import { PackDetailPage } from "@/features/library/PackDetailPage";
 import { IntegrationsPage } from "@/features/integrations/IntegrationsPage";
 import { WorkflowsListPage } from "@/features/workflows/WorkflowsListPage";
 import { WorkflowBuilderPage } from "@/features/workflows/builder/WorkflowBuilderPage";
-import { AiPage } from "@/features/ai/AiPage";
 import { OnboardingWizard } from "@/features/onboarding/OnboardingWizard";
 import { FormsListPage } from "@/features/forms/FormsListPage";
 import { BuilderPage } from "@/features/forms/builder/BuilderPage";
 import { EntriesPage } from "@/features/entries/EntriesPage";
 import { EntryDetailPage } from "@/features/entries/EntryDetailPage";
-import { TemplatesListPage } from "@/features/emails/TemplatesListPage";
+import { EmailsPage } from "@/features/emails/EmailsPage";
 import { EmailEditorPage } from "@/features/emails/editor/EmailEditorPage";
-import { WooCommercePage } from "@/features/woocommerce/WooCommercePage";
 import { SettingsPage } from "@/features/settings/SettingsPage";
 import { __ } from "@/lib/i18n";
 import { cn } from "@/lib/cn";
@@ -54,11 +50,9 @@ const NAV: NavItem[] = [
     { route: "forms", href: "#/forms", icon: FileText, label: () => __("Forms") },
     { route: "entries", href: "#/entries", icon: Inbox, label: () => __("Entries") },
     { route: "emails", href: "#/emails", icon: Mail, label: () => __("Emails") },
-    { route: "woocommerce", href: "#/woocommerce", icon: ShoppingCart, label: () => __("WooCommerce"), wooOnly: true },
     { route: "workflows", href: "#/workflows", icon: Workflow, label: () => __("Workflows") },
     { route: "library", href: "#/library", icon: Library, label: () => __("Library"), upcoming: true },
     { route: "integrations", href: "#/integrations", icon: Plug, label: () => __("Integrations") },
-    { route: "ai", href: "#/ai", icon: Sparkles, label: () => __("AI"), settingsOnly: true },
     { route: "settings", href: "#/settings", icon: Settings, label: () => __("Settings") },
 ];
 
@@ -83,6 +77,8 @@ function navSection(route: Route): string {
             return "entries";
         case "emailEditor":
             return "emails";
+        case "woocommerce":
+            return "emails";
         case "workflowEditor":
             return "workflows";
         case "pack":
@@ -103,11 +99,11 @@ function screenFor(route: Route): ReactNode {
         case "entry":
             return <EntryDetailPage key={route.id} id={route.id} />;
         case "emails":
-            return <TemplatesListPage />;
+            return <EmailsPage tab="form" />;
         case "emailEditor":
             return <EmailEditorPage key={route.id} id={route.id} />;
         case "woocommerce":
-            return <WooCommercePage />;
+            return <EmailsPage tab="woocommerce" />;
         case "workflows":
             return <WorkflowsListPage />;
         case "workflowEditor":
@@ -118,8 +114,6 @@ function screenFor(route: Route): ReactNode {
             return <LibraryPage />;
         case "pack":
             return <PackDetailPage key={route.id} id={route.id} />;
-        case "ai":
-            return <AiPage />;
         case "settings":
             return <SettingsPage />;
         case "dashboard":

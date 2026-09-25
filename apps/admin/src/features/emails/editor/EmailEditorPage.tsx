@@ -1,6 +1,7 @@
-import { ArrowLeft, Monitor, Send, Smartphone } from "lucide-react";
+import { ArrowLeft, Monitor, Send, Smartphone, Sparkles } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { AiWritingDialog } from "@/features/ai/AiWritingDialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
@@ -71,6 +72,7 @@ export function EmailEditorPage({ id }: { id: number }) {
     const [viewport, setViewport] = useState<"desktop" | "mobile">("desktop");
     const [previewFormId, setPreviewFormId] = useState(0);
     const [testOpen, setTestOpen] = useState(false);
+    const [aiOpen, setAiOpen] = useState(false);
     const lastSaved = useRef("");
 
     const { data: formsData } = useFormsList({ per_page: 100 });
@@ -231,6 +233,10 @@ export function EmailEditorPage({ id }: { id: number }) {
                         getPayload={() => draft.tree as unknown as Record<string, unknown>}
                     />
                 )}
+                <Button variant="outline" size="sm" onClick={() => setAiOpen(true)}>
+                    <Sparkles aria-hidden className="ff:h-4 ff:w-4" />
+                    {__("Writing assistant")}
+                </Button>
                 <Button variant="outline" size="sm" onClick={() => setTestOpen(true)}>
                     <Send aria-hidden className="ff:h-4 ff:w-4" />
                     {__("Send test")}
@@ -285,6 +291,8 @@ export function EmailEditorPage({ id }: { id: number }) {
                 forms={forms}
                 onFormChange={setPreviewFormId}
             />
+
+            <AiWritingDialog open={aiOpen} onClose={() => setAiOpen(false)} />
         </div>
     );
 }

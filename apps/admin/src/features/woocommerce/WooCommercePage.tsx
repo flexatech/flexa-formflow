@@ -23,36 +23,33 @@ import {
     type WooTemplateOption,
 } from "./useWooEmails";
 
-export function WooCommercePage() {
+/**
+ * The "WooCommerce" tab body of the Emails screen: take over WooCommerce order
+ * emails and design them with the FormFlow builder. Rendered only when the
+ * WooCommerce tab is active (EmailsPage gates it on Woo being present).
+ */
+export function WooEmailsTab() {
     const { data, isLoading } = useWooEmails();
     const [preview, setPreview] = useState<{ title: string; html: string } | null>(null);
 
     if (isLoading || !data) {
-        return (
-            <div className="ff:p-6">
-                <div className="ff:h-64 ff:animate-pulse ff:rounded-xl ff:border ff:border-slate-200 ff:bg-white" />
-            </div>
-        );
+        return <div className="ff:h-64 ff:animate-pulse ff:rounded-xl ff:border ff:border-slate-200 ff:bg-white" />;
     }
 
     if (!data.hasWooCommerce) {
         return (
-            <div className="ff:flex ff:flex-col ff:gap-6 ff:p-6">
-                <Header />
-                <EmptyState
-                    icon={ShoppingCart}
-                    title={__("WooCommerce is not active")}
-                    description={__(
-                        "Install and activate WooCommerce to design its order emails with the FormFlow builder. FormFlow keeps working without it.",
-                    )}
-                />
-            </div>
+            <EmptyState
+                icon={ShoppingCart}
+                title={__("WooCommerce is not active")}
+                description={__(
+                    "Install and activate WooCommerce to design its order emails with the FormFlow builder. FormFlow keeps working without it.",
+                )}
+            />
         );
     }
 
     return (
-        <div className="ff:flex ff:flex-col ff:gap-6 ff:p-6">
-            <Header />
+        <>
             <TokensHint tokens={data.tokens} />
             <div className="ff:flex ff:flex-col ff:gap-3">
                 {data.emails.map((email) => (
@@ -80,18 +77,7 @@ export function WooCommercePage() {
                     />
                 </DialogContent>
             </Dialog>
-        </div>
-    );
-}
-
-function Header() {
-    return (
-        <div className="ff:flex ff:flex-col ff:gap-1">
-            <h1 className="ff:text-2xl ff:font-semibold ff:text-slate-900">{__("WooCommerce emails")}</h1>
-            <p className="ff:text-sm ff:text-slate-500">
-                {__("Take over WooCommerce order emails and design them with the FormFlow email builder.")}
-            </p>
-        </div>
+        </>
     );
 }
 

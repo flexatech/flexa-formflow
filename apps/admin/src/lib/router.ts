@@ -5,11 +5,13 @@
  *   #/forms/:id/edit → form builder (full-area takeover, no sidebar)
  *   #/entries        → entries list
  *   #/entries/:id    → entry detail
- *   #/emails         → email templates list
+ *   #/emails         → Emails screen, Form Emails tab
+ *   #/emails/woocommerce → Emails screen, WooCommerce tab (Woo-only)
  *   #/emails/:id/edit → email editor (full-area takeover, no sidebar)
  *   #/settings       → settings
- * Upcoming sections (workflows, integrations) stay parseable but are only
- * reachable when the SHOW_UPCOMING flag in main.tsx is on.
+ * Upcoming sections (the Library) stay parseable but are only reachable when
+ * the SHOW_UPCOMING flag in lib/flags.ts is on. AI is not a route: it lives as
+ * entry points inside the builders plus provider config in Settings.
  */
 
 export type Route =
@@ -26,7 +28,6 @@ export type Route =
     | { name: "integrations" }
     | { name: "library" }
     | { name: "pack"; id: string }
-    | { name: "ai" }
     | { name: "settings" };
 
 export function parseHash(hash: string): Route {
@@ -48,6 +49,9 @@ export function parseHash(hash: string): Route {
             if (second && /^\d+$/.test(second) && third === "edit") {
                 return { name: "emailEditor", id: parseInt(second, 10) };
             }
+            if (second === "woocommerce") {
+                return { name: "woocommerce" };
+            }
             return { name: "emails" };
         case "woocommerce":
             return { name: "woocommerce" };
@@ -63,8 +67,6 @@ export function parseHash(hash: string): Route {
                 return { name: "pack", id: third };
             }
             return { name: "library" };
-        case "ai":
-            return { name: "ai" };
         case "settings":
             return { name: "settings" };
         default:

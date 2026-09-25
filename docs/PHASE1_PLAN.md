@@ -64,9 +64,13 @@ To view Slice 1 in wp-admin, flip `SHOW_UPCOMING` to `true` in
       `features/library/SaveToLibrary.tsx`; form/email save as `template`,
       workflow as `recipe`; each builder passes its live document via
       `getPayload`. Gated behind `SHOW_UPCOMING` in every builder header.
-- [ ] Asset preview: open the read-only builder chrome for a template/recipe.
-- [ ] Remove the `upcoming` gate on Library once import + save round-trips
-      (deferred until Slice 4 lands the import path — the gate covers both).
+- [ ] Asset preview + reuse: open the read-only builder chrome for a
+      template/recipe and insert a saved pattern into a builder. This is the
+      one Phase 1 thread still open (the save half of the round-trip ships; the
+      reuse half does not yet).
+- [x] Remove the `upcoming` gate on Library: flipped `SHOW_UPCOMING` to `true`
+      at the Slice 5 closeout, once import + save round-trips landed. The flag
+      stays as a single kill-switch rather than being deleted.
 
 ### Slice 4 — Pack v1 · DONE
 
@@ -88,13 +92,35 @@ To view Slice 1 in wp-admin, flip `SHOW_UPCOMING` to `true` in
       form/template refs resolved to the new ids; nothing is written before the
       review step's confirm (`POST /library/packs/{id}/import`).
 
-### Slice 5 — Locked states applied + nav restructure · TODO
+### Slice 5 — Locked states applied + nav restructure · DONE
 
-- [ ] Apply the three lock types across Pro surfaces (crm_push node,
-      connectors) using `LockedExplainer` + the badge taxonomy.
-- [ ] Fold WooCommerce into an Emails tab (Form Emails / WooCommerce).
-- [ ] Demote AI from a top-level nav item to in-builder entry points +
-      Settings, per section C.
+- [x] Apply the three lock types across Pro surfaces using `LockedExplainer` +
+      the badge taxonomy. The workflow palette's Pro nodes (crm_push and
+      successors) now carry a neutral `Badge variant="pro"` whose click opens
+      the compact explainer (why/what/upgrade), and the node stays addable and
+      explorable (read-only config + `LockedNote`). The Integrations page gives
+      locked hosted connectors the same Pro chip + explainer in place of the
+      Connect button. Upgrade links go through one shared `lib/links.ts` URL.
+- [x] Fold WooCommerce into an Emails tab. New `EmailsPage` owns the title and
+      a Form Emails / WooCommerce tab strip; the WooCommerce tab appears only
+      when Woo is active. `TemplatesListPage` and `WooCommercePage` became tab
+      bodies (`FormEmailsTab` / `WooEmailsTab`). Routes: `#/emails` and
+      `#/emails/woocommerce`, with `#/woocommerce` kept for back-compat. The
+      top-level WooCommerce nav item is gone.
+- [x] Demote AI from a top-level nav item to in-builder entry points. The AI
+      page and route are removed; form generation is a "Generate with AI"
+      dialog on the Forms list (`AiFormDialog`) and copy polish is a "Writing
+      assistant" dialog in the email editor (`AiWritingDialog`). Provider and
+      key config already lived in Settings. Both entry points point to Settings
+      when no API key is configured.
+
+### Slice 5 closeout
+
+- [x] Deleted the dead `features/placeholders/pages.tsx` (unreferenced
+      coming-soon stubs) so nothing half-built can surface.
+- [x] Flipped `SHOW_UPCOMING` to `true`: the Library, its Dashboard spotlight
+      and quick action, and the Save-to-Library actions are all backed by real
+      data now. `pnpm type-check` and `pnpm build` clean.
 
 ## Acceptance for the epic
 
