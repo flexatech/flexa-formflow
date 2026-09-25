@@ -13,11 +13,13 @@ import {
 import { AppProviders } from "@/app/providers";
 import { Toaster } from "@/components/Toaster";
 import { DashboardPage } from "@/features/dashboard/DashboardPage";
-import { EmailsPage, IntegrationsPage, WorkflowsPage } from "@/features/placeholders/pages";
+import { IntegrationsPage, WorkflowsPage } from "@/features/placeholders/pages";
 import { FormsListPage } from "@/features/forms/FormsListPage";
 import { BuilderPage } from "@/features/forms/builder/BuilderPage";
 import { EntriesPage } from "@/features/entries/EntriesPage";
 import { EntryDetailPage } from "@/features/entries/EntryDetailPage";
+import { TemplatesListPage } from "@/features/emails/TemplatesListPage";
+import { EmailEditorPage } from "@/features/emails/editor/EmailEditorPage";
 import { SettingsPage } from "@/features/settings/SettingsPage";
 import { __ } from "@/lib/i18n";
 import { cn } from "@/lib/cn";
@@ -43,7 +45,7 @@ const NAV: NavItem[] = [
     { route: "dashboard", href: "#/", icon: LayoutDashboard, label: () => __("Dashboard") },
     { route: "forms", href: "#/forms", icon: FileText, label: () => __("Forms") },
     { route: "entries", href: "#/entries", icon: Inbox, label: () => __("Entries") },
-    { route: "emails", href: "#/emails", icon: Mail, label: () => __("Emails"), upcoming: true },
+    { route: "emails", href: "#/emails", icon: Mail, label: () => __("Emails") },
     { route: "workflows", href: "#/workflows", icon: Workflow, label: () => __("Workflows"), upcoming: true },
     { route: "integrations", href: "#/integrations", icon: Plug, label: () => __("Integrations"), upcoming: true },
     { route: "settings", href: "#/settings", icon: Settings, label: () => __("Settings") },
@@ -68,6 +70,8 @@ function navSection(route: Route): string {
             return "forms";
         case "entry":
             return "entries";
+        case "emailEditor":
+            return "emails";
         default:
             return route.name;
     }
@@ -84,7 +88,9 @@ function screenFor(route: Route): ReactNode {
         case "entry":
             return <EntryDetailPage key={route.id} id={route.id} />;
         case "emails":
-            return SHOW_UPCOMING ? <EmailsPage /> : <DashboardPage />;
+            return <TemplatesListPage />;
+        case "emailEditor":
+            return <EmailEditorPage key={route.id} id={route.id} />;
         case "workflows":
             return SHOW_UPCOMING ? <WorkflowsPage /> : <DashboardPage />;
         case "integrations":
@@ -102,8 +108,8 @@ function App() {
     const section = navSection(route);
     const items = NAV.filter((item) => SHOW_UPCOMING || !item.upcoming);
 
-    // The builder is a full-area takeover: no sidebar, maximum canvas.
-    if (route.name === "builder") {
+    // The builder and email editor are full-area takeovers: no sidebar.
+    if (route.name === "builder" || route.name === "emailEditor") {
         return (
             <div className="ff:flex ff:min-h-screen ff:bg-slate-50">
                 {screenFor(route)}

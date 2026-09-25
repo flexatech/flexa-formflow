@@ -1,0 +1,103 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Flexa\FormFlow\Emails;
+
+defined( 'ABSPATH' ) || exit;
+
+/**
+ * Validates and sanitizes an incoming element tree before it hits the database.
+ * Strings pass through wp_kses_post (rich text survives, scripts do not);
+ * unknown keys and malformed nodes are dropped. Always returns the canonical
+ * v1 shape.
+ */
+final class TreeSanitizer {
+	private const MAX_ELEMENTS = 100;
+
+	private const SETTINGS_STRING_KEYS = [ 'backgroundColor', 'contentBackground', 'textColor', 'brandColor', 'fontFamily' ];
+
+	/**
+	 * @param array<string, mixed> $tree
+	 * @return array<string, mixed>
+	 */
+	public static function sanitize( array $tree ): array {
+		$settings = [];
+		$incoming = isset( $tree['settings'] ) && is_array( $tree['settings'] ) ? $tree['settings'] : [];
+		foreach ( self::SETTINGS_STRING_KEYS as $key ) {
+			if ( isset( $incoming[ $key ] ) && is_string( $incoming[ $key ] ) ) {
+				$settings[ $key ] = sanitize_text_field( $incoming[ $key ] );
+			}
+		}
+		if ( isset( $incoming['width'] ) && is_numeric( $incoming['width'] ) ) {
+			$settings['width'] = max( 320, min( 800, (int) $incoming['width'] ) );
+		}
+
+		$nodes = isset( $tree['elements'] ) && is_array( $tree['elements'] ) ? $tree['elements'] : [];
+
+		return [
+			'version'  => 1,
+			'settings' => $settings,
+			'elements' => self::sanitize_elements( $nodes, true ),
+		];
+	}
+
+	/**
+	 * Sanitize a list of element nodes. Column children are sanitized the same
+	 * way but with `$allow_columns` off, so nesting stays one level deep.
+	 *
+	 * @param array<int, mixed> $nodes
+	 * @return list<array<string, mixed>>
+	 */
+	private static function sanitize_elements( array $nodes, bool $allow_columns ): array {
+		$elements = [];
+		foreach ( array_slice( $nodes, 0, self::MAX_ELEMENTS ) as $node ) {
+			if ( ! is_array( $node ) || ! isset( $node['type'] ) || ! is_string( $node['type'] ) ) {
+				continue;
+			}
+
+			$type    = sanitize_key( $node['type'] );
+			$element = [
+				'id'    => isset( $node['id'] ) && is_string( $node['id'] ) ? sanitize_key( $node['id'] ) : 'el_' . wp_generate_password( 8, false ),
+				'type'  => $type,
+				'props' => self::sanitize_props( isset( $node['props'] ) && is_array( $node['props'] ) ? $node['props'] : [] ),
+			];
+
+			if ( 'columns' === $type && $allow_columns ) {
+				$raw_columns = isset( $node['columns'] ) && is_array( $node['columns'] ) ? $node['columns'] : [ [], [] ];
+				$columns     = [];
+				foreach ( array_slice( array_values( $raw_columns ), 0, 4 ) as $col ) {
+					$columns[] = self::sanitize_elements( is_array( $col ) ? $col : [], false );
+				}
+				$element['columns'] = [] === $columns ? [ [], [] ] : $columns;
+			}
+
+			$elements[] = $element;
+		}
+
+		return $elements;
+	}
+
+	/**
+	 * @param array<mixed> $props
+	 * @return array<string, mixed>
+	 */
+	private static function sanitize_props( array $props, int $depth = 0 ): array {
+		if ( $depth > 3 ) {
+			return [];
+		}
+
+		$out = [];
+		foreach ( $props as $key => $value ) {
+			if ( is_string( $value ) ) {
+				$out[ $key ] = wp_kses_post( $value );
+			} elseif ( is_int( $value ) || is_float( $value ) || is_bool( $value ) ) {
+				$out[ $key ] = $value;
+			} elseif ( is_array( $value ) ) {
+				$out[ $key ] = self::sanitize_props( $value, $depth + 1 );
+			}
+		}
+
+		return $out;
+	}
+}

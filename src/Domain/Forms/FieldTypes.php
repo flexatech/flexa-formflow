@@ -180,15 +180,17 @@ final class FieldTypes {
 			],
 			'notifications' => [
 				'admin'        => [
-					'enabled' => ! empty( $admin['enabled'] ),
-					'to'      => sanitize_text_field( (string) ( $admin['to'] ?? '' ) ),
-					'subject' => sanitize_text_field( (string) ( $admin['subject'] ?? '' ) ),
+					'enabled'     => ! empty( $admin['enabled'] ),
+					'to'          => sanitize_text_field( (string) ( $admin['to'] ?? '' ) ),
+					'subject'     => sanitize_text_field( (string) ( $admin['subject'] ?? '' ) ),
+					'template_id' => absint( $admin['template_id'] ?? 0 ),
 				],
 				'confirmation' => [
 					'enabled'     => ! empty( $confirmation['enabled'] ),
 					'email_field' => sanitize_key( (string) ( $confirmation['email_field'] ?? '' ) ),
 					'subject'     => sanitize_text_field( (string) ( $confirmation['subject'] ?? '' ) ),
 					'message'     => sanitize_textarea_field( (string) ( $confirmation['message'] ?? '' ) ),
+					'template_id' => absint( $confirmation['template_id'] ?? 0 ),
 				],
 			],
 		];
@@ -199,6 +201,37 @@ final class FieldTypes {
 	 */
 	public static function default_config(): array {
 		return self::sanitize_config( [] );
+	}
+
+	/**
+	 * A believable placeholder value for one field, used by the email preview
+	 * (both the fields table and {field:ID} tokens) when no real entry exists.
+	 *
+	 * @param array<string, mixed> $field
+	 */
+	public static function sample_value( array $field ): string {
+		$type    = (string) ( $field['type'] ?? 'text' );
+		$options = self::option_values( $field );
+
+		switch ( $type ) {
+			case 'email':
+				return 'jane@example.com';
+			case 'number':
+				return '42';
+			case 'date':
+				return gmdate( 'Y-m-d' );
+			case 'textarea':
+				return __( 'This is a sample response from the visitor.', 'flexa-formflow' );
+			case 'select':
+			case 'radio':
+			case 'checkbox':
+				return $options[0] ?? __( 'Option 1', 'flexa-formflow' );
+			case 'hidden':
+				return (string) ( $field['placeholder'] ?? 'hidden-value' );
+			case 'text':
+			default:
+				return 'Jane Doe';
+		}
 	}
 
 	/**

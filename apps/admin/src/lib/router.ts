@@ -5,9 +5,11 @@
  *   #/forms/:id/edit → form builder (full-area takeover, no sidebar)
  *   #/entries        → entries list
  *   #/entries/:id    → entry detail
+ *   #/emails         → email templates list
+ *   #/emails/:id/edit → email editor (full-area takeover, no sidebar)
  *   #/settings       → settings
- * Upcoming sections (emails, workflows, integrations) stay parseable but are
- * only reachable when the SHOW_UPCOMING flag in main.tsx is on.
+ * Upcoming sections (workflows, integrations) stay parseable but are only
+ * reachable when the SHOW_UPCOMING flag in main.tsx is on.
  */
 
 export type Route =
@@ -17,6 +19,7 @@ export type Route =
     | { name: "entries" }
     | { name: "entry"; id: number }
     | { name: "emails" }
+    | { name: "emailEditor"; id: number }
     | { name: "workflows" }
     | { name: "integrations" }
     | { name: "settings" };
@@ -37,6 +40,9 @@ export function parseHash(hash: string): Route {
             }
             return { name: "entries" };
         case "emails":
+            if (second && /^\d+$/.test(second) && third === "edit") {
+                return { name: "emailEditor", id: parseInt(second, 10) };
+            }
             return { name: "emails" };
         case "workflows":
             return { name: "workflows" };

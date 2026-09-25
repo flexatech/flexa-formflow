@@ -1,10 +1,12 @@
-import { Mail, MailCheck } from "lucide-react";
+import { ExternalLink, Mail, MailCheck } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { __ } from "@/lib/i18n";
+import { useEmailTemplatesList } from "@/features/emails/useEmailTemplates";
+import type { EmailTemplate } from "@/features/emails/types";
 import type { FormConfig } from "../types";
 
 interface NotificationsTabProps {
@@ -13,11 +15,13 @@ interface NotificationsTabProps {
 }
 
 /**
- * M1 email slice settings. The visual email builder replaces the fixed
- * template in a later milestone; these toggles stay.
+ * Email notification settings: toggles, recipients, subjects, and the email
+ * design each notification uses (a saved template, or the built-in default).
  */
 export function NotificationsTab({ config, onChange }: NotificationsTabProps) {
     const { admin, confirmation } = config.notifications;
+    const { data: templates } = useEmailTemplatesList();
+    const templateList = templates ?? [];
     const patchAdmin = (patch: Partial<typeof admin>) =>
         onChange({
             ...config,
@@ -75,6 +79,11 @@ export function NotificationsTab({ config, onChange }: NotificationsTabProps) {
                                 onChange={(e) => patchAdmin({ subject: e.target.value })}
                             />
                         </div>
+                        <DesignSelect
+                            value={admin.template_id ?? 0}
+                            templates={templateList}
+                            onChange={(id) => patchAdmin({ template_id: id })}
+                        />
                     </div>
                 ) : null}
             </section>
@@ -142,10 +151,62 @@ export function NotificationsTab({ config, onChange }: NotificationsTabProps) {
                                 placeholder={__("Thanks for reaching out. We will get back to you soon.")}
                                 onChange={(e) => patchConfirmation({ message: e.target.value })}
                             />
+                            <p className="ff:mt-1.5 ff:text-xs ff:text-slate-500">
+                                {__("Used as the body when the design is set to Default. A template ignores this.")}
+                            </p>
                         </div>
+                        <DesignSelect
+                            value={confirmation.template_id ?? 0}
+                            templates={templateList}
+                            onChange={(id) => patchConfirmation({ template_id: id })}
+                        />
                     </div>
                 ) : null}
             </section>
+        </div>
+    );
+}
+
+function DesignSelect({
+    value,
+    templates,
+    onChange,
+}: {
+    value: number;
+    templates: EmailTemplate[];
+    onChange: (id: number) => void;
+}) {
+    return (
+        <div>
+            <Label className="ff:mb-1.5 ff:block ff:text-sm ff:font-medium ff:text-slate-700">
+                {__("Design")}
+            </Label>
+            <div className="ff:flex ff:items-center ff:gap-2">
+                <Select
+                    value={String(value || 0)}
+                    options={[
+                        { value: "0", label: __("Default design") },
+                        ...templates.map((t) => ({ value: String(t.id), label: t.title || __("Untitled template") })),
+                    ]}
+                    onChange={(e) => onChange(Number(e.target.value))}
+                    className="ff:w-full"
+                />
+                {value > 0 ? (
+                    <a
+                        href={`#/emails/${value}/edit`}
+                        className="ff:inline-flex ff:shrink-0 ff:items-center ff:gap-1 ff:whitespace-nowrap ff:text-sm ff:font-medium ff:text-brand-600 ff:no-underline ff:hover:text-brand-700"
+                    >
+                        {__("Edit")}
+                        <ExternalLink aria-hidden className="ff:h-3.5 ff:w-3.5" />
+                    </a>
+                ) : null}
+            </div>
+            <p className="ff:mt-1.5 ff:text-xs ff:text-slate-500">
+                {__("Pick a saved template or leave the clean default.")}{" "}
+                <a href="#/emails" className="ff:text-brand-600 ff:no-underline ff:hover:text-brand-700">
+                    {__("Manage templates")}
+                </a>
+            </p>
         </div>
     );
 }

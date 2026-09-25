@@ -16,6 +16,7 @@ global $wpdb;
 // Standalone on purpose: uninstall runs without the plugin loaded, so no
 // autoloader or classes here — table names are duplicated from Database\Schema.
 // phpcs:disable WordPress.DB.DirectDatabaseQuery -- destructive teardown of our own tables.
+$wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}flexa_formflow_email_templates" );
 $wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}flexa_formflow_entries" );
 $wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}flexa_formflow_forms" );
 // phpcs:enable

@@ -12,7 +12,7 @@ defined( 'ABSPATH' ) || exit;
  * need a manual re-activation.
  */
 final class Schema {
-	public const DB_VERSION  = 1;
+	public const DB_VERSION  = 2;
 	public const VERSION_KEY = 'flexa_formflow_db_version';
 
 	public static function forms_table(): string {
@@ -23,6 +23,11 @@ final class Schema {
 	public static function entries_table(): string {
 		global $wpdb;
 		return $wpdb->prefix . 'flexa_formflow_entries';
+	}
+
+	public static function email_templates_table(): string {
+		global $wpdb;
+		return $wpdb->prefix . 'flexa_formflow_email_templates';
 	}
 
 	public static function maybe_upgrade(): void {
@@ -39,6 +44,7 @@ final class Schema {
 		$charset_collate = $wpdb->get_charset_collate();
 		$forms           = self::forms_table();
 		$entries         = self::entries_table();
+		$email_templates = self::email_templates_table();
 
 		dbDelta(
 			"CREATE TABLE {$forms} (
@@ -69,6 +75,17 @@ final class Schema {
 			) {$charset_collate};"
 		);
 
+		dbDelta(
+			"CREATE TABLE {$email_templates} (
+				id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+				title VARCHAR(190) NOT NULL DEFAULT '',
+				tree LONGTEXT NOT NULL,
+				created_at DATETIME NOT NULL,
+				updated_at DATETIME NOT NULL,
+				PRIMARY KEY  (id)
+			) {$charset_collate};"
+		);
+
 		update_option( self::VERSION_KEY, self::DB_VERSION );
 	}
 
@@ -76,6 +93,7 @@ final class Schema {
 		global $wpdb;
 
 		// phpcs:disable WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- destructive teardown of our own tables; names are not user input.
+		$wpdb->query( 'DROP TABLE IF EXISTS ' . self::email_templates_table() );
 		$wpdb->query( 'DROP TABLE IF EXISTS ' . self::entries_table() );
 		$wpdb->query( 'DROP TABLE IF EXISTS ' . self::forms_table() );
 		// phpcs:enable

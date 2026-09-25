@@ -11,9 +11,12 @@ interface UiState {
     toast: ToastState | null;
     showToast: (message: string, tone?: ToastState["tone"]) => void;
     dismissToast: () => void;
-    /** Builder UI state: the selected field id on the canvas. */
+    /** Form builder UI state: the selected field id on the canvas. */
     selectedFieldId: string | null;
     setSelectedField: (id: string | null) => void;
+    /** Email editor UI state: the selected element id in the layer list. */
+    selectedElementId: string | null;
+    setSelectedElement: (id: string | null) => void;
 }
 
 export const useUiStore = create<UiState>()((set) => ({
@@ -23,4 +26,6 @@ export const useUiStore = create<UiState>()((set) => ({
     dismissToast: () => set({ toast: null }),
     selectedFieldId: null,
     setSelectedField: (id) => set({ selectedFieldId: id }),
+    selectedElementId: null,
+    setSelectedElement: (id) => set({ selectedElementId: id }),
 }));

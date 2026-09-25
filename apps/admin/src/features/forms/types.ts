@@ -46,8 +46,14 @@ export interface FormConfig {
         success_message: string;
     };
     notifications: {
-        admin: { enabled: boolean; to: string; subject: string };
-        confirmation: { enabled: boolean; email_field: string; subject: string; message: string };
+        admin: { enabled: boolean; to: string; subject: string; template_id: number };
+        confirmation: {
+            enabled: boolean;
+            email_field: string;
+            subject: string;
+            message: string;
+            template_id: number;
+        };
     };
 }
 

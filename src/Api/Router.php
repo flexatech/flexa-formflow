@@ -29,6 +29,9 @@ final class Router {
 		( new EntriesEndpoint() )->register_routes();
 		( new StatsEndpoint() )->register_routes();
 		( new SubmitEndpoint() )->register_routes();
+		( new EmailTemplatesEndpoint() )->register_routes();
+		( new EmailPreviewEndpoint() )->register_routes();
+		( new EmailTestEndpoint() )->register_routes();
 
 		do_action( 'flexa_formflow.rest.register_routes' );
 	}
