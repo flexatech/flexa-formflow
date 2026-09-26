@@ -24,6 +24,7 @@ final class LibraryAsset {
 		public readonly string $source_pack,
 		public readonly string $source_content_id,
 		public readonly string $source_version,
+		public readonly string $source_hash,
 		public readonly string $created_at,
 		public readonly string $updated_at,
 	) {}
@@ -44,6 +45,7 @@ final class LibraryAsset {
 			source_pack: (string) ( $row['source_pack'] ?? '' ),
 			source_content_id: (string) ( $row['source_content_id'] ?? '' ),
 			source_version: (string) ( $row['source_version'] ?? '' ),
+			source_hash: (string) ( $row['source_hash'] ?? '' ),
 			created_at: (string) ( $row['created_at'] ?? '' ),
 			updated_at: (string) ( $row['updated_at'] ?? '' ),
 		);

@@ -33,6 +33,12 @@ final class CateringPack {
 			emails: [ self::confirmation_email() ],
 			workflows: [ self::follow_up_workflow() ],
 			patterns: [ self::customer_info_pattern() ],
+			changelog: [
+				[
+					'version' => '1.0.0',
+					'notes'   => [ __( 'First release: inquiry form, confirmation email, follow-up workflow.', 'flexa-formflow' ) ],
+				],
+			],
 		);
 	}
 

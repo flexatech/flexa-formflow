@@ -106,15 +106,6 @@ export function EmailEditorPage({ id }: { id: number }) {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [draft]);
 
-    const fieldTokens = useMemo(() => {
-        const form = forms.find((f) => f.id === previewFormId);
-        if (!form) return [];
-        return form.config.fields.map((field) => ({
-            token: `{field:${field.id}}`,
-            label: field.label || field.id,
-        }));
-    }, [forms, previewFormId]);
-
     // Condition subjects for the visibility panel: the preview form's fields.
     // A template is reusable, so the subjects follow whichever form is picked
     // for preview; the stored rules key off field ids, which are stable.
@@ -270,7 +261,7 @@ export function EmailEditorPage({ id }: { id: number }) {
                     <PropsPanel
                         element={selected}
                         settings={draft.tree.settings}
-                        fieldTokens={fieldTokens}
+                        formId={previewFormId}
                         conditionFields={conditionFields}
                         hasPreviewForm={previewFormId > 0}
                         onChangeProps={onChangeProps}

@@ -5,7 +5,7 @@
  * contents summary.
  */
 
-export type AssetType = "template" | "pattern" | "recipe" | "pack";
+export type AssetType = "template" | "pattern" | "recipe" | "pack" | "bundle";
 
 /** Which builder an asset targets. Drives the "For:" facet. */
 export type AssetKind = "form" | "email" | "workflow" | "woocommerce";
@@ -54,6 +54,12 @@ export interface PackItem {
     requiresPro: boolean;
 }
 
+/** One changelog entry, newest first, shown on the update screen. */
+export interface PackChangelogEntry {
+    version: string;
+    notes: string[];
+}
+
 /** A Pack plus its named content lists and this site's install eligibility. */
 export interface PackDetail extends Pack {
     items: {
@@ -64,6 +70,57 @@ export interface PackDetail extends Pack {
     };
     /** False when the pack needs Pro this site does not have. */
     canInstall: boolean;
+    /** True once this site owns the pack (a Free pack is owned by everyone). */
+    purchased: boolean;
+    changelog: PackChangelogEntry[];
+}
+
+/** A catalog bundle: member packs presented at a combined price. */
+export interface Bundle {
+    id: string;
+    type: "bundle";
+    name: string;
+    description: string;
+    category: string;
+    kind: AssetKind;
+    ownership: Ownership;
+    price?: string;
+    /** The un-bundled total, for the savings line. */
+    listPrice?: string;
+    memberCount: number;
+    members: { id: string; name: string }[];
+}
+
+/** How the user wants to resolve one item in a pack update. */
+export type UpdateAction = "take_update" | "keep_mine" | "keep_both";
+
+/** One item's place in a pack update diff. */
+export interface PackDiffItem {
+    ref: string;
+    name: string;
+    kind: AssetKind;
+    /** new | update | conflict | unchanged | removed. */
+    status: string;
+    /** The protective default action. */
+    action: UpdateAction;
+    modified: boolean;
+}
+
+/** The full diff between an installed pack and its newest version. */
+export interface PackDiff {
+    pack: string;
+    name: string;
+    fromVersion: string;
+    toVersion: string;
+    changelog: PackChangelogEntry[];
+    summary: { new: number; update: number; conflict: number; unchanged: number; removed: number };
+    items: PackDiffItem[];
+}
+
+/** What an update applied. */
+export interface UpdateSummary {
+    pack: string;
+    applied: { updated: number; kept: number; added: number; unchanged: number };
 }
 
 /** What an import created and what it skipped (Pro-only content on Free). */

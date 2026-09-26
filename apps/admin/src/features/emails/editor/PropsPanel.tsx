@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from "react";
 import { Copy, Eye, Trash2 } from "lucide-react";
 import { ColorField } from "@/components/custom/ColorField";
 import { ConditionsBuilder, toConditionSet, type ConditionSet, type SchemaContextField } from "@/components/custom/SchemaFields";
@@ -6,17 +7,16 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { __, sprintf } from "@/lib/i18n";
-import { GLOBAL_TOKENS, elementDef, isLayout, type EmailElement, type FieldSpec, type TreeSettings } from "../types";
+import { elementDef, isLayout, type EmailElement, type FieldSpec, type TreeSettings } from "../types";
+import { DynamicDataBrowser } from "./DynamicDataBrowser";
 
-interface TokenInfo {
-    token: string;
-    label: string;
-}
+/** A text-bearing input the Dynamic Data browser can insert a token into. */
+type ActiveField = { el: HTMLInputElement | HTMLTextAreaElement; onChange: (value: string) => void };
 
 interface PropsPanelProps {
     element: EmailElement | null;
     settings: TreeSettings;
-    fieldTokens: TokenInfo[];
+    formId: number;
     conditionFields: SchemaContextField[];
     hasPreviewForm: boolean;
     onChangeProps: (id: string, props: Record<string, unknown>) => void;
@@ -30,7 +30,7 @@ interface PropsPanelProps {
 export function PropsPanel({
     element,
     settings,
-    fieldTokens,
+    formId,
     conditionFields,
     hasPreviewForm,
     onChangeProps,
@@ -40,6 +40,39 @@ export function PropsPanel({
     onDelete,
     onChangeSettings,
 }: PropsPanelProps) {
+    // The last text field the user focused, so the Dynamic Data browser inserts
+    // its token at the cursor there. Cleared when the selected block changes.
+    const activeRef = useRef<ActiveField | null>(null);
+    const [hasActive, setHasActive] = useState(false);
+
+    useEffect(() => {
+        activeRef.current = null;
+        setHasActive(false);
+    }, [element?.id]);
+
+    const registerActive = (el: HTMLInputElement | HTMLTextAreaElement, onChange: (value: string) => void) => {
+        activeRef.current = { el, onChange };
+        setHasActive(true);
+    };
+
+    const insertToken = (token: string) => {
+        const active = activeRef.current;
+        if (!active) return;
+        const { el, onChange } = active;
+        const start = el.selectionStart ?? el.value.length;
+        const end = el.selectionEnd ?? el.value.length;
+        onChange(el.value.slice(0, start) + token + el.value.slice(end));
+        const caret = start + token.length;
+        window.requestAnimationFrame(() => {
+            el.focus();
+            el.setSelectionRange(caret, caret);
+        });
+    };
+
+    const browser = (
+        <DynamicDataBrowser formId={formId} canInsert={hasActive} onInsert={insertToken} />
+    );
+
     if (!element) {
         return (
             <div className="ff:flex ff:flex-col ff:gap-4">
@@ -67,7 +100,7 @@ export function PropsPanel({
                 <p className="ff:m-0 ff:text-xs ff:text-slate-500">
                     {__("Empty fields inherit the global design tokens from Settings.")}
                 </p>
-                <TokenHint fieldTokens={fieldTokens} />
+                {browser}
             </div>
         );
     }
@@ -154,6 +187,7 @@ export function PropsPanel({
                     field={field}
                     value={element.props[field.key]}
                     onChange={(v) => setProp(field.key, v)}
+                    onFocusField={registerActive}
                 />
             ))}
             <VisibilitySection
@@ -162,7 +196,7 @@ export function PropsPanel({
                 hasPreviewForm={hasPreviewForm}
                 onChange={(v) => onChangeVisibility(element.id, v)}
             />
-            <TokenHint fieldTokens={fieldTokens} />
+            {browser}
         </div>
     );
 }
@@ -214,10 +248,12 @@ function FieldEditor({
     field,
     value,
     onChange,
+    onFocusField,
 }: {
     field: FieldSpec;
     value: unknown;
     onChange: (value: unknown) => void;
+    onFocusField: (el: HTMLInputElement | HTMLTextAreaElement, onChange: (value: string) => void) => void;
 }) {
     const str = typeof value === "string" ? value : value == null ? "" : String(value);
 
@@ -229,11 +265,17 @@ function FieldEditor({
                     value={str}
                     rows={4}
                     placeholder={field.placeholder}
+                    onFocus={(e) => onFocusField(e.currentTarget, onChange)}
                     onChange={(e) => onChange(e.target.value)}
                 />
             )}
             {(field.type === "text" || field.type === "url") && (
-                <Input value={str} placeholder={field.placeholder} onChange={(e) => onChange(e.target.value)} />
+                <Input
+                    value={str}
+                    placeholder={field.placeholder}
+                    onFocus={(e) => onFocusField(e.currentTarget, onChange)}
+                    onChange={(e) => onChange(e.target.value)}
+                />
             )}
             {field.type === "number" && (
                 <Input
@@ -260,24 +302,5 @@ function DesignField({ label, value, onChange }: { label: string; value: string;
             <Label className="ff:block">{label}</Label>
             <ColorField value={value} placeholder={__("inherit")} onChange={onChange} />
         </div>
-    );
-}
-
-function TokenHint({ fieldTokens }: { fieldTokens: TokenInfo[] }) {
-    const tokens = [...GLOBAL_TOKENS, ...fieldTokens];
-    return (
-        <details className="ff:rounded-md ff:border ff:border-slate-200 ff:bg-white ff:p-2">
-            <summary className="ff:cursor-pointer ff:text-xs ff:font-medium ff:text-slate-600">
-                {__("Available tokens")}
-            </summary>
-            <ul className="ff:m-0 ff:mt-2 ff:flex ff:list-none ff:flex-col ff:gap-1 ff:p-0">
-                {tokens.map((t) => (
-                    <li key={t.token} className="ff:flex ff:items-center ff:justify-between ff:gap-2 ff:text-xs">
-                        <code className="ff:rounded ff:bg-slate-100 ff:px-1 ff:py-0.5">{t.token}</code>
-                        <span className="ff:truncate ff:text-slate-500">{t.label}</span>
-                    </li>
-                ))}
-            </ul>
-        </details>
     );
 }

@@ -31,6 +31,7 @@ final class Router {
 		( new SubmitEndpoint() )->register_routes();
 		( new EmailTemplatesEndpoint() )->register_routes();
 		( new EmailPreviewEndpoint() )->register_routes();
+		( new EmailDynamicDataEndpoint() )->register_routes();
 		( new EmailTestEndpoint() )->register_routes();
 		( new WooEmailsEndpoint() )->register_routes();
 		( new WorkflowsEndpoint() )->register_routes();

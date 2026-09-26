@@ -10,6 +10,7 @@ const TYPE_LABEL: Record<AssetType, () => string> = {
     pattern: () => __("Pattern"),
     recipe: () => __("Recipe"),
     pack: () => __("Pack"),
+    bundle: () => __("Bundle"),
 };
 
 const KIND_ICON: Record<AssetKind, LucideIcon> = {

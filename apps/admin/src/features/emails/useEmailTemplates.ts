@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
-import type { EmailTemplate, EmailTree } from "./types";
+import type { DynamicDataCategory, EmailTemplate, EmailTree } from "./types";
 
 interface TemplatesListResponse {
     items: EmailTemplate[];
@@ -70,6 +70,20 @@ export function useDuplicateEmailTemplate() {
         onSuccess: () => {
             void queryClient.invalidateQueries({ queryKey: ["email-templates"] });
         },
+    });
+}
+
+/**
+ * The Dynamic Data browser's sources for the current preview form. Samples are
+ * resolved server-side through the same render context the preview uses, so the
+ * picker and the preview never disagree.
+ */
+export function useDynamicData(formId: number) {
+    return useQuery<DynamicDataCategory[]>({
+        queryKey: ["email-dynamic-data", formId],
+        queryFn: async () =>
+            (await api.get<{ categories: DynamicDataCategory[] }>(`/emails/dynamic-data?form_id=${formId}`)).categories,
+        staleTime: 60_000,
     });
 }
 

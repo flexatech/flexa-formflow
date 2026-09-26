@@ -14,10 +14,11 @@ defined( 'ABSPATH' ) || exit;
  */
 final class PackManifest {
 	/**
-	 * @param list<PackContent> $forms
-	 * @param list<PackContent> $emails
-	 * @param list<PackContent> $workflows
-	 * @param list<PackContent> $patterns
+	 * @param list<PackContent>                        $forms
+	 * @param list<PackContent>                        $emails
+	 * @param list<PackContent>                        $workflows
+	 * @param list<PackContent>                        $patterns
+	 * @param list<array{version: string, notes: list<string>}> $changelog Newest first; drives the update screen.
 	 */
 	public function __construct(
 		public readonly string $id,
@@ -32,6 +33,7 @@ final class PackManifest {
 		public readonly array $emails,
 		public readonly array $workflows,
 		public readonly array $patterns,
+		public readonly array $changelog = [],
 	) {}
 
 	/**
@@ -79,12 +81,13 @@ final class PackManifest {
 		return array_merge(
 			$this->to_catalog_array(),
 			[
-				'items' => [
+				'items'     => [
 					'forms'     => array_map( [ self::class, 'item_array' ], $this->forms ),
 					'emails'    => array_map( [ self::class, 'item_array' ], $this->emails ),
 					'workflows' => array_map( [ self::class, 'item_array' ], $this->workflows ),
 					'patterns'  => array_map( [ self::class, 'item_array' ], $this->patterns ),
 				],
+				'changelog' => $this->changelog,
 			]
 		);
 	}

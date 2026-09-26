@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Flexa\FormFlow\Library;
 
+use Flexa\FormFlow\Packs\Entitlement;
 use Flexa\FormFlow\Packs\InstallState;
 use Flexa\FormFlow\Packs\Registry;
 
@@ -23,7 +24,7 @@ final class Catalog {
 	 * @return list<array<string, mixed>>
 	 */
 	public static function items(): array {
-		$items = array_merge( self::free_content(), self::packs() );
+		$items = array_merge( self::free_content(), self::bundles(), self::packs() );
 
 		/**
 		 * Add catalog entries (Pro recipes, paid packs). Each entry is a flat
@@ -36,6 +37,62 @@ final class Catalog {
 	}
 
 	/**
+	 * Bundle listings: a bundle groups member packs at a combined price. Bundles
+	 * are a presentation over entitlement, so the plugin only describes them; the
+	 * store owns which packs a purchase actually grants. Free ships one authored
+	 * bundle over its three packs; add-ons register more through the filter.
+	 *
+	 * @return list<array<string, mixed>>
+	 */
+	private static function bundles(): array {
+		$bundles = [
+			[
+				'id'          => 'bundle-business-starter',
+				'type'        => 'bundle',
+				'name'        => __( 'Business Starter Bundle', 'flexa-formflow' ),
+				'description' => __( 'Three ready-made pipelines at one price: catering inquiries, lead capture and event RSVPs.', 'flexa-formflow' ),
+				'category'    => __( 'Bundles', 'flexa-formflow' ),
+				'kind'        => 'form',
+				'ownership'   => 'paid',
+				'price'       => '$59',
+				'listPrice'   => '$87',
+				'packs'       => [ 'pack-catering', 'pack-lead-capture', 'pack-event-rsvp' ],
+			],
+		];
+
+		/**
+		 * Register catalog bundles. Each entry groups member pack ids with a
+		 * combined price; member names are resolved for display below.
+		 *
+		 * @param list<array<string, mixed>> $bundles
+		 */
+		$bundles = apply_filters( 'flexa_formflow.library.bundles', $bundles );
+
+		$names = [];
+		foreach ( Registry::all() as $pack ) {
+			$names[ $pack->id ] = $pack->name;
+		}
+
+		$items = [];
+		foreach ( $bundles as $bundle ) {
+			$pack_ids       = is_array( $bundle['packs'] ?? null ) ? $bundle['packs'] : [];
+			$bundle['members'] = array_values(
+				array_map(
+					static fn( $id ): array => [
+						'id'   => (string) $id,
+						'name' => (string) ( $names[ $id ] ?? $id ),
+					],
+					$pack_ids
+				)
+			);
+			$bundle['memberCount'] = count( $pack_ids );
+			$items[]               = $bundle;
+		}
+
+		return $items;
+	}
+
+	/**
 	 * Pack listings, from the pack registry, with install state merged in so the
 	 * card can show an Installed or Update chip. Content counts come straight
 	 * from each manifest, so the store and the importer never disagree.
@@ -45,8 +102,9 @@ final class Catalog {
 	private static function packs(): array {
 		$items = [];
 		foreach ( Registry::all() as $pack ) {
-			$entry     = $pack->to_catalog_array();
-			$installed = InstallState::is_installed( $pack->id );
+			$entry              = $pack->to_catalog_array();
+			$entry['purchased'] = Entitlement::purchased( $pack );
+			$installed          = InstallState::is_installed( $pack->id );
 			if ( $installed ) {
 				$entry['installed']       = true;
 				$entry['updateAvailable'] = InstallState::version_of( $pack->id ) !== $pack->version;

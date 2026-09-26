@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { AssetCard } from "@/components/custom/AssetCard";
 import { PackCard } from "@/components/custom/PackCard";
+import { BundleCard } from "@/components/custom/BundleCard";
 import { EmptyState } from "@/components/custom/EmptyState";
 import { __ } from "@/lib/i18n";
 import { cn } from "@/lib/cn";
@@ -11,7 +12,7 @@ import { navigate } from "@/lib/router";
 import { useUiStore } from "@/lib/store";
 import { useCatalog, useDeleteLibraryAsset, useMyLibrary, useReuseAsset } from "./useLibrary";
 import { LibraryPreviewDialog } from "./LibraryPreviewDialog";
-import type { LibraryAsset, LibraryTab, OwnershipFacet, Pack, SavedAsset, TypeFacet } from "./types";
+import type { Bundle, LibraryAsset, LibraryTab, OwnershipFacet, Pack, SavedAsset, TypeFacet } from "./types";
 
 const TYPE_FACETS: { value: TypeFacet; label: () => string }[] = [
     { value: "all", label: () => __("All") },
@@ -19,6 +20,7 @@ const TYPE_FACETS: { value: TypeFacet; label: () => string }[] = [
     { value: "pattern", label: () => __("Patterns") },
     { value: "recipe", label: () => __("Workflows") },
     { value: "pack", label: () => __("Packs") },
+    { value: "bundle", label: () => __("Bundles") },
 ];
 
 const OWNERSHIP_FACETS: { value: OwnershipFacet; label: () => string }[] = [
@@ -184,6 +186,12 @@ export function LibraryPage() {
                                 key={asset.id}
                                 pack={asset as Pack}
                                 onSelect={(p) => navigate(`/library/pack/${p.id}`)}
+                            />
+                        ) : asset.type === "bundle" ? (
+                            <BundleCard
+                                key={asset.id}
+                                bundle={asset as unknown as Bundle}
+                                onOpenPack={(packId) => navigate(`/library/pack/${packId}`)}
                             />
                         ) : (
                             <AssetCard

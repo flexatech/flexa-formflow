@@ -4,11 +4,15 @@ import { __ } from "@/lib/i18n";
 import type {
     AssetKind,
     AssetType,
+    Bundle,
     ImportSummary,
     LibraryAsset,
     Pack,
     PackDetail,
+    PackDiff,
     SavedAsset,
+    UpdateAction,
+    UpdateSummary,
 } from "./types";
 
 interface CatalogResponse {
@@ -49,6 +53,15 @@ export function usePacks() {
     };
 }
 
+/** Bundles derived from the catalog, for the bundle cards. */
+export function useBundles() {
+    const query = useCatalog();
+    return {
+        ...query,
+        data: (query.data ?? []).filter((a): a is Bundle => a.type === "bundle"),
+    };
+}
+
 /** Full pack detail (named contents + install eligibility) for the pack page. */
 export function usePackDetail(id: string) {
     return useQuery<PackDetail>({
@@ -69,6 +82,28 @@ export function useImportPack(id: string) {
             void queryClient.invalidateQueries({ queryKey: ["workflows"] });
             void queryClient.invalidateQueries({ queryKey: ["email-templates"] });
             void queryClient.invalidateQueries({ queryKey: ["stats"] });
+        },
+    });
+}
+
+/** The diff between an installed pack and its newest version, for the update screen. */
+export function usePackDiff(id: string, enabled: boolean) {
+    return useQuery<PackDiff>({
+        queryKey: ["library", "pack", id, "diff"],
+        queryFn: async () => (await api.get<{ diff: PackDiff }>(`/library/packs/${id}/diff`)).diff,
+        enabled: enabled && id !== "",
+        staleTime: 0,
+    });
+}
+
+/** Apply a pack update with the user's per-item decisions, then refresh everything. */
+export function useUpdatePack(id: string) {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: async (decisions: Record<string, UpdateAction>) =>
+            (await api.post<{ summary: UpdateSummary }>(`/library/packs/${id}/update`, { decisions })).summary,
+        onSuccess: () => {
+            void queryClient.invalidateQueries({ queryKey: ["library"] });
         },
     });
 }
@@ -216,6 +251,7 @@ const TYPE_NOUN: Record<AssetType, () => string> = {
     pattern: () => __("Saved pattern"),
     recipe: () => __("Saved recipe"),
     pack: () => __("Saved pack"),
+    bundle: () => __("Saved bundle"),
 };
 
 /** A saved asset has no marketing copy, so present it as an installed, free item. */

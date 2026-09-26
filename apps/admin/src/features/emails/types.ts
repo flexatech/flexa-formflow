@@ -70,6 +70,20 @@ export interface EmailTemplate {
     updated_at: string;
 }
 
+/** One dynamic-data source: a token, its label and a live sample value. */
+export interface DynamicDataItem {
+    token: string;
+    label: string;
+    sample: string;
+}
+
+/** A group of dynamic-data sources (Form fields, Submission, Site, Order data). */
+export interface DynamicDataCategory {
+    key: string;
+    label: string;
+    items: DynamicDataItem[];
+}
+
 export interface FieldSpec {
     key: string;
     label: string;
@@ -423,17 +437,8 @@ function clampIndex(index: number, length: number): number {
     return Math.max(0, Math.min(index, length));
 }
 
-/** Global tokens the editor hint list offers; field tokens are appended per form. */
-export const GLOBAL_TOKENS: Array<{ token: string; label: string }> = [
-    { token: "{site_title}", label: __("Site title") },
-    { token: "{site_url}", label: __("Site URL") },
-    { token: "{admin_email}", label: __("Admin email") },
-    { token: "{year}", label: __("Current year") },
-    { token: "{form_title}", label: __("Form title") },
-    { token: "{entry_id}", label: __("Entry ID") },
-    { token: "{entry_date}", label: __("Submission date") },
-    { token: "{page_url}", label: __("Submission page URL") },
-];
+// Token metadata for the editor is now served by the Dynamic Data endpoint
+// (GET /emails/dynamic-data), which carries live sample values as well.
 
 let counter = 0;
 

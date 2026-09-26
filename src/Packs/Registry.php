@@ -20,7 +20,11 @@ final class Registry {
 	 * @return list<PackManifest>
 	 */
 	public static function all(): array {
-		$packs = [ CateringPack::manifest() ];
+		$packs = [
+			CateringPack::manifest(),
+			LeadCapturePack::manifest(),
+			EventRsvpPack::manifest(),
+		];
 
 		/**
 		 * Register additional packs. Each entry must be a PackManifest.

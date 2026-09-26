@@ -98,7 +98,8 @@ final class LibraryRepository {
 	public function create( string $type, string $name, string $kind, array $payload, array $source = [] ): int {
 		global $wpdb;
 
-		$now = current_time( 'mysql', true );
+		$now  = current_time( 'mysql', true );
+		$pack = sanitize_text_field( (string) ( $source['pack'] ?? '' ) );
 		$wpdb->insert(
 			Schema::library_table(),
 			[
@@ -107,16 +108,109 @@ final class LibraryRepository {
 				'name'             => sanitize_text_field( $name ),
 				'kind'             => self::normalize_kind( $kind ),
 				'payload'          => (string) wp_json_encode( $payload ),
-				'source_pack'       => sanitize_text_field( (string) ( $source['pack'] ?? '' ) ),
+				'source_pack'       => $pack,
 				'source_content_id' => sanitize_text_field( (string) ( $source['contentId'] ?? '' ) ),
 				'source_version'    => sanitize_text_field( (string) ( $source['version'] ?? '' ) ),
+				// Stamp the install-time payload hash only for pack content, so a
+				// later Pack update can tell an untouched copy from a modified one.
+				'source_hash'       => '' !== $pack ? self::hash( $payload ) : '',
 				'created_at'        => $now,
 				'updated_at'        => $now,
 			],
-			[ '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s' ]
+			[ '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s' ]
 		);
 
 		return (int) $wpdb->insert_id;
+	}
+
+	/**
+	 * Update a saved asset's name and/or payload. When the payload changes on a
+	 * pack-sourced item, the caller also passes the new source_version / source_hash
+	 * so the item stops reading as out of date. Only whitelisted columns are written.
+	 *
+	 * @param array{name?: string, payload?: array<string, mixed>, source_version?: string, source_hash?: string} $fields
+	 */
+	public function update( int $id, array $fields ): bool {
+		global $wpdb;
+
+		$data    = [ 'updated_at' => current_time( 'mysql', true ) ];
+		$formats = [ '%s' ];
+
+		if ( array_key_exists( 'name', $fields ) ) {
+			$data['name'] = sanitize_text_field( (string) $fields['name'] );
+			$formats[]    = '%s';
+		}
+		if ( array_key_exists( 'payload', $fields ) ) {
+			$data['payload'] = (string) wp_json_encode( $fields['payload'] );
+			$formats[]       = '%s';
+		}
+		if ( array_key_exists( 'source_version', $fields ) ) {
+			$data['source_version'] = sanitize_text_field( (string) $fields['source_version'] );
+			$formats[]              = '%s';
+		}
+		if ( array_key_exists( 'source_hash', $fields ) ) {
+			$data['source_hash'] = sanitize_text_field( (string) $fields['source_hash'] );
+			$formats[]           = '%s';
+		}
+
+		return false !== $wpdb->update( Schema::library_table(), $data, [ 'id' => $id ], $formats, [ '%d' ] );
+	}
+
+	/**
+	 * Every saved asset installed by a given pack, for the update diff.
+	 *
+	 * @return list<LibraryAsset>
+	 */
+	public function all_by_source_pack( string $pack ): array {
+		global $wpdb;
+
+		if ( '' === $pack ) {
+			return [];
+		}
+
+		$table = Schema::library_table();
+		$rows  = $wpdb->get_results(
+			$wpdb->prepare( "SELECT * FROM {$table} WHERE source_pack = %s ORDER BY id ASC", $pack ),
+			ARRAY_A
+		);
+
+		$items = [];
+		foreach ( is_array( $rows ) ? $rows : [] as $row ) {
+			$items[] = LibraryAsset::from_row( $row );
+		}
+
+		return $items;
+	}
+
+	/**
+	 * Canonical payload hash for modified-vs-untouched detection. Keys are
+	 * sorted so a re-ordered but otherwise identical payload still matches.
+	 *
+	 * @param array<string, mixed> $payload
+	 */
+	public static function hash( array $payload ): string {
+		return hash( 'sha256', (string) wp_json_encode( self::normalize_for_hash( $payload ) ) );
+	}
+
+	/**
+	 * Recursively sort array keys so hashing is order-insensitive for maps while
+	 * keeping list order (lists are already positional and meaningful).
+	 *
+	 * @param array<array-key, mixed> $value
+	 * @return array<array-key, mixed>
+	 */
+	private static function normalize_for_hash( array $value ): array {
+		$is_list = array_is_list( $value );
+		if ( ! $is_list ) {
+			ksort( $value );
+		}
+		foreach ( $value as $key => $item ) {
+			if ( is_array( $item ) ) {
+				$value[ $key ] = self::normalize_for_hash( $item );
+			}
+		}
+
+		return $value;
 	}
 
 	public function delete( int $id ): bool {

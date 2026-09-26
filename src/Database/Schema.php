@@ -12,7 +12,7 @@ defined( 'ABSPATH' ) || exit;
  * need a manual re-activation.
  */
 final class Schema {
-	public const DB_VERSION  = 5;
+	public const DB_VERSION  = 6;
 	public const VERSION_KEY = 'flexa_formflow_db_version';
 
 	public static function forms_table(): string {
@@ -134,7 +134,8 @@ final class Schema {
 
 		// My Library: user-saved reusable assets (patterns, templates, recipes).
 		// The source_* columns carry pack provenance so a Pack update can tell
-		// which saved items came from it and whether the user has modified them.
+		// which saved items came from it; source_hash is the payload hash at
+		// install time, so the diff can tell an untouched copy from a modified one.
 		dbDelta(
 			"CREATE TABLE {$library} (
 				id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -146,6 +147,7 @@ final class Schema {
 				source_pack VARCHAR(100) NOT NULL DEFAULT '',
 				source_content_id VARCHAR(100) NOT NULL DEFAULT '',
 				source_version VARCHAR(20) NOT NULL DEFAULT '',
+				source_hash VARCHAR(64) NOT NULL DEFAULT '',
 				created_at DATETIME NOT NULL,
 				updated_at DATETIME NOT NULL,
 				PRIMARY KEY  (id),
