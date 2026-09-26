@@ -1,4 +1,14 @@
-import { ArrowLeft, Blocks, LayoutTemplate, Monitor, Send, Smartphone, Sparkles } from "lucide-react";
+import {
+    ArrowLeft,
+    Blocks,
+    ChevronLeft,
+    ChevronRight,
+    LayoutTemplate,
+    Monitor,
+    Send,
+    Smartphone,
+    Sparkles,
+} from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { AiWritingDialog } from "@/features/ai/AiWritingDialog";
@@ -74,6 +84,8 @@ export function EmailEditorPage({ id }: { id: number }) {
     const [draft, setDraft] = useState<Draft | null>(null);
     const [viewport, setViewport] = useState<"desktop" | "mobile">("desktop");
     const [leftTab, setLeftTab] = useState<"blocks" | "patterns">("blocks");
+    const [leftCollapsed, setLeftCollapsed] = useState(false);
+    const [rightCollapsed, setRightCollapsed] = useState(false);
     const [previewFormId, setPreviewFormId] = useState(0);
     const [testOpen, setTestOpen] = useState(false);
     const [aiOpen, setAiOpen] = useState(false);
@@ -254,7 +266,12 @@ export function EmailEditorPage({ id }: { id: number }) {
             </header>
 
             <div className="ff:flex ff:min-h-0 ff:flex-1">
-                <aside className="ff:flex ff:w-64 ff:shrink-0 ff:flex-col ff:border-r ff:border-slate-200 ff:bg-white">
+                <SidePanel
+                    side="left"
+                    collapsed={leftCollapsed}
+                    onToggle={() => setLeftCollapsed((v) => !v)}
+                >
+                <aside className="ff:flex ff:h-full ff:w-64 ff:shrink-0 ff:flex-col ff:border-r ff:border-slate-200 ff:bg-white">
                     <div className="ff:flex ff:shrink-0 ff:items-center ff:gap-1 ff:border-b ff:border-slate-200 ff:p-2">
                         <LeftTab
                             icon={Blocks}
@@ -289,6 +306,7 @@ export function EmailEditorPage({ id }: { id: number }) {
                         )}
                     </div>
                 </aside>
+                </SidePanel>
                 <PreviewPane
                     tree={draft.tree}
                     formId={previewFormId}
@@ -301,7 +319,12 @@ export function EmailEditorPage({ id }: { id: number }) {
                     onInsertPattern={onInsertPatternAt}
                     onMove={onMove}
                 />
-                <aside className="ff:w-72 ff:shrink-0 ff:overflow-y-auto ff:border-l ff:border-slate-200 ff:bg-white ff:p-4">
+                <SidePanel
+                    side="right"
+                    collapsed={rightCollapsed}
+                    onToggle={() => setRightCollapsed((v) => !v)}
+                >
+                <aside className="ff:h-full ff:w-72 ff:shrink-0 ff:overflow-y-auto ff:border-l ff:border-slate-200 ff:bg-white ff:p-4">
                     <PropsPanel
                         element={selected}
                         settings={draft.tree.settings}
@@ -316,6 +339,7 @@ export function EmailEditorPage({ id }: { id: number }) {
                         onChangeSettings={onChangeSettings}
                     />
                 </aside>
+                </SidePanel>
             </div>
 
             <TestDialog
@@ -328,6 +352,63 @@ export function EmailEditorPage({ id }: { id: number }) {
             />
 
             <AiWritingDialog open={aiOpen} onClose={() => setAiOpen(false)} />
+        </div>
+    );
+}
+
+/**
+ * Wraps a builder side panel with a collapse/expand pill on the edge facing the
+ * canvas. Collapsed, the panel shrinks to a thin rail so the preview gets the
+ * room; the pill flips its arrow to expand it again.
+ */
+function SidePanel({
+    side,
+    collapsed,
+    onToggle,
+    children,
+}: {
+    side: "left" | "right";
+    collapsed: boolean;
+    onToggle: () => void;
+    children: React.ReactNode;
+}) {
+    // The pill sits on the border between the panel and the canvas: the right
+    // edge of a left panel, the left edge of a right panel.
+    const pillOnRight = side === "left";
+    const Icon =
+        side === "left"
+            ? collapsed
+                ? ChevronRight
+                : ChevronLeft
+            : collapsed
+              ? ChevronLeft
+              : ChevronRight;
+
+    return (
+        <div className="ff:relative ff:shrink-0">
+            {collapsed ? (
+                <div
+                    className={cn(
+                        "ff:h-full ff:w-7 ff:bg-white",
+                        side === "left" ? "ff:border-r" : "ff:border-l",
+                        "ff:border-slate-200",
+                    )}
+                />
+            ) : (
+                children
+            )}
+            <button
+                type="button"
+                onClick={onToggle}
+                aria-label={collapsed ? __("Expand panel") : __("Collapse panel")}
+                aria-expanded={!collapsed}
+                className={cn(
+                    "ff:absolute ff:top-1/2 ff:z-10 ff:flex ff:h-10 ff:w-5 ff:-translate-y-1/2 ff:cursor-pointer ff:items-center ff:justify-center ff:rounded-full ff:border ff:border-slate-200 ff:bg-white ff:text-slate-500 ff:shadow-sm ff:transition-colors ff:hover:text-slate-800",
+                    pillOnRight ? "ff:right-0 ff:translate-x-1/2" : "ff:left-0 ff:-translate-x-1/2",
+                )}
+            >
+                <Icon aria-hidden className="ff:h-4 ff:w-4" />
+            </button>
         </div>
     );
 }
