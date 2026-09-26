@@ -65,13 +65,26 @@ p[class*="ff:"] {
     margin: revert-layer;
 }
 
-/* WP admin styles `a:hover, a:active, a:focus { color: <scheme blue> }`
- * UNLAYERED, so on hover/focus it overrides the color utilities our links carry
- * and flashes WP's link-blue. This higher-specificity unlayered selector
- * (0,2,1 beats WP's 0,1,1) reverts `color` back into the Tailwind layers, so
- * each link's own `ff:text-*` / `ff:hover:text-*` utility wins again. */
+/* WP admin's unlayered `a { color: <scheme blue> }` (0,0,1) beats our layered
+ * ff:text-* utilities even at rest, so every plugin link renders WP link-blue
+ * instead of its own color (e.g. the sidebar nav). This marked selector (0,1,1)
+ * reverts `color` into the Tailwind layers so each link's ff:text-* wins. */
+a[class*="ff:"] {
+    color: revert-layer;
+}
+
+/* WP admin styles interactive links UNLAYERED and beats our utilities:
+ *  - `a:hover, a:active, a:focus { color: <scheme blue> }` flashes link-blue.
+ *  - `a:focus { box-shadow: 0 0 0 1.5px #3858e9 }` paints a blue focus ring
+ *    (on mouse click too).
+ * This higher-specificity unlayered selector (0,2,1 beats WP's 0,1,1) reverts
+ * both back into the Tailwind layers: `color` falls back to each link's own
+ * `ff:text-*` / `ff:hover:text-*`, and `box-shadow` falls back to a link's own
+ * `focus-visible:ring-*` where it has one (keyboard focus stays visible) or to
+ * none where it does not, so WP's ring is gone. */
 :is(a:hover, a:active, a:focus)[class*="ff:"] {
     color: revert-layer;
+    box-shadow: revert-layer;
 }
 
 /* Dark surface defaults for the settings screen. The whole app is the dark
