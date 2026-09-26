@@ -146,7 +146,10 @@ export function LibraryPage() {
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
                             placeholder={__("Search the library")}
-                            className="ff:pl-8"
+                            // Inline left padding: WP-admin's unlayered `input { padding }`
+                            // beats the layered `ff:pl-8` utility, so the icon and text
+                            // would overlap. An inline style outranks WP's rule.
+                            style={{ paddingLeft: "2rem" }}
                         />
                     </span>
                 </div>
