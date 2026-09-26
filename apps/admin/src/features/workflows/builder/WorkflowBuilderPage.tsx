@@ -21,6 +21,14 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
@@ -195,6 +203,8 @@ export function WorkflowBuilderPage({ id }: { id: number }) {
     const [testLog, setTestLog] = useState<ActionResult[] | null>(null);
     const [testNote, setTestNote] = useState<string>("");
     const [tab, setTab] = useState<"build" | "logs">("build");
+    // Destination held back by the unsaved-changes guard; null means no prompt.
+    const [pendingNav, setPendingNav] = useState<string | null>(null);
 
     useEffect(() => {
         if (workflow && draft === null) {
@@ -246,6 +256,33 @@ export function WorkflowBuilderPage({ id }: { id: number }) {
     const onSave = () => {
         persist(draft)
             .then(() => showToast(__("Workflow saved.")))
+            .catch((error) =>
+                showToast(error instanceof Error ? error.message : __("Could not save."), "error"),
+            );
+    };
+
+    // Route through the unsaved-changes prompt before leaving the builder.
+    const guardedNavigate = (to: string) => {
+        if (dirty) {
+            setPendingNav(to);
+        } else {
+            navigate(to);
+        }
+    };
+
+    const leaveWithoutSaving = () => {
+        const to = pendingNav;
+        setPendingNav(null);
+        if (to) navigate(to);
+    };
+
+    const saveThenLeave = () => {
+        const to = pendingNav;
+        persist(draft)
+            .then(() => {
+                setPendingNav(null);
+                if (to) navigate(to);
+            })
             .catch((error) =>
                 showToast(error instanceof Error ? error.message : __("Could not save."), "error"),
             );
@@ -307,7 +344,7 @@ export function WorkflowBuilderPage({ id }: { id: number }) {
     return (
         <div className="ff:flex ff:min-h-screen ff:flex-1 ff:flex-col ff:bg-slate-50">
             <header className="ff:sticky ff:top-8 ff:z-10 ff:flex ff:items-center ff:gap-3 ff:border-b ff:border-slate-200 ff:bg-white ff:px-5 ff:py-3">
-                <Button variant="ghost" size="icon" aria-label={__("Back")} onClick={() => navigate("/workflows")}>
+                <Button variant="ghost" size="icon" aria-label={__("Back")} onClick={() => guardedNavigate("/workflows")}>
                     <ArrowLeft aria-hidden className="ff:h-4 ff:w-4" />
                 </Button>
                 <Input
@@ -401,6 +438,7 @@ export function WorkflowBuilderPage({ id }: { id: number }) {
                     onAdd={addAction}
                     onAddCondition={addCondition}
                     canAddCondition={draft.condition === null}
+                    onBrowseRecipes={() => guardedNavigate("/library")}
                 />
 
                 {testNote !== "" && (
@@ -417,6 +455,28 @@ export function WorkflowBuilderPage({ id }: { id: number }) {
                 )}
             </div>
             )}
+
+            <Dialog open={pendingNav !== null} onOpenChange={(open) => !open && setPendingNav(null)}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>{__("Unsaved changes")}</DialogTitle>
+                        <DialogDescription>
+                            {__("You have changes that are not saved yet. Leave this workflow anyway?")}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button variant="ghost" onClick={() => setPendingNav(null)}>
+                            {__("Stay")}
+                        </Button>
+                        <Button variant="outline" onClick={leaveWithoutSaving}>
+                            {__("Leave without saving")}
+                        </Button>
+                        <Button onClick={saveThenLeave} disabled={save.isPending}>
+                            {save.isPending ? __("Saving…") : __("Save and leave")}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
@@ -939,10 +999,12 @@ function Palette({
     onAdd,
     onAddCondition,
     canAddCondition,
+    onBrowseRecipes,
 }: {
     onAdd: (type: string) => void;
     onAddCondition: () => void;
     canAddCondition: boolean;
+    onBrowseRecipes: () => void;
 }) {
     const extras = workflowActionTypes();
     return (
@@ -1018,7 +1080,7 @@ function Palette({
                     <PaletteButton
                         icon={BookMarked}
                         label={__("Browse recipes")}
-                        onClick={() => navigate("/library")}
+                        onClick={onBrowseRecipes}
                     />
                 </PaletteGroup>
             </div>
