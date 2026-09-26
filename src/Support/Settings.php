@@ -48,7 +48,7 @@ final class Settings {
 	public static function defaults(): array {
 		return [
 			'delete_data_on_uninstall' => false,
-			'brand_color'              => '#007bea',
+			'brand_color'              => '#0f92f7',
 			'background_color'         => '#f8fafc',
 			'content_background'       => '#ffffff',
 			'text_color'               => '#101828',

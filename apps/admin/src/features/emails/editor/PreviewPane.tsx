@@ -37,8 +37,8 @@ interface DropLine {
 const EDITOR_STYLE =
     PREVIEW_RESET_CSS +
     "[data-ff-el]{cursor:pointer}" +
-    "[data-ff-el]:hover>tr>td{box-shadow:inset 0 0 0 1px #bcd9f5}" +
-    "tbody.ff-selected>tr>td{box-shadow:inset 0 0 0 2px #007bea!important}";
+    "[data-ff-el]:hover>tr>td{box-shadow:inset 0 0 0 1px #badeff}" +
+    "tbody.ff-selected>tr>td{box-shadow:inset 0 0 0 2px #0f92f7!important}";
 
 export function PreviewPane({
     tree,
