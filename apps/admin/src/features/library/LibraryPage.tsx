@@ -1,5 +1,5 @@
 import { useMemo, useState, type ReactNode } from "react";
-import { Bookmark, Search, Trash2 } from "lucide-react";
+import { Bookmark, Search, Trash2, Zap } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { AssetCard } from "@/components/custom/AssetCard";
@@ -9,8 +9,9 @@ import { __ } from "@/lib/i18n";
 import { cn } from "@/lib/cn";
 import { navigate } from "@/lib/router";
 import { useUiStore } from "@/lib/store";
-import { useCatalog, useDeleteLibraryAsset, useMyLibrary } from "./useLibrary";
-import type { LibraryAsset, LibraryTab, OwnershipFacet, Pack, TypeFacet } from "./types";
+import { useCatalog, useDeleteLibraryAsset, useMyLibrary, useReuseAsset } from "./useLibrary";
+import { LibraryPreviewDialog } from "./LibraryPreviewDialog";
+import type { LibraryAsset, LibraryTab, OwnershipFacet, Pack, SavedAsset, TypeFacet } from "./types";
 
 const TYPE_FACETS: { value: TypeFacet; label: () => string }[] = [
     { value: "all", label: () => __("All") },
@@ -54,7 +55,9 @@ export function LibraryPage() {
     const { data: catalog } = useCatalog();
     const { data: mineRows } = useMyLibrary();
     const removeAsset = useDeleteLibraryAsset();
+    const reuseAsset = useReuseAsset();
     const showToast = useUiStore((s) => s.showToast);
+    const [preview, setPreview] = useState<SavedAsset | null>(null);
 
     const rawById = useMemo(
         () => new Map((mineRows ?? []).map((r) => [r.display.id, r.raw])),
@@ -86,6 +89,24 @@ export function LibraryPage() {
         }
         removeAsset.mutate(raw.id, {
             onSuccess: () => showToast(__("Removed from your library")),
+        });
+    };
+
+    const openPreview = (asset: LibraryAsset) => {
+        const raw = rawById.get(asset.id);
+        if (raw) {
+            setPreview(raw);
+        }
+    };
+
+    const onUse = (raw: SavedAsset) => {
+        reuseAsset.mutate(raw, {
+            onSuccess: ({ route }) => {
+                setPreview(null);
+                showToast(__("Opened a copy in the builder"));
+                navigate(route);
+            },
+            onError: () => showToast(__("Could not open a copy. Please try again."), "error"),
         });
     };
 
@@ -168,17 +189,28 @@ export function LibraryPage() {
                             <AssetCard
                                 key={asset.id}
                                 asset={asset}
+                                onSelect={tab === "mine" ? openPreview : undefined}
                                 action={
                                     tab === "mine" ? (
-                                        <Button
-                                            variant="ghost"
-                                            size="sm"
-                                            onClick={() => onDelete(asset)}
-                                            disabled={removeAsset.isPending}
-                                        >
-                                            <Trash2 aria-hidden className="ff:h-4 ff:w-4" />
-                                            {__("Remove")}
-                                        </Button>
+                                        <div className="ff:flex ff:items-center ff:gap-1">
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                onClick={() => onDelete(asset)}
+                                                disabled={removeAsset.isPending}
+                                            >
+                                                <Trash2 aria-hidden className="ff:h-4 ff:w-4" />
+                                                {__("Remove")}
+                                            </Button>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => openPreview(asset)}
+                                            >
+                                                <Zap aria-hidden className="ff:h-4 ff:w-4" />
+                                                {__("Use")}
+                                            </Button>
+                                        </div>
                                     ) : undefined
                                 }
                             />
@@ -186,6 +218,13 @@ export function LibraryPage() {
                     )}
                 </div>
             )}
+
+            <LibraryPreviewDialog
+                asset={preview}
+                onClose={() => setPreview(null)}
+                onUse={onUse}
+                isUsing={reuseAsset.isPending}
+            />
         </div>
     );
 }

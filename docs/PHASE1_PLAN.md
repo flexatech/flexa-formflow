@@ -64,10 +64,13 @@ To view Slice 1 in wp-admin, flip `SHOW_UPCOMING` to `true` in
       `features/library/SaveToLibrary.tsx`; form/email save as `template`,
       workflow as `recipe`; each builder passes its live document via
       `getPayload`. Gated behind `SHOW_UPCOMING` in every builder header.
-- [ ] Asset preview + reuse: open the read-only builder chrome for a
-      template/recipe and insert a saved pattern into a builder. This is the
-      one Phase 1 thread still open (the save half of the round-trip ships; the
-      reuse half does not yet).
+- [x] Asset preview + reuse: `LibraryPreviewDialog` shows a saved asset's
+      structure read-only (form fields, email blocks, workflow steps); "Use
+      this" round-trips it through `useReuseAsset`, which creates a fresh
+      builder document (form / email template / workflow), merges the saved
+      payload over the created default, saves it whole, and opens the builder.
+      Recipes arrive inactive, matching pack import. This closes the round-trip
+      (save + reuse) so My Library is fully bidirectional.
 - [x] Remove the `upcoming` gate on Library: flipped `SHOW_UPCOMING` to `true`
       at the Slice 5 closeout, once import + save round-trips landed. The flag
       stays as a single kill-switch rather than being deleted.
@@ -125,7 +128,8 @@ To view Slice 1 in wp-admin, flip `SHOW_UPCOMING` to `true` in
 ## Acceptance for the epic
 
 - Library browsable, free content installable, My Library round-trips a saved
-  pattern into a builder.
+  pattern into a builder. (Done: save from any builder, preview + "Use this"
+  back into a fresh builder.)
 - One Catering Pack previews, imports transparently, stamps provenance,
   arrives with workflows disabled.
 - Every lock point answers why/what/what-needed with one of exactly three

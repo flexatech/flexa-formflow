@@ -114,6 +114,103 @@ export function useDeleteLibraryAsset() {
     });
 }
 
+/** Where a reused asset lands: a fresh builder document seeded from the payload. */
+export interface ReuseResult {
+    route: string;
+}
+
+/**
+ * Round-trip a saved asset back into a builder. We create a fresh document
+ * (which comes seeded with a complete default config/tree), merge the saved
+ * payload's meaningful parts over that default, then save the whole document
+ * so the new builder opens on the reused content. Workflows arrive inactive,
+ * matching pack import: nothing fires until the user reviews and enables it.
+ */
+export function useReuseAsset() {
+    const queryClient = useQueryClient();
+    return useMutation<ReuseResult, Error, SavedAsset>({
+        mutationFn: async (raw) => {
+            const payload = raw.payload as Record<string, unknown>;
+            const title = raw.name;
+
+            if (raw.kind === "form") {
+                const { form } = await api.post<{ form: { id: number; config: Record<string, unknown> } }>(
+                    "/forms",
+                    { title },
+                );
+                const config = mergeFormConfig(form.config, payload);
+                await api.put(`/forms/${form.id}`, { config });
+                return { route: `/forms/${form.id}/edit` };
+            }
+
+            if (raw.kind === "email" || raw.kind === "woocommerce") {
+                const { template } = await api.post<{
+                    template: { id: number; tree: Record<string, unknown> };
+                }>("/email-templates", { title });
+                const tree = mergeEmailTree(template.tree, payload);
+                await api.put(`/email-templates/${template.id}`, { tree });
+                return { route: `/emails/${template.id}/edit` };
+            }
+
+            // Workflow recipe.
+            const { workflow } = await api.post<{
+                workflow: { id: number; trigger: Record<string, unknown>; actions: unknown[] };
+            }>("/workflows", { title });
+            const config = mergeWorkflowConfig(workflow, payload);
+            await api.put(`/workflows/${workflow.id}`, { config, status: "inactive" });
+            return { route: `/workflows/${workflow.id}/edit` };
+        },
+        onSuccess: () => {
+            void queryClient.invalidateQueries({ queryKey: ["forms"] });
+            void queryClient.invalidateQueries({ queryKey: ["workflows"] });
+            void queryClient.invalidateQueries({ queryKey: ["email-templates"] });
+            void queryClient.invalidateQueries({ queryKey: ["stats"] });
+        },
+    });
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/** Fill the created form's default config with the saved fields/settings/notifications. */
+function mergeFormConfig(base: Record<string, unknown>, payload: Record<string, unknown>): Record<string, unknown> {
+    const baseSettings = isRecord(base.settings) ? base.settings : {};
+    return {
+        ...base,
+        fields: Array.isArray(payload.fields) ? payload.fields : base.fields,
+        settings: isRecord(payload.settings) ? { ...baseSettings, ...payload.settings } : base.settings,
+        notifications: isRecord(payload.notifications) ? payload.notifications : base.notifications,
+    };
+}
+
+/** Fill the created template's default tree with the saved elements/settings. */
+function mergeEmailTree(base: Record<string, unknown>, payload: Record<string, unknown>): Record<string, unknown> {
+    const baseSettings = isRecord(base.settings) ? base.settings : {};
+    return {
+        version: typeof payload.version === "number" ? payload.version : base.version,
+        settings: isRecord(payload.settings) ? { ...baseSettings, ...payload.settings } : base.settings,
+        elements: Array.isArray(payload.elements) ? payload.elements : base.elements,
+    };
+}
+
+/**
+ * Seed the new workflow's trigger + actions from the recipe. A pack recipe
+ * references its trigger form symbolically (`form_ref`), so only a numeric
+ * `form_id` carries over; otherwise the trigger stays empty for the user to set.
+ */
+function mergeWorkflowConfig(
+    base: { trigger: Record<string, unknown>; actions: unknown[] },
+    payload: Record<string, unknown>,
+): Record<string, unknown> {
+    const savedTrigger = isRecord(payload.trigger) ? payload.trigger : {};
+    const formId = typeof savedTrigger.form_id === "number" ? savedTrigger.form_id : 0;
+    return {
+        trigger: { type: "form_submitted", form_id: formId },
+        actions: Array.isArray(payload.actions) ? payload.actions : base.actions,
+    };
+}
+
 const TYPE_NOUN: Record<AssetType, () => string> = {
     template: () => __("Saved template"),
     pattern: () => __("Saved pattern"),
