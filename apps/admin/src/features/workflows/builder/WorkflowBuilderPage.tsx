@@ -34,6 +34,7 @@ import { Select } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { LockedExplainer } from "@/components/custom/LockedExplainer";
 import { LockedNote, SchemaFields } from "@/components/custom/SchemaFields";
+import { Skeleton } from "@/components/ui/skeleton";
 import { __, sprintf } from "@/lib/i18n";
 import { extensionIcon, integrationConnections, workflowActionTypes } from "@/lib/extensions";
 import { navigate } from "@/lib/router";
@@ -236,8 +237,25 @@ export function WorkflowBuilderPage({ id }: { id: number }) {
 
     if (isLoading || !draft) {
         return (
-            <div className="ff:flex ff:flex-1 ff:items-center ff:justify-center ff:p-10">
-                <div className="ff:h-64 ff:w-full ff:max-w-xl ff:animate-pulse ff:rounded-xl ff:border ff:border-slate-200 ff:bg-white" />
+            <div className="ff:flex ff:min-h-screen ff:flex-1 ff:flex-col ff:bg-slate-50">
+                <header className="ff:flex ff:items-center ff:gap-3 ff:border-b ff:border-slate-200 ff:bg-white ff:px-5 ff:py-3">
+                    <Skeleton className="ff:h-9 ff:w-9 ff:rounded-md" />
+                    <Skeleton className="ff:h-5 ff:w-48" />
+                    <div className="ff:flex ff:flex-1 ff:justify-end ff:gap-2">
+                        <Skeleton className="ff:h-8 ff:w-20 ff:rounded-md" />
+                        <Skeleton className="ff:h-8 ff:w-24 ff:rounded-md" />
+                    </div>
+                </header>
+                <div className="ff:mx-auto ff:w-full ff:max-w-2xl ff:px-4 ff:py-8">
+                    <div className="ff:flex ff:flex-col ff:gap-4 ff:rounded-xl ff:border ff:border-slate-200 ff:bg-white ff:p-6">
+                        {Array.from({ length: 4 }).map((_, i) => (
+                            <div key={i} className="ff:flex ff:flex-col ff:gap-2">
+                                <Skeleton className="ff:h-3 ff:w-28" />
+                                <Skeleton className="ff:h-9 ff:w-full ff:rounded-md" />
+                            </div>
+                        ))}
+                    </div>
+                </div>
             </div>
         );
     }
@@ -512,8 +530,17 @@ function LogsPanel({ workflowId, active }: { workflowId: number; active: boolean
 
     if (isLoading) {
         return (
-            <div className="ff:mx-auto ff:w-full ff:max-w-2xl ff:px-4 ff:py-8">
-                <div className="ff:h-40 ff:w-full ff:animate-pulse ff:rounded-xl ff:border ff:border-slate-200 ff:bg-white" />
+            <div className="ff:mx-auto ff:flex ff:w-full ff:max-w-2xl ff:flex-col ff:gap-3 ff:px-4 ff:py-8">
+                {Array.from({ length: 4 }).map((_, i) => (
+                    <div
+                        key={i}
+                        className="ff:flex ff:items-center ff:gap-3 ff:rounded-xl ff:border ff:border-slate-200 ff:bg-white ff:px-4 ff:py-3"
+                    >
+                        <Skeleton className="ff:h-8 ff:w-8 ff:shrink-0 ff:rounded-full" />
+                        <Skeleton className="ff:h-4 ff:flex-1" />
+                        <Skeleton className="ff:h-3 ff:w-20 ff:shrink-0" />
+                    </div>
+                ))}
             </div>
         );
     }

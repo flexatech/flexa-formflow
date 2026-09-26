@@ -2,6 +2,7 @@ import { Pencil, Plus, Trash2, Workflow as WorkflowIcon } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/custom/EmptyState";
+import { CardListSkeleton } from "@/components/custom/Skeletons";
 import {
     Dialog,
     DialogContent,
@@ -74,7 +75,7 @@ export function WorkflowsListPage() {
             </div>
 
             {isLoading ? (
-                <div className="ff:h-64 ff:animate-pulse ff:rounded-xl ff:border ff:border-slate-200 ff:bg-white" />
+                <CardListSkeleton />
             ) : items.length === 0 ? (
                 <EmptyState
                     icon={WorkflowIcon}

@@ -8,6 +8,7 @@ import { navigate } from "@/lib/router";
 import { SHOW_UPCOMING } from "@/lib/flags";
 import { useUiStore } from "@/lib/store";
 import { SaveToLibraryButton } from "@/features/library/SaveToLibrary";
+import { EditorSkeleton } from "@/components/custom/Skeletons";
 import { useForm, useSaveForm } from "../useForms";
 import type { FormConfig, FormStatus } from "../types";
 import { BuildTab } from "./BuildTab";
@@ -68,11 +69,7 @@ export function BuilderPage({ id }: { id: number }) {
     }, [draft]);
 
     if (isLoading || !form || !draft) {
-        return (
-            <div className="ff:p-6">
-                <div className="ff:h-screen ff:animate-pulse ff:rounded-xl ff:border ff:border-slate-200 ff:bg-white" />
-            </div>
-        );
+        return <EditorSkeleton />;
     }
 
     const dirty = JSON.stringify(draft) !== lastSaved.current;

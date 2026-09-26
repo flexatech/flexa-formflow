@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/custom/EmptyState";
 import { ownershipChip } from "@/components/custom/AssetCard";
+import { Skeleton } from "@/components/ui/skeleton";
 import { __, sprintf } from "@/lib/i18n";
 import { hashQuery } from "@/lib/router";
 import { usePackDetail } from "./useLibrary";
@@ -29,7 +30,19 @@ export function PackDetailPage({ id }: { id: string }) {
     };
 
     if (!pack && isLoading) {
-        return <div className="ff:p-6 ff:text-sm ff:text-slate-400">{__("Loading…")}</div>;
+        return (
+            <div className="ff:flex ff:flex-col ff:gap-6 ff:p-6">
+                <Skeleton className="ff:h-4 ff:w-24" />
+                <div className="ff:flex ff:items-center ff:gap-4">
+                    <Skeleton className="ff:h-12 ff:w-12 ff:rounded-lg" />
+                    <div className="ff:flex ff:flex-col ff:gap-2">
+                        <Skeleton className="ff:h-6 ff:w-56" />
+                        <Skeleton className="ff:h-3 ff:w-72 ff:max-w-full" />
+                    </div>
+                </div>
+                <Skeleton className="ff:h-48 ff:rounded-xl" />
+            </div>
+        );
     }
 
     if (!pack) {

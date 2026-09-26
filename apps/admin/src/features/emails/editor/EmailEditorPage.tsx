@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { EditorSkeleton } from "@/components/custom/Skeletons";
 import { AiWritingDialog } from "@/features/ai/AiWritingDialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -137,11 +138,7 @@ export function EmailEditorPage({ id }: { id: number }) {
     }, [forms, previewFormId]);
 
     if (isLoading || !template || !draft) {
-        return (
-            <div className="ff:p-6">
-                <div className="ff:h-screen ff:animate-pulse ff:rounded-xl ff:border ff:border-slate-200 ff:bg-white" />
-            </div>
-        );
+        return <EditorSkeleton />;
     }
 
     const dirty = JSON.stringify(draft) !== lastSaved.current;

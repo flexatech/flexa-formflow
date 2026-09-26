@@ -3,6 +3,8 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { LockedExplainer } from "@/components/custom/LockedExplainer";
+import { CardGridSkeleton } from "@/components/custom/Skeletons";
+import { Skeleton } from "@/components/ui/skeleton";
 import { integrationConnection } from "@/lib/extensions";
 import { __ } from "@/lib/i18n";
 import { PRO_UPGRADE_URL } from "@/lib/links";
@@ -16,8 +18,15 @@ export function IntegrationsPage() {
 
     if (isLoading || !data) {
         return (
-            <div className="ff:p-6">
-                <div className="ff:h-64 ff:animate-pulse ff:rounded-xl ff:border ff:border-slate-200 ff:bg-white" />
+            <div className="ff:flex ff:flex-col ff:gap-6 ff:p-6">
+                <div className="ff:flex ff:flex-col ff:gap-1">
+                    <h1 className="ff:text-2xl ff:font-semibold ff:text-slate-900">{__("Integrations")}</h1>
+                    <p className="ff:text-sm ff:text-slate-500">
+                        {__("Connect FormFlow to the rest of your stack: delivery, webhooks, and more.")}
+                    </p>
+                </div>
+                <Skeleton className="ff:h-16 ff:rounded-xl" />
+                <CardGridSkeleton count={4} />
             </div>
         );
     }

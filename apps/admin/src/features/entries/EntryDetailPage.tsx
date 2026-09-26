@@ -9,6 +9,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
+import { Skeleton } from "@/components/ui/skeleton";
 import { __ } from "@/lib/i18n";
 import { navigate } from "@/lib/router";
 import { useUiStore } from "@/lib/store";
@@ -39,8 +40,29 @@ export function EntryDetailPage({ id }: { id: number }) {
 
     if (isLoading || !entry) {
         return (
-            <div className="ff:p-6">
-                <div className="ff:h-64 ff:animate-pulse ff:rounded-xl ff:border ff:border-slate-200 ff:bg-white" />
+            <div className="ff:flex ff:flex-col ff:gap-6 ff:p-6">
+                <div className="ff:flex ff:items-center ff:gap-2">
+                    <Skeleton className="ff:h-9 ff:w-9 ff:rounded-md" />
+                    <div className="ff:flex ff:flex-col ff:gap-2">
+                        <Skeleton className="ff:h-6 ff:w-48" />
+                        <Skeleton className="ff:h-3 ff:w-32" />
+                    </div>
+                </div>
+                <div className="ff:grid ff:gap-4 ff:lg:grid-cols-[2fr_1fr]">
+                    <div className="ff:flex ff:flex-col ff:gap-4 ff:rounded-xl ff:border ff:border-slate-200 ff:bg-white ff:p-5">
+                        {Array.from({ length: 5 }).map((_, i) => (
+                            <div key={i} className="ff:flex ff:flex-col ff:gap-2">
+                                <Skeleton className="ff:h-3 ff:w-24" />
+                                <Skeleton className="ff:h-4 ff:w-full ff:max-w-md" />
+                            </div>
+                        ))}
+                    </div>
+                    <div className="ff:flex ff:h-fit ff:flex-col ff:gap-3 ff:rounded-xl ff:border ff:border-slate-200 ff:bg-white ff:p-5">
+                        <Skeleton className="ff:h-4 ff:w-24" />
+                        <Skeleton className="ff:h-3 ff:w-full" />
+                        <Skeleton className="ff:h-3 ff:w-2/3" />
+                    </div>
+                </div>
             </div>
         );
     }

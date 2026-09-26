@@ -2,6 +2,7 @@ import { Mail, Palette, Sparkles, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { ColorField } from "@/components/custom/ColorField";
+import { SettingsSkeleton } from "@/components/custom/Skeletons";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
@@ -53,8 +54,10 @@ export function SettingsPage() {
 
     if (isLoading || !settings || !draft) {
         return (
-            <div className="ff:p-6">
-                <div className="ff:h-40 ff:animate-pulse ff:rounded-xl ff:border ff:border-slate-200 ff:bg-white" />
+            <div className="ff:flex ff:flex-col ff:gap-6 ff:p-6">
+                <h1 className="ff:text-2xl ff:font-semibold ff:text-slate-900">{__("Settings")}</h1>
+                <SettingsSkeleton rows={3} />
+                <SettingsSkeleton rows={5} />
             </div>
         );
     }

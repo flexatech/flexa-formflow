@@ -14,6 +14,7 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/custom/EmptyState";
+import { TableSkeleton } from "@/components/custom/Skeletons";
 import { withPreviewReset } from "@/features/emails/previewFrame";
 import { __ } from "@/lib/i18n";
 import { useUiStore } from "@/lib/store";
@@ -38,7 +39,7 @@ export function WooEmailsTab() {
     const [preview, setPreview] = useState<{ id: string; title: string } | null>(null);
 
     if (isLoading || !data) {
-        return <div className="ff:h-64 ff:animate-pulse ff:rounded-xl ff:border ff:border-slate-200 ff:bg-white" />;
+        return <TableSkeleton columns={3} />;
     }
 
     if (!data.hasWooCommerce) {

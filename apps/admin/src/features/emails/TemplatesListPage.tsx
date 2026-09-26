@@ -2,6 +2,7 @@ import { Copy, Mail, Pencil, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/custom/EmptyState";
+import { TableSkeleton } from "@/components/custom/Skeletons";
 import {
     Dialog,
     DialogContent,
@@ -65,7 +66,7 @@ export function FormEmailsTab() {
     return (
         <>
             {isLoading ? (
-                <div className="ff:h-64 ff:animate-pulse ff:rounded-xl ff:border ff:border-slate-200 ff:bg-white" />
+                <TableSkeleton columns={3} />
             ) : items.length === 0 ? (
                 <EmptyState
                     icon={Mail}

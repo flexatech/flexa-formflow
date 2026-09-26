@@ -2,6 +2,7 @@ import { Copy, FileText, Pencil, Plus, Search, Sparkles, Trash2 } from "lucide-r
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/custom/EmptyState";
+import { TableSkeleton } from "@/components/custom/Skeletons";
 import { AiFormDialog } from "@/features/ai/AiFormDialog";
 import { Input } from "@/components/ui/input";
 import {
@@ -91,7 +92,7 @@ export function FormsListPage() {
             </div>
 
             {isLoading ? (
-                <div className="ff:h-64 ff:animate-pulse ff:rounded-xl ff:border ff:border-slate-200 ff:bg-white" />
+                <TableSkeleton columns={5} />
             ) : !hasAnything ? (
                 <EmptyState
                     icon={FileText}

@@ -18,6 +18,7 @@ import { cn } from "@/lib/cn";
 import { SHOW_UPCOMING } from "@/lib/flags";
 import { useUiStore } from "@/lib/store";
 import { PackCard } from "@/components/custom/PackCard";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useEntriesList } from "@/features/entries/useEntries";
 import { entryExcerpt } from "@/features/entries/EntryFields";
 import { useFormsList } from "@/features/forms/useForms";
@@ -29,7 +30,7 @@ import { useStats } from "./useStats";
 export function DashboardPage() {
     const setGuideOpen = useUiStore((s) => s.setGuideOpen);
     const { data: stats } = useStats();
-    const { data: recent } = useEntriesList({ per_page: 5 });
+    const { data: recent, isLoading: recentLoading } = useEntriesList({ per_page: 5 });
     const { data: formsData } = useFormsList({ per_page: 100 });
     const formById = new Map((formsData?.items ?? []).map((f) => [f.id, f]));
     const { data: packs } = usePacks();
@@ -87,7 +88,16 @@ export function DashboardPage() {
             <div className="ff:grid ff:gap-4 ff:lg:grid-cols-[2fr_1fr]">
                 <div className="ff:flex ff:flex-col ff:gap-3 ff:rounded-xl ff:border ff:border-slate-200 ff:bg-white ff:p-5">
                     <h2 className="ff:text-sm ff:font-semibold ff:text-slate-900">{__("Recent entries")}</h2>
-                    {!recent || recent.items.length === 0 ? (
+                    {recentLoading ? (
+                        <ul className="ff:flex ff:flex-col ff:gap-1">
+                            {Array.from({ length: 5 }).map((_, i) => (
+                                <li key={i} className="ff:flex ff:items-center ff:justify-between ff:gap-3 ff:px-2 ff:py-2">
+                                    <Skeleton className="ff:h-4 ff:w-56 ff:max-w-full" />
+                                    <Skeleton className="ff:h-3 ff:w-16 ff:shrink-0" />
+                                </li>
+                            ))}
+                        </ul>
+                    ) : !recent || recent.items.length === 0 ? (
                         <p className="ff:text-sm ff:text-slate-500">
                             {__("Submissions will show up here once a published form is shared.")}
                         </p>
