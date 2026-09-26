@@ -65,6 +65,15 @@ p[class*="ff:"] {
     margin: revert-layer;
 }
 
+/* WP admin styles `a:hover, a:active, a:focus { color: <scheme blue> }`
+ * UNLAYERED, so on hover/focus it overrides the color utilities our links carry
+ * and flashes WP's link-blue. This higher-specificity unlayered selector
+ * (0,2,1 beats WP's 0,1,1) reverts `color` back into the Tailwind layers, so
+ * each link's own `ff:text-*` / `ff:hover:text-*` utility wins again. */
+:is(a:hover, a:active, a:focus)[class*="ff:"] {
+    color: revert-layer;
+}
+
 /* Dark surface defaults for the settings screen. The whole app is the dark
  * surface (single root), so scope to `.flexa-formflow-themed`. High-traffic
  * backgrounds/borders/text only - components opt in via `dark:` where they
