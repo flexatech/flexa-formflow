@@ -15,7 +15,7 @@ defined( 'ABSPATH' ) || exit;
 final class TreeSanitizer {
 	private const MAX_ELEMENTS = 100;
 
-	private const SETTINGS_STRING_KEYS = [ 'backgroundColor', 'contentBackground', 'textColor', 'brandColor', 'fontFamily' ];
+	private const SETTINGS_STRING_KEYS = [ 'backgroundColor', 'contentBackground', 'textColor', 'headingColor', 'linkColor', 'brandColor', 'fontFamily' ];
 
 	/**
 	 * @param array<string, mixed> $tree
@@ -31,6 +31,9 @@ final class TreeSanitizer {
 		}
 		if ( isset( $incoming['width'] ) && is_numeric( $incoming['width'] ) ) {
 			$settings['width'] = max( 320, min( 800, (int) $incoming['width'] ) );
+		}
+		if ( isset( $incoming['direction'] ) && 'rtl' === $incoming['direction'] ) {
+			$settings['direction'] = 'rtl';
 		}
 
 		$nodes = isset( $tree['elements'] ) && is_array( $tree['elements'] ) ? $tree['elements'] : [];

@@ -137,12 +137,24 @@ final class Renderer {
 
 		$width = $settings['width'] ?? null;
 
+		$text_color  = $pick( 'textColor', 'text_color' );
+		$brand_color = $pick( 'brandColor', 'brand_color' );
+
+		// Heading and link colors have no store-wide token: they fall back to the
+		// resolved text and brand colors respectively when the template leaves
+		// them blank.
+		$heading = $settings['headingColor'] ?? null;
+		$link    = $settings['linkColor'] ?? null;
+
 		return [
 			'backgroundColor'   => $pick( 'backgroundColor', 'background_color' ),
 			'contentBackground' => $pick( 'contentBackground', 'content_background' ),
-			'textColor'         => $pick( 'textColor', 'text_color' ),
-			'brandColor'        => $pick( 'brandColor', 'brand_color' ),
+			'textColor'         => $text_color,
+			'headingColor'      => is_string( $heading ) && '' !== $heading ? $heading : $text_color,
+			'linkColor'         => is_string( $link ) && '' !== $link ? $link : $brand_color,
+			'brandColor'        => $brand_color,
 			'fontFamily'        => $pick( 'fontFamily', 'font_family' ),
+			'direction'         => ( $settings['direction'] ?? '' ) === 'rtl' ? 'rtl' : 'ltr',
 			'width'             => is_numeric( $width ) ? max( 320, min( 800, (int) $width ) ) : (int) $global['container_width'],
 		];
 	}
@@ -155,22 +167,23 @@ final class Renderer {
 		$content = esc_attr( (string) $design['contentBackground'] );
 		$text    = esc_attr( (string) $design['textColor'] );
 		$font    = esc_attr( (string) $design['fontFamily'] );
+		$dir     = 'rtl' === ( $design['direction'] ?? 'ltr' ) ? 'rtl' : 'ltr';
 		$width   = (int) $design['width'];
 
 		// This is a standalone email HTML document, not a WordPress page: email
 		// clients have no enqueue pipeline, so the mobile media query must be an
 		// inline <style> block (the only non-inline CSS an email can carry).
 		return '<!DOCTYPE html>'
-			. '<html lang="' . esc_attr( get_bloginfo( 'language' ) ) . '">'
+			. '<html lang="' . esc_attr( get_bloginfo( 'language' ) ) . '" dir="' . $dir . '">'
 			. '<head>'
 			. '<meta charset="utf-8">'
 			. '<meta name="viewport" content="width=device-width, initial-scale=1.0">'
 			. '<meta http-equiv="X-UA-Compatible" content="IE=edge">'
 			. '<style>@media only screen and (max-width:' . ( $width + 20 ) . 'px){.ff-container{width:100%!important}.ff-col{display:block!important;width:100%!important}}</style>'
 			. '</head>'
-			. '<body style="margin:0;padding:0;background-color:' . $bg . ';-webkit-text-size-adjust:100%;">'
+			. '<body dir="' . $dir . '" style="margin:0;padding:0;background-color:' . $bg . ';direction:' . $dir . ';-webkit-text-size-adjust:100%;">'
 			. '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="' . $bg . '"><tr><td align="center" style="padding:24px 12px;">'
-			. '<table role="presentation" class="ff-container" width="' . $width . '" cellpadding="0" cellspacing="0" border="0" style="width:' . $width . 'px;max-width:100%;background-color:' . $content . ';border-radius:8px;font-family:' . $font . ';color:' . $text . ';font-size:15px;line-height:1.6;">'
+			. '<table role="presentation" class="ff-container" dir="' . $dir . '" width="' . $width . '" cellpadding="0" cellspacing="0" border="0" style="width:' . $width . 'px;max-width:100%;background-color:' . $content . ';border-radius:8px;font-family:' . $font . ';color:' . $text . ';font-size:15px;line-height:1.6;direction:' . $dir . ';">'
 			. $rows
 			. '</table>'
 			. '</td></tr></table>'

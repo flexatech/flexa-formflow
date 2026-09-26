@@ -42,9 +42,11 @@ abstract class BaseElement {
 	}
 
 	/**
-	 * Resolve tokens then allow only email-safe inline HTML.
+	 * Resolve tokens then allow only email-safe inline HTML. When a link color
+	 * is given, it is applied to any anchor that does not already declare one, so
+	 * the template's "Text link color" reaches inline links.
 	 */
-	protected function rich_text( string $text, RenderContext $ctx ): string {
+	protected function rich_text( string $text, RenderContext $ctx, string $link_color = '' ): string {
 		$allowed = [
 			'a'      => [
 				'href'   => true,
@@ -60,7 +62,33 @@ abstract class BaseElement {
 			'br'     => [],
 		];
 
-		return wp_kses( $this->resolve_text( $text, $ctx ), $allowed );
+		$html = wp_kses( $this->resolve_text( $text, $ctx ), $allowed );
+
+		return '' === $link_color ? $html : $this->apply_link_color( $html, $link_color );
+	}
+
+	/**
+	 * Prepend a color to every anchor that has no inline color of its own. An
+	 * author-set color always wins.
+	 */
+	private function apply_link_color( string $html, string $color ): string {
+		$color = esc_attr( $color );
+
+		return (string) preg_replace_callback(
+			'/<a\b([^>]*)>/i',
+			static function ( array $m ) use ( $color ): string {
+				$attrs = $m[1];
+				if ( preg_match( '/\bstyle\s*=\s*"([^"]*)"/i', $attrs, $sm ) ) {
+					if ( false !== stripos( $sm[1], 'color:' ) ) {
+						return '<a' . $attrs . '>';
+					}
+					$attrs = str_replace( $sm[0], 'style="color:' . $color . ';' . $sm[1] . '"', $attrs );
+					return '<a' . $attrs . '>';
+				}
+				return '<a' . $attrs . ' style="color:' . $color . ';">';
+			},
+			$html
+		);
 	}
 
 	protected function row( string $inner, string $padding = '12px 40px' ): string {

@@ -27,9 +27,15 @@ export interface TreeSettings {
     backgroundColor?: string;
     contentBackground?: string;
     textColor?: string;
+    /** Falls back to textColor when blank. */
+    headingColor?: string;
+    /** Falls back to brandColor when blank. */
+    linkColor?: string;
     brandColor?: string;
     fontFamily?: string;
     width?: number;
+    /** Text direction of the whole email; defaults to ltr. */
+    direction?: "ltr" | "rtl";
 }
 
 export interface EmailElement {

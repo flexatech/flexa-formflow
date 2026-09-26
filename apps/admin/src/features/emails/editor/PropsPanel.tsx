@@ -81,6 +81,24 @@ export function PropsPanel({
                 <DesignField label={__("Background")} value={settings.backgroundColor ?? ""} onChange={(v) => onChangeSettings({ ...settings, backgroundColor: v })} />
                 <DesignField label={__("Content background")} value={settings.contentBackground ?? ""} onChange={(v) => onChangeSettings({ ...settings, contentBackground: v })} />
                 <DesignField label={__("Text color")} value={settings.textColor ?? ""} onChange={(v) => onChangeSettings({ ...settings, textColor: v })} />
+                <DesignField label={__("Title color")} value={settings.headingColor ?? ""} onChange={(v) => onChangeSettings({ ...settings, headingColor: v })} />
+                <DesignField label={__("Text link color")} value={settings.linkColor ?? ""} onChange={(v) => onChangeSettings({ ...settings, linkColor: v })} />
+                <div className="ff:flex ff:flex-col ff:gap-1.5">
+                    <Label className="ff:block">{__("Direction")}</Label>
+                    <Select
+                        value={settings.direction ?? "ltr"}
+                        options={[
+                            { value: "ltr", label: __("Left to right (LTR)") },
+                            { value: "rtl", label: __("Right to left (RTL)") },
+                        ]}
+                        onChange={(e) =>
+                            onChangeSettings({
+                                ...settings,
+                                direction: e.target.value === "rtl" ? "rtl" : "ltr",
+                            })
+                        }
+                    />
+                </div>
                 <div className="ff:flex ff:flex-col ff:gap-1.5">
                     <Label className="ff:block">{__("Content width (px)")}</Label>
                     <Input

@@ -28,7 +28,6 @@ final class FooterText extends BaseElement {
 	}
 
 	public function render( array $props, RenderContext $ctx, array $design ): string {
-		unset( $design );
 		$align = esc_attr( $this->str( $props, 'align', 'center' ) );
 		$color = esc_attr( $this->str( $props, 'color', '#8a8a8a' ) );
 
@@ -37,7 +36,7 @@ final class FooterText extends BaseElement {
 		// to the built-in default.
 		$global   = Settings::get( 'footer_text' );
 		$fallback = is_string( $global ) && '' !== $global ? $global : self::DEFAULT_HTML;
-		$html     = $this->rich_text( $this->str( $props, 'html', $fallback ), $ctx );
+		$html     = $this->rich_text( $this->str( $props, 'html', $fallback ), $ctx, (string) ( $design['linkColor'] ?? '' ) );
 
 		return '<tr><td align="' . $align . '" style="padding:20px 40px 28px;font-size:12px;line-height:1.6;color:' . $color . ';">' . $html . '</td></tr>';
 	}
