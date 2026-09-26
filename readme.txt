@@ -45,7 +45,7 @@ FormFlow does not send mail in any special way; it hands the finished message to
 
 == External services ==
 
-FormFlow works fully offline by default and calls no external service on its own. One optional feature reaches a third party, and only when you turn it on:
+FormFlow stores your forms, entries, and templates in your own database and does not send them anywhere. Two things reach a third party, described below. Both run only in wp-admin, never on the front end.
 
 **AI assistant (optional).** If you add an AI provider API key in Settings and use the AI tools (generate a form, or the writing assistant), the text you submit and your form description are sent to the provider you selected so it can return a result. No visitor or entry data is sent, and nothing is sent automatically. You choose the provider:
 
@@ -54,6 +54,17 @@ FormFlow works fully offline by default and calls no external service on its own
 * Google Gemini: sent to `https://generativelanguage.googleapis.com`. See the [Google Terms](https://policies.google.com/terms) and [Privacy Policy](https://policies.google.com/privacy).
 
 Your API key is stored encrypted and is never shown in the browser after you save it.
+
+**Deactivation feedback (Flexa Product Intelligence).** When you go to deactivate FormFlow on the Plugins screen, a short optional survey asks why. This is served by Flexa's product intelligence service at `https://product-intelligence.flexacommerce.com`. It runs only on `wp-admin/plugins.php`, never on the front end, and never blocks or delays deactivation.
+
+What is sent, and when:
+
+* On opening the Plugins screen: a request to `/api/v1/config` (product slug and tier) to load the survey configuration. Cached for 6 hours.
+* When you deactivate or interact with the survey: the reason you pick and any optional message you type, sent to `/api/v1/deactivations`, `/api/v1/events`, `/api/v1/feedback`, `/api/v1/feature-requests`, and `/api/v1/recovery-events`.
+
+Every request includes an anonymous per-site identifier (a random UUID), the plugin version and tier, and by default your WordPress version, PHP version, and locale. No email, site domain, user identity, or raw IP is collected. Turn the environment details off with `add_filter( 'flexa_formflow.deactivation_survey.config', fn( $c ) => array( 'collect_environment' => false ) + $c );`, and disable the survey entirely with `add_filter( 'flexa_formflow.deactivation_survey.enabled', '__return_false' );`.
+
+Service terms and privacy policy: [https://flexacommerce.com/pages/terms](https://flexacommerce.com/pages/terms) and [https://flexacommerce.com/pages/privacy](https://flexacommerce.com/pages/privacy).
 
 == Frequently Asked Questions ==
 
@@ -98,3 +109,4 @@ The admin app is written in React and TypeScript and compiled to the files in `a
 * Visual email builder: block-based editor, field tokens, a fields table, template library, global styles, desktop and mobile preview, and test send.
 * Notification email to the admin and optional confirmation to the submitter, sent through `wp_mail()`.
 * Settings and onboarding; optional delete-data-on-uninstall.
+* Optional deactivation feedback survey on the Plugins screen (can be disabled with a filter).
