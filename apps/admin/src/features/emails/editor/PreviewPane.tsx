@@ -8,6 +8,7 @@ import { PREVIEW_RESET_CSS } from "../previewFrame";
 import {
     BLOCK_DRAG_TYPE,
     BLOCK_MOVE_TYPE,
+    BLOCK_PATTERN_TYPE,
     findInTree,
     isLayout,
     type DropTarget,
@@ -23,6 +24,7 @@ interface PreviewPaneProps {
     selectedId: string | null;
     onSelect: (id: string | null) => void;
     onInsert: (type: string, target: DropTarget) => void;
+    onInsertPattern: (patternId: string, target: DropTarget) => void;
     onMove: (id: string, target: DropTarget) => void;
 }
 
@@ -47,6 +49,7 @@ export function PreviewPane({
     selectedId,
     onSelect,
     onInsert,
+    onInsertPattern,
     onMove,
 }: PreviewPaneProps) {
     const preview = useEmailPreview();
@@ -60,8 +63,9 @@ export function PreviewPane({
     // Drag bookkeeping. `kind` distinguishes a palette insert (block flies in
     // from the sidebar) from a canvas move (an existing block is dragged). The
     // resolved drop position lives in `target`.
-    const kind = useRef<"insert" | "move" | null>(null);
+    const kind = useRef<"insert" | "pattern" | "move" | null>(null);
     const insertType = useRef("");
+    const patternId = useRef("");
     const moveId = useRef<string | null>(null);
     const target = useRef<DropTarget | null>(null);
 
@@ -72,6 +76,8 @@ export function PreviewPane({
     selectedRef.current = selectedId;
     const onInsertRef = useRef(onInsert);
     onInsertRef.current = onInsert;
+    const onInsertPatternRef = useRef(onInsertPattern);
+    onInsertPatternRef.current = onInsertPattern;
     const onMoveRef = useRef(onMove);
     onMoveRef.current = onMove;
     const onSelectRef = useRef(onSelect);
@@ -137,8 +143,10 @@ export function PreviewPane({
         const localX = px - fr.left;
         const localY = py - fr.top;
 
-        // Is the cursor inside a column?
-        const cols = Array.from(doc.querySelectorAll<HTMLElement>("[data-ff-col]"));
+        // Is the cursor inside a column? Patterns are top-level groups, so they
+        // only ever drop at the document root.
+        const cols =
+            kind.current === "pattern" ? [] : Array.from(doc.querySelectorAll<HTMLElement>("[data-ff-col]"));
         for (const col of cols) {
             const r = col.getBoundingClientRect();
             const inside = localX >= r.left && localX <= r.right && localY >= r.top && localY <= r.bottom;
@@ -166,6 +174,7 @@ export function PreviewPane({
         const t = target.current;
         if (t) {
             if (kind.current === "insert" && insertType.current) onInsertRef.current(insertType.current, t);
+            else if (kind.current === "pattern" && patternId.current) onInsertPatternRef.current(patternId.current, t);
             else if (kind.current === "move" && moveId.current) onMoveRef.current(moveId.current, t);
         }
         resetDrag();
@@ -176,12 +185,14 @@ export function PreviewPane({
         setLine(null);
         kind.current = null;
         insertType.current = "";
+        patternId.current = "";
         moveId.current = null;
         target.current = null;
     };
 
     const hasDrag = (types: DataTransfer["types"]) =>
         Array.prototype.indexOf.call(types, BLOCK_DRAG_TYPE) !== -1 ||
+        Array.prototype.indexOf.call(types, BLOCK_PATTERN_TYPE) !== -1 ||
         Array.prototype.indexOf.call(types, BLOCK_MOVE_TYPE) !== -1;
 
     const handleFrameLoad = () => {
@@ -267,6 +278,10 @@ export function PreviewPane({
                 kind.current = "insert";
                 insertType.current = e.dataTransfer?.getData(BLOCK_DRAG_TYPE) ?? "";
                 setDragging(true);
+            } else if (types && Array.prototype.indexOf.call(types, BLOCK_PATTERN_TYPE) !== -1) {
+                kind.current = "pattern";
+                patternId.current = e.dataTransfer?.getData(BLOCK_PATTERN_TYPE) ?? "";
+                setDragging(true);
             }
         };
         window.addEventListener("dragstart", onStart);
@@ -294,6 +309,9 @@ export function PreviewPane({
         e.preventDefault();
         if (kind.current === "insert" && !insertType.current) {
             insertType.current = e.dataTransfer.getData(BLOCK_DRAG_TYPE);
+        }
+        if (kind.current === "pattern" && !patternId.current) {
+            patternId.current = e.dataTransfer.getData(BLOCK_PATTERN_TYPE);
         }
         commitDrop();
     };

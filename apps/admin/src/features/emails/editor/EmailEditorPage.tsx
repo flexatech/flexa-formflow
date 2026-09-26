@@ -1,4 +1,4 @@
-import { ArrowLeft, Monitor, Send, Smartphone, Sparkles } from "lucide-react";
+import { ArrowLeft, Blocks, LayoutTemplate, Monitor, Send, Smartphone, Sparkles } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { AiWritingDialog } from "@/features/ai/AiWritingDialog";
@@ -21,14 +21,17 @@ import { useUiStore } from "@/lib/store";
 import { SaveToLibraryButton } from "@/features/library/SaveToLibrary";
 import { useFormsList } from "@/features/forms/useForms";
 import { LayerList } from "./LayerList";
+import { PatternPalette } from "./PatternPalette";
 import { PreviewPane } from "./PreviewPane";
 import { PropsPanel } from "./PropsPanel";
 import type { ConditionSet } from "@/components/custom/SchemaFields";
-import { useEmailTemplate, useSaveEmailTemplate, useTestSend } from "../useEmailTemplates";
+import { useEmailPatterns, useEmailTemplate, useSaveEmailTemplate, useTestSend } from "../useEmailTemplates";
 import {
     emptyTree,
     findInTree,
     insertInTree,
+    insertManyInTree,
+    materializePattern,
     moveInTree,
     newElement,
     removeFromTree,
@@ -70,6 +73,7 @@ export function EmailEditorPage({ id }: { id: number }) {
     const setSelectedElement = useUiStore((s) => s.setSelectedElement);
     const [draft, setDraft] = useState<Draft | null>(null);
     const [viewport, setViewport] = useState<"desktop" | "mobile">("desktop");
+    const [leftTab, setLeftTab] = useState<"blocks" | "patterns">("blocks");
     const [previewFormId, setPreviewFormId] = useState(0);
     const [testOpen, setTestOpen] = useState(false);
     const [aiOpen, setAiOpen] = useState(false);
@@ -77,6 +81,7 @@ export function EmailEditorPage({ id }: { id: number }) {
 
     const { data: formsData } = useFormsList({ per_page: 100 });
     const forms = formsData?.items ?? [];
+    const { data: patterns = [], isLoading: patternsLoading } = useEmailPatterns();
 
     useEffect(() => {
         if (template && draft === null) {
@@ -143,6 +148,20 @@ export function EmailEditorPage({ id }: { id: number }) {
         const element = newElement(type);
         setElements(insertInTree(elements, target, element));
         setSelectedElement(element.id);
+    };
+    const onInsertPatternAt = (patternId: string, target: DropTarget) => {
+        const pattern = patterns.find((p) => p.id === patternId);
+        if (!pattern) return;
+        const blocks = materializePattern(pattern.blocks);
+        setElements(insertManyInTree(elements, target, blocks));
+        setSelectedElement(blocks[0]?.id ?? null);
+    };
+    const onAddPattern = (patternId: string) => {
+        const pattern = patterns.find((p) => p.id === patternId);
+        if (!pattern) return;
+        const blocks = materializePattern(pattern.blocks);
+        setElements([...elements, ...blocks]);
+        setSelectedElement(blocks[0]?.id ?? null);
     };
     const onMove = (id: string, target: DropTarget) => {
         setElements(moveInTree(elements, id, target));
@@ -235,16 +254,40 @@ export function EmailEditorPage({ id }: { id: number }) {
             </header>
 
             <div className="ff:flex ff:min-h-0 ff:flex-1">
-                <aside className="ff:w-64 ff:shrink-0 ff:border-r ff:border-slate-200 ff:bg-white">
-                    <LayerList
-                        elements={elements}
-                        selectedId={selectedId}
-                        onSelect={setSelectedElement}
-                        onAdd={onAdd}
-                        onReorder={setElements}
-                        onDuplicate={onDuplicate}
-                        onDelete={onDelete}
-                    />
+                <aside className="ff:flex ff:w-64 ff:shrink-0 ff:flex-col ff:border-r ff:border-slate-200 ff:bg-white">
+                    <div className="ff:flex ff:shrink-0 ff:items-center ff:gap-1 ff:border-b ff:border-slate-200 ff:p-2">
+                        <LeftTab
+                            icon={Blocks}
+                            label={__("Blocks")}
+                            active={leftTab === "blocks"}
+                            onClick={() => setLeftTab("blocks")}
+                        />
+                        <LeftTab
+                            icon={LayoutTemplate}
+                            label={__("Patterns")}
+                            active={leftTab === "patterns"}
+                            onClick={() => setLeftTab("patterns")}
+                        />
+                    </div>
+                    <div className="ff:min-h-0 ff:flex-1">
+                        {leftTab === "blocks" ? (
+                            <LayerList
+                                elements={elements}
+                                selectedId={selectedId}
+                                onSelect={setSelectedElement}
+                                onAdd={onAdd}
+                                onReorder={setElements}
+                                onDuplicate={onDuplicate}
+                                onDelete={onDelete}
+                            />
+                        ) : (
+                            <PatternPalette
+                                patterns={patterns}
+                                isLoading={patternsLoading}
+                                onAdd={onAddPattern}
+                            />
+                        )}
+                    </div>
                 </aside>
                 <PreviewPane
                     tree={draft.tree}
@@ -255,6 +298,7 @@ export function EmailEditorPage({ id }: { id: number }) {
                     selectedId={selectedId}
                     onSelect={setSelectedElement}
                     onInsert={onInsertAt}
+                    onInsertPattern={onInsertPatternAt}
                     onMove={onMove}
                 />
                 <aside className="ff:w-72 ff:shrink-0 ff:overflow-y-auto ff:border-l ff:border-slate-200 ff:bg-white ff:p-4">
@@ -285,6 +329,35 @@ export function EmailEditorPage({ id }: { id: number }) {
 
             <AiWritingDialog open={aiOpen} onClose={() => setAiOpen(false)} />
         </div>
+    );
+}
+
+function LeftTab({
+    icon: Icon,
+    label,
+    active,
+    onClick,
+}: {
+    icon: typeof Blocks;
+    label: string;
+    active: boolean;
+    onClick: () => void;
+}) {
+    return (
+        <button
+            type="button"
+            onClick={onClick}
+            aria-pressed={active}
+            className={cn(
+                "ff:flex ff:flex-1 ff:items-center ff:justify-center ff:gap-1.5 ff:rounded-md ff:px-2 ff:py-1.5 ff:text-xs ff:font-medium ff:transition-colors",
+                active
+                    ? "ff:bg-brand-50 ff:text-brand-700"
+                    : "ff:text-slate-600 ff:hover:bg-slate-50 ff:hover:text-slate-900",
+            )}
+        >
+            <Icon aria-hidden className="ff:h-3.5 ff:w-3.5" />
+            {label}
+        </button>
     );
 }
 

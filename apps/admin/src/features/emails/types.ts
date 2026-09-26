@@ -315,6 +315,46 @@ export const BLOCK_DRAG_TYPE = "application/x-ff-block";
 export const BLOCK_MOVE_TYPE = "application/x-ff-move";
 
 /**
+ * dataTransfer MIME used when dragging a curated pattern onto the canvas. The
+ * payload is the pattern `id`; the editor resolves it to its blocks and drops
+ * the whole group at the target.
+ */
+export const BLOCK_PATTERN_TYPE = "application/x-ff-pattern";
+
+/**
+ * One block inside a curated pattern (served by GET /emails/patterns). It has
+ * no id: the editor assigns fresh ids when the pattern is dropped, so the
+ * dropped blocks are normal, editable elements.
+ */
+export interface PatternBlock {
+    type: string;
+    props: Record<string, unknown>;
+    columns?: PatternBlock[][];
+}
+
+/** A curated group of blocks a user can drop in and edit afterwards. */
+export interface EmailPattern {
+    id: string;
+    name: string;
+    category: string;
+    blocks: PatternBlock[];
+}
+
+/** Turn a pattern's id-less blocks into editable elements with fresh ids. */
+export function materializePattern(blocks: PatternBlock[]): EmailElement[] {
+    return blocks.map(materializeBlock);
+}
+
+function materializeBlock(block: PatternBlock): EmailElement {
+    const element = newElement(block.type);
+    element.props = { ...element.props, ...block.props };
+    if (block.columns) {
+        element.columns = block.columns.map((col) => col.map(materializeBlock));
+    }
+    return element;
+}
+
+/**
  * A drop position in the tree. `colId === null` means the top level; otherwise
  * it points inside the column `colIndex` of the layout block `colId`.
  */
@@ -342,6 +382,21 @@ export function insertInTree(
         col.splice(clampIndex(target.index, col.length), 0, element);
         return { ...el, columns };
     });
+}
+
+/** Insert several elements at `target`, keeping their given order. */
+export function insertManyInTree(
+    elements: EmailElement[],
+    target: DropTarget,
+    newElements: EmailElement[],
+): EmailElement[] {
+    let next = elements;
+    let index = target.index;
+    for (const element of newElements) {
+        next = insertInTree(next, { ...target, index }, element);
+        index += 1;
+    }
+    return next;
 }
 
 /**

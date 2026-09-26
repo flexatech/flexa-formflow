@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
-import type { DynamicDataCategory, EmailTemplate, EmailTree } from "./types";
+import type { DynamicDataCategory, EmailPattern, EmailTemplate, EmailTree } from "./types";
 
 interface TemplatesListResponse {
     items: EmailTemplate[];
@@ -84,6 +84,18 @@ export function useDynamicData(formId: number) {
         queryFn: async () =>
             (await api.get<{ categories: DynamicDataCategory[] }>(`/emails/dynamic-data?form_id=${formId}`)).categories,
         staleTime: 60_000,
+    });
+}
+
+/**
+ * Curated block groups the builder's Patterns tab offers. Static payloads, so
+ * cache them for the session.
+ */
+export function useEmailPatterns() {
+    return useQuery<EmailPattern[]>({
+        queryKey: ["email-patterns"],
+        queryFn: async () => (await api.get<{ patterns: EmailPattern[] }>("/emails/patterns")).patterns,
+        staleTime: Infinity,
     });
 }
 
