@@ -26,6 +26,7 @@ final class Router {
 		( new SettingsEndpoint() )->register_routes();
 		( new OnboardingEndpoint() )->register_routes();
 		( new FormsEndpoint() )->register_routes();
+		( new FormPreviewEndpoint() )->register_routes();
 		( new EntriesEndpoint() )->register_routes();
 		( new StatsEndpoint() )->register_routes();
 		( new SubmitEndpoint() )->register_routes();

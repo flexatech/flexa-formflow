@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
-import type { FormDetail, FormSummary } from "./types";
+import type { FormConfig, FormDetail, FormSummary } from "./types";
 
 export interface FormsListParams {
     search?: string;
@@ -66,6 +66,22 @@ export function useSaveForm(id: number) {
             queryClient.setQueryData(["form", id], form);
             void queryClient.invalidateQueries({ queryKey: ["forms"] });
         },
+    });
+}
+
+/**
+ * Render the current draft config to frontend HTML for the quick preview. Sent
+ * on demand (not autosaved), so the preview reflects unsaved changes.
+ */
+export function useFormPreview() {
+    return useMutation({
+        mutationFn: async ({ config, title }: { config: FormConfig; title: string }) =>
+            (
+                await api.post<{ html: string }>("/forms/preview", {
+                    config: config as unknown as Record<string, unknown>,
+                    title,
+                })
+            ).html,
     });
 }
 

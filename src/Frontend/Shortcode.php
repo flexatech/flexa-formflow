@@ -69,6 +69,15 @@ final class Shortcode {
 
 		$brand = (string) Settings::get( 'brand_color' );
 
+		return $this->render_markup( $form, $brand );
+	}
+
+	/**
+	 * Render just the form markup for a given brand color, with no publish guard
+	 * and no asset enqueue. The frontend path and the admin preview share this so
+	 * the two never drift; callers own enqueueing (frontend) or inlining (preview).
+	 */
+	public function render_markup( Form $form, string $brand ): string {
 		ob_start();
 		include FLEXA_FORMFLOW_PATH . 'templates/form.php';
 
