@@ -11,21 +11,62 @@ import {
 } from "@dnd-kit/core";
 import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { GripVertical, MousePointerClick, Trash2 } from "lucide-react";
+import {
+    GripVertical,
+    MapPin,
+    MousePointerClick,
+    Phone,
+    ShoppingCart,
+    Sparkles,
+    Star,
+    Trash2,
+    Upload,
+    type LucideIcon,
+} from "lucide-react";
 import { useState } from "react";
 import { __ } from "@/lib/i18n";
 import { cn } from "@/lib/cn";
+import { Badge } from "@/components/ui/badge";
+import { LockedExplainer } from "@/components/custom/LockedExplainer";
+import { PRO_UPGRADE_URL } from "@/lib/links";
+import { getPluginGlobal } from "@/lib/wp";
 import { useUiStore } from "@/lib/store";
+import { useMyLibrary } from "@/features/library/useLibrary";
+import type { SavedAsset } from "@/features/library/types";
 import {
+    FIELD_CATEGORIES,
     FIELD_TYPES,
     fieldTypeMeta,
     newField,
     widthLabel,
+    type FieldLogic,
     type FieldType,
     type FormConfig,
     type FormField,
 } from "../types";
 import { Inspector } from "./Inspector";
+
+/**
+ * Pro advanced fields shown as explorable locked palette items (lock type 1).
+ * Free has no engine backing for these, so the item opens the explainer rather
+ * than inserting, matching the workflow builder's Pro timing nodes.
+ */
+const PRO_FIELDS: { key: string; label: string; summary: string; icon: LucideIcon }[] = [
+    { key: "file", label: __("File upload"), summary: __("Let people attach files to a submission."), icon: Upload },
+    { key: "phone", label: __("Phone"), summary: __("A phone field with format validation."), icon: Phone },
+    { key: "rating", label: __("Rating"), summary: __("Collect a star rating."), icon: Star },
+    { key: "address", label: __("Address"), summary: __("A grouped multi-line address field."), icon: MapPin },
+];
+
+/** Woo-specific Pro fields; only shown when WooCommerce is active. */
+const WOO_FIELDS: { key: string; label: string; summary: string; icon: LucideIcon }[] = [
+    {
+        key: "product",
+        label: __("Product picker"),
+        summary: __("Let customers choose a product on the form."),
+        icon: ShoppingCart,
+    },
+];
 
 interface BuildTabProps {
     config: FormConfig;
@@ -51,6 +92,25 @@ export function BuildTab({ config, onChange }: BuildTabProps) {
         next.splice(index ?? fields.length, 0, field);
         setFields(next);
         setSelectedField(field.id);
+    };
+
+    // Drop a saved pattern's fields into the canvas. Ids are regenerated so a
+    // pattern can be inserted more than once; intra-pattern logic references are
+    // remapped to the new ids so a rule inside the pattern keeps working.
+    const insertPattern = (raw: SavedAsset) => {
+        const payload = raw.payload as { fields?: unknown };
+        const rawFields = Array.isArray(payload.fields) ? (payload.fields as FormField[]) : [];
+        if (rawFields.length === 0) {
+            return;
+        }
+        const idMap = new Map<string, string>();
+        rawFields.forEach((f) => idMap.set(f.id, "f_" + Math.random().toString(36).slice(2, 8)));
+        const remapped: FormField[] = rawFields.map((f) => ({
+            ...f,
+            id: idMap.get(f.id) as string,
+            logic: remapLogic(f.logic, idMap),
+        }));
+        setFields([...fields, ...remapped]);
     };
 
     const onDragStart = (event: DragStartEvent) => {
@@ -88,15 +148,41 @@ export function BuildTab({ config, onChange }: BuildTabProps) {
     return (
         <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd}>
             <div className="ff:grid ff:h-full ff:grid-cols-[13rem_1fr_17rem] ff:gap-0">
-                <aside className="ff:overflow-y-auto ff:border-r ff:border-slate-200 ff:bg-white ff:p-3">
-                    <p className="ff:mb-2 ff:px-1 ff:text-xs ff:font-semibold ff:uppercase ff:tracking-wide ff:text-slate-400">
-                        {__("Fields")}
-                    </p>
-                    <div className="ff:flex ff:flex-col ff:gap-1">
-                        {FIELD_TYPES.map((meta) => (
-                            <PaletteItem key={meta.type} type={meta.type} onAdd={() => addField(meta.type)} />
+                <aside className="ff:flex ff:flex-col ff:gap-4 ff:overflow-y-auto ff:border-r ff:border-slate-200 ff:bg-white ff:p-3">
+                    {FIELD_CATEGORIES.map((cat) => {
+                        const items = FIELD_TYPES.filter((m) => m.category === cat.value);
+                        if (items.length === 0) {
+                            return null;
+                        }
+                        return (
+                            <PaletteSection key={cat.value} label={cat.label()}>
+                                {items.map((meta) => (
+                                    <PaletteItem key={meta.type} type={meta.type} onAdd={() => addField(meta.type)} />
+                                ))}
+                            </PaletteSection>
+                        );
+                    })}
+
+                    <PaletteSection label={__("Advanced")}>
+                        {PRO_FIELDS.map((field) => (
+                            <ProPaletteItem key={field.key} label={field.label} summary={field.summary} icon={field.icon} />
                         ))}
-                    </div>
+                    </PaletteSection>
+
+                    {getPluginGlobal().hasWooCommerce && (
+                        <PaletteSection label={__("WooCommerce")}>
+                            {WOO_FIELDS.map((field) => (
+                                <ProPaletteItem
+                                    key={field.key}
+                                    label={field.label}
+                                    summary={field.summary}
+                                    icon={field.icon}
+                                />
+                            ))}
+                        </PaletteSection>
+                    )}
+
+                    <PatternsSection onInsert={insertPattern} />
                 </aside>
 
                 <Canvas
@@ -126,6 +212,78 @@ export function BuildTab({ config, onChange }: BuildTabProps) {
                 {paletteDrag ? <PaletteGhost type={paletteDrag} /> : null}
             </DragOverlay>
         </DndContext>
+    );
+}
+
+/** Repoint a field's logic rule (if any) at the pattern's new field ids. */
+function remapLogic(logic: FormField["logic"], idMap: Map<string, string>): FieldLogic | undefined {
+    if (!logic || typeof (logic as FieldLogic).field !== "string" || !("operator" in logic)) {
+        return undefined;
+    }
+    const rule = logic as FieldLogic;
+    return { ...rule, field: idMap.get(rule.field) ?? rule.field };
+}
+
+function PaletteSection({ label, children }: { label: string; children: React.ReactNode }) {
+    return (
+        <div>
+            <p className="ff:mb-1.5 ff:px-1 ff:text-xs ff:font-semibold ff:uppercase ff:tracking-wide ff:text-slate-400">
+                {label}
+            </p>
+            <div className="ff:flex ff:flex-col ff:gap-1">{children}</div>
+        </div>
+    );
+}
+
+/** A locked advanced-field row: clicking opens the Pro explainer, never inserts. */
+function ProPaletteItem({ label, summary, icon: Icon }: { label: string; summary: string; icon: LucideIcon }) {
+    return (
+        <LockedExplainer
+            title={summary}
+            unlocks={__("Included in FormFlow Pro.")}
+            upgradeUrl={PRO_UPGRADE_URL}
+            className="ff:w-full"
+        >
+            <span className="ff:flex ff:w-full ff:items-center ff:gap-2.5 ff:rounded-lg ff:border ff:border-dashed ff:border-slate-200 ff:px-2.5 ff:py-2 ff:text-sm ff:font-medium ff:text-slate-500">
+                <Icon aria-hidden className="ff:h-4 ff:w-4 ff:text-slate-400" />
+                <span className="ff:flex-1 ff:text-left">{label}</span>
+                <Badge variant="pro">{__("Pro")}</Badge>
+            </span>
+        </LockedExplainer>
+    );
+}
+
+/**
+ * Patterns are a first-class insert category. Only saved form assets carry real
+ * field payloads (catalog entries are marketing metadata), so this lists My
+ * Library form patterns; pack patterns land here once imported.
+ */
+function PatternsSection({ onInsert }: { onInsert: (raw: SavedAsset) => void }) {
+    const { data: mine } = useMyLibrary();
+    const patterns = (mine ?? []).filter((r) => r.raw.kind === "form");
+    if (patterns.length === 0) {
+        return null;
+    }
+    return (
+        <PaletteSection label={__("Patterns")}>
+            {patterns.map(({ raw }) => {
+                const count = Array.isArray((raw.payload as { fields?: unknown }).fields)
+                    ? (raw.payload as { fields: unknown[] }).fields.length
+                    : 0;
+                return (
+                    <button
+                        key={raw.id}
+                        type="button"
+                        onClick={() => onInsert(raw)}
+                        className="ff:flex ff:cursor-pointer ff:items-center ff:gap-2.5 ff:rounded-lg ff:border ff:border-transparent ff:bg-transparent ff:px-2.5 ff:py-2 ff:text-left ff:text-sm ff:font-medium ff:text-slate-700 ff:transition-colors ff:hover:border-slate-200 ff:hover:bg-slate-50"
+                    >
+                        <Sparkles aria-hidden className="ff:h-4 ff:w-4 ff:text-slate-400" />
+                        <span className="ff:min-w-0 ff:flex-1 ff:truncate">{raw.name}</span>
+                        <span className="ff:text-xs ff:text-slate-400 ff:tabular-nums">{count}</span>
+                    </button>
+                );
+            })}
+        </PaletteSection>
     );
 }
 

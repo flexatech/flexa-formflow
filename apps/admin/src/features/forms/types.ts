@@ -63,6 +63,26 @@ export function widthLabel(width: FieldWidth): string {
     }
 }
 
+/** Operators for the single Free field-logic rule; match the PHP whitelist. */
+export type LogicOperator = "equals" | "not_equals" | "contains" | "not_empty" | "is_empty";
+
+/** Options for the Logic tab's operator select, in display order. */
+export const LOGIC_OPERATORS: Array<{ value: LogicOperator; label: () => string; needsValue: boolean }> = [
+    { value: "equals", label: () => __("is"), needsValue: true },
+    { value: "not_equals", label: () => __("is not"), needsValue: true },
+    { value: "contains", label: () => __("contains"), needsValue: true },
+    { value: "not_empty", label: () => __("is filled in"), needsValue: false },
+    { value: "is_empty", label: () => __("is empty"), needsValue: false },
+];
+
+/** A single Free show/hide rule; empty/undefined means the field is always shown. */
+export interface FieldLogic {
+    action: "show" | "hide";
+    field: string;
+    operator: LogicOperator;
+    value: string;
+}
+
 export interface FormField {
     id: string;
     type: FieldType;
@@ -76,6 +96,8 @@ export interface FormField {
     widthTablet?: ResponsiveWidth;
     /** Width at mobile (<=640px); `inherit` (default) keeps the tablet/desktop width. */
     widthMobile?: ResponsiveWidth;
+    /** Optional single show/hide rule; absent means always visible. */
+    logic?: FieldLogic | Record<string, never>;
 }
 
 export interface FormConfig {
@@ -130,23 +152,33 @@ export interface EntryRow {
     created_at: string;
 }
 
+/** Insert-panel grouping, in display order. */
+export type FieldCategory = "basic" | "choice" | "special";
+
+export const FIELD_CATEGORIES: Array<{ value: FieldCategory; label: () => string }> = [
+    { value: "basic", label: () => __("Basic") },
+    { value: "choice", label: () => __("Choice") },
+    { value: "special", label: () => __("Special") },
+];
+
 interface FieldTypeMeta {
     type: FieldType;
     icon: LucideIcon;
     hasOptions: boolean;
+    category: FieldCategory;
     label: () => string;
 }
 
 export const FIELD_TYPES: FieldTypeMeta[] = [
-    { type: "text", icon: Type, hasOptions: false, label: () => __("Text") },
-    { type: "email", icon: AtSign, hasOptions: false, label: () => __("Email") },
-    { type: "textarea", icon: AlignLeft, hasOptions: false, label: () => __("Paragraph") },
-    { type: "select", icon: List, hasOptions: true, label: () => __("Dropdown") },
-    { type: "radio", icon: CircleDot, hasOptions: true, label: () => __("Radio choice") },
-    { type: "checkbox", icon: CheckSquare, hasOptions: true, label: () => __("Checkboxes") },
-    { type: "number", icon: Hash, hasOptions: false, label: () => __("Number") },
-    { type: "date", icon: Calendar, hasOptions: false, label: () => __("Date") },
-    { type: "hidden", icon: EyeOff, hasOptions: false, label: () => __("Hidden") },
+    { type: "text", icon: Type, hasOptions: false, category: "basic", label: () => __("Text") },
+    { type: "email", icon: AtSign, hasOptions: false, category: "basic", label: () => __("Email") },
+    { type: "textarea", icon: AlignLeft, hasOptions: false, category: "basic", label: () => __("Paragraph") },
+    { type: "number", icon: Hash, hasOptions: false, category: "basic", label: () => __("Number") },
+    { type: "date", icon: Calendar, hasOptions: false, category: "basic", label: () => __("Date") },
+    { type: "select", icon: List, hasOptions: true, category: "choice", label: () => __("Dropdown") },
+    { type: "radio", icon: CircleDot, hasOptions: true, category: "choice", label: () => __("Radio choice") },
+    { type: "checkbox", icon: CheckSquare, hasOptions: true, category: "choice", label: () => __("Checkboxes") },
+    { type: "hidden", icon: EyeOff, hasOptions: false, category: "special", label: () => __("Hidden") },
 ];
 
 export function fieldTypeMeta(type: FieldType): FieldTypeMeta {

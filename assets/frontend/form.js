@@ -128,8 +128,94 @@
 		} );
 	}
 
+	// Read a field's current value from the form: checkbox groups join with a
+	// comma, radios take the checked value, everything else the input value.
+	function fieldValue( form, fieldId ) {
+		var inputs = form.querySelectorAll( '[name="' + fieldId + '"]' );
+		if ( ! inputs.length ) {
+			return '';
+		}
+		var first = inputs[ 0 ];
+		if ( first.type === 'checkbox' ) {
+			var picked = [];
+			inputs.forEach( function ( input ) {
+				if ( input.checked ) {
+					picked.push( input.value );
+				}
+			} );
+			return picked.join( ', ' );
+		}
+		if ( first.type === 'radio' ) {
+			var value = '';
+			inputs.forEach( function ( input ) {
+				if ( input.checked ) {
+					value = input.value;
+				}
+			} );
+			return value;
+		}
+		return first.value;
+	}
+
+	function conditionPasses( operator, actual, expected ) {
+		var a = String( actual );
+		var b = String( expected );
+		switch ( operator ) {
+			case 'equals':
+				return a === b;
+			case 'not_equals':
+				return a !== b;
+			case 'contains':
+				return b !== '' && a.toLowerCase().indexOf( b.toLowerCase() ) !== -1;
+			case 'not_empty':
+				return a.trim() !== '';
+			case 'is_empty':
+				return a.trim() === '';
+			default:
+				return true;
+		}
+	}
+
+	// Field show/hide logic (the single Free rule). A hidden-by-logic field is
+	// display:none and its inputs are disabled so they never submit.
+	function wireLogic( form ) {
+		var rules = [];
+		form.querySelectorAll( '.flexa-formflow-field[data-ff-logic]' ).forEach( function ( wrap ) {
+			var logic;
+			try {
+				logic = JSON.parse( wrap.getAttribute( 'data-ff-logic' ) );
+			} catch ( e ) {
+				return;
+			}
+			if ( logic && logic.field && logic.operator ) {
+				rules.push( { wrap: wrap, logic: logic } );
+			}
+		} );
+		if ( ! rules.length ) {
+			return;
+		}
+
+		function evaluate() {
+			rules.forEach( function ( rule ) {
+				var passes = conditionPasses( rule.logic.operator, fieldValue( form, rule.logic.field ), rule.logic.value );
+				var visible = rule.logic.action === 'hide' ? ! passes : passes;
+				rule.wrap.style.display = visible ? '' : 'none';
+				rule.wrap.querySelectorAll( 'input, select, textarea' ).forEach( function ( input ) {
+					input.disabled = ! visible;
+				} );
+			} );
+		}
+
+		form.addEventListener( 'input', evaluate );
+		form.addEventListener( 'change', evaluate );
+		evaluate();
+	}
+
 	function init() {
-		document.querySelectorAll( '.flexa-formflow-form' ).forEach( wire );
+		document.querySelectorAll( '.flexa-formflow-form' ).forEach( function ( form ) {
+			wire( form );
+			wireLogic( form );
+		} );
 	}
 
 	if ( document.readyState === 'loading' ) {

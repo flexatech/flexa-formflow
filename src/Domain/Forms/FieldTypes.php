@@ -166,6 +166,7 @@ final class FieldTypes {
 				'width'       => in_array( $field['width'] ?? 'full', [ 'full', 'half', 'third', 'two_thirds' ], true ) ? (string) $field['width'] : 'full',
 				'widthTablet' => in_array( $field['widthTablet'] ?? 'inherit', [ 'inherit', 'full', 'half', 'third', 'two_thirds' ], true ) ? (string) ( $field['widthTablet'] ?? 'inherit' ) : 'inherit',
 				'widthMobile' => in_array( $field['widthMobile'] ?? 'inherit', [ 'inherit', 'full', 'half', 'third', 'two_thirds' ], true ) ? (string) ( $field['widthMobile'] ?? 'inherit' ) : 'inherit',
+				'logic'       => self::sanitize_logic( $field['logic'] ?? null ),
 			];
 		}
 
@@ -195,6 +196,34 @@ final class FieldTypes {
 					'template_id' => absint( $confirmation['template_id'] ?? 0 ),
 				],
 			],
+		];
+	}
+
+	/**
+	 * The single Free show/hide rule on a field. Returns an empty array when
+	 * there is no target field or no known operator, which the front-end reads
+	 * as "always visible". Pro extends this into condition groups.
+	 *
+	 * @param mixed $raw
+	 * @return array<string, string>
+	 */
+	private static function sanitize_logic( $raw ): array {
+		if ( ! is_array( $raw ) ) {
+			return [];
+		}
+
+		$field    = sanitize_key( (string) ( $raw['field'] ?? '' ) );
+		$action   = in_array( $raw['action'] ?? '', [ 'show', 'hide' ], true ) ? (string) $raw['action'] : 'show';
+		$operator = (string) ( $raw['operator'] ?? '' );
+		if ( '' === $field || ! in_array( $operator, [ 'equals', 'not_equals', 'contains', 'not_empty', 'is_empty' ], true ) ) {
+			return [];
+		}
+
+		return [
+			'action'   => $action,
+			'field'    => $field,
+			'operator' => $operator,
+			'value'    => sanitize_text_field( (string) ( $raw['value'] ?? '' ) ),
 		];
 	}
 

@@ -12,11 +12,22 @@ export interface WorkflowAction {
     config: Record<string, unknown>;
 }
 
+/** Single Free gate on the action chain; operators match the engine. */
+export type ConditionOperator = "equals" | "not_equals" | "contains" | "not_empty" | "is_empty";
+
+export interface WorkflowCondition {
+    field: string;
+    operator: ConditionOperator;
+    value: string;
+}
+
 export interface Workflow {
     id: number;
     title: string;
     status: "active" | "inactive";
     trigger: WorkflowTrigger;
+    /** Empty object when the workflow has no condition (always runs). */
+    condition: WorkflowCondition | Record<string, never>;
     actions: WorkflowAction[];
     created_at: string;
     updated_at: string;
@@ -59,6 +70,7 @@ export interface TestResult {
 
 export interface WorkflowConfig {
     trigger: WorkflowTrigger;
+    condition?: WorkflowCondition | Record<string, never>;
     actions: WorkflowAction[];
 }
 

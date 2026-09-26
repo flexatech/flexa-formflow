@@ -57,6 +57,24 @@ final class Engine {
 		$ctx = new RenderContext( form: $form, entry: $entry, type: 'admin' );
 		$log = [];
 
+		$condition = $workflow->condition();
+		if ( [] !== $condition ) {
+			$met   = $this->condition_met( $condition, $entry );
+			$log[] = $this->result(
+				'condition',
+				$met ? 'ok' : 'skipped',
+				$met
+					? __( 'Condition met.', 'flexa-formflow' )
+					: __( 'Condition not met; actions skipped.', 'flexa-formflow' )
+			);
+
+			if ( ! $met ) {
+				do_action( 'flexa_formflow.workflow.ran', $workflow->id, $entry->id, $log );
+
+				return $log;
+			}
+		}
+
 		foreach ( $workflow->actions() as $action ) {
 			$log[] = $this->run_action( $action['type'], $action['config'], $form, $entry, $ctx );
 		}
@@ -64,6 +82,34 @@ final class Engine {
 		do_action( 'flexa_formflow.workflow.ran', $workflow->id, $entry->id, $log );
 
 		return $log;
+	}
+
+	/**
+	 * Evaluate the single Free condition against the entry. String comparison
+	 * throughout; array values (checkboxes) collapse to a comma-joined string
+	 * so `contains` and equality behave predictably.
+	 *
+	 * @param array{field: string, operator: string, value: string} $condition
+	 */
+	private function condition_met( array $condition, Entry $entry ): bool {
+		$raw    = $entry->data[ $condition['field'] ] ?? '';
+		$actual = is_array( $raw ) ? implode( ', ', array_map( 'strval', $raw ) ) : (string) $raw;
+		$value  = $condition['value'];
+
+		switch ( $condition['operator'] ) {
+			case 'equals':
+				return $actual === $value;
+			case 'not_equals':
+				return $actual !== $value;
+			case 'contains':
+				return '' !== $value && false !== stripos( $actual, $value );
+			case 'not_empty':
+				return '' !== trim( $actual );
+			case 'is_empty':
+				return '' === trim( $actual );
+			default:
+				return true;
+		}
 	}
 
 	/**

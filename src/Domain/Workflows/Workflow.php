@@ -55,6 +55,28 @@ final class Workflow {
 	}
 
 	/**
+	 * The optional single gate on the action chain. An empty array means the
+	 * workflow always runs its actions (the pre-Phase-2 behavior). Free allows
+	 * exactly one condition; Pro extends the same node into branches.
+	 *
+	 * @return array{field: string, operator: string, value: string}|array{}
+	 */
+	public function condition(): array {
+		$condition = is_array( $this->config['condition'] ?? null ) ? $this->config['condition'] : [];
+		$field     = (string) ( $condition['field'] ?? '' );
+		$operator  = (string) ( $condition['operator'] ?? '' );
+		if ( '' === $field || '' === $operator ) {
+			return [];
+		}
+
+		return [
+			'field'    => $field,
+			'operator' => $operator,
+			'value'    => (string) ( $condition['value'] ?? '' ),
+		];
+	}
+
+	/**
 	 * @return list<array{id: string, type: string, config: array<string, mixed>}>
 	 */
 	public function actions(): array {
@@ -83,6 +105,7 @@ final class Workflow {
 			'title'      => $this->title,
 			'status'     => $this->status,
 			'trigger'    => $this->trigger(),
+			'condition'  => $this->condition(),
 			'actions'    => $this->actions(),
 			'created_at' => $this->created_at,
 			'updated_at' => $this->updated_at,

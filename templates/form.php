@@ -43,6 +43,8 @@ if ( '' === $ff_submit_label ) {
 			$ff_w_tablet = $ff_width_map[ $ff_field['widthTablet'] ?? 'inherit' ] ?? '';
 			$ff_w_mobile = $ff_width_map[ $ff_field['widthMobile'] ?? 'inherit' ] ?? '';
 			$ff_dom_id   = 'ff-' . $form->uuid . '-' . $ff_id;
+			// Single Free show/hide rule; empty when the field is always visible.
+			$ff_logic = ( is_array( $ff_field['logic'] ?? null ) && [] !== $ff_field['logic'] ) ? $ff_field['logic'] : null;
 			if ( '' === $ff_id ) {
 				continue;
 			}
@@ -51,7 +53,7 @@ if ( '' === $ff_submit_label ) {
 				<input type="hidden" name="<?php echo esc_attr( $ff_id ); ?>" value="<?php echo esc_attr( $ff_ph ); ?>" />
 				<?php continue; ?>
 			<?php endif; ?>
-			<div class="flexa-formflow-field" data-field="<?php echo esc_attr( $ff_id ); ?>" data-ff-w="<?php echo esc_attr( $ff_width ); ?>"<?php echo '' !== $ff_w_tablet ? ' data-ff-w-tablet="' . esc_attr( $ff_w_tablet ) . '"' : ''; ?><?php echo '' !== $ff_w_mobile ? ' data-ff-w-mobile="' . esc_attr( $ff_w_mobile ) . '"' : ''; ?>>
+			<div class="flexa-formflow-field" data-field="<?php echo esc_attr( $ff_id ); ?>" data-ff-w="<?php echo esc_attr( $ff_width ); ?>"<?php echo '' !== $ff_w_tablet ? ' data-ff-w-tablet="' . esc_attr( $ff_w_tablet ) . '"' : ''; ?><?php echo '' !== $ff_w_mobile ? ' data-ff-w-mobile="' . esc_attr( $ff_w_mobile ) . '"' : ''; ?><?php echo null !== $ff_logic ? ' data-ff-logic="' . esc_attr( (string) wp_json_encode( $ff_logic ) ) . '"' : ''; ?>>
 				<?php if ( in_array( $ff_type, [ 'radio', 'checkbox' ], true ) ) : ?>
 					<fieldset>
 						<legend>

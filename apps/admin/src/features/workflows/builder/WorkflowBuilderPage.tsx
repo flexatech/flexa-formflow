@@ -2,7 +2,12 @@ import {
     ArrowDown,
     ArrowLeft,
     ArrowUp,
+    BookMarked,
+    CalendarClock,
     CheckCheck,
+    Clock,
+    Filter,
+    GitBranch,
     Mail,
     Play,
     Plus,
@@ -20,7 +25,7 @@ import { Select } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { LockedExplainer } from "@/components/custom/LockedExplainer";
 import { LockedNote, SchemaFields } from "@/components/custom/SchemaFields";
-import { __ } from "@/lib/i18n";
+import { __, sprintf } from "@/lib/i18n";
 import { extensionIcon, integrationConnections, workflowActionTypes } from "@/lib/extensions";
 import { navigate } from "@/lib/router";
 import { PRO_UPGRADE_URL } from "@/lib/links";
@@ -34,17 +39,57 @@ import {
     useWorkflow,
     useWorkflows,
     type ActionResult,
+    type ConditionOperator,
     type FormOption,
     type TemplateOption,
     type WorkflowAction,
+    type WorkflowCondition,
 } from "../useWorkflows";
 
 interface Draft {
     title: string;
     status: "active" | "inactive";
     triggerFormId: number;
+    /** Null when the workflow has no gate; Free allows exactly one. */
+    condition: WorkflowCondition | null;
     actions: WorkflowAction[];
 }
+
+/** Plain-language operator labels for the single Free condition. */
+const OPERATORS: { value: ConditionOperator; label: () => string; needsValue: boolean }[] = [
+    { value: "equals", label: () => __("is"), needsValue: true },
+    { value: "not_equals", label: () => __("is not"), needsValue: true },
+    { value: "contains", label: () => __("contains"), needsValue: true },
+    { value: "not_empty", label: () => __("is filled in"), needsValue: false },
+    { value: "is_empty", label: () => __("is empty"), needsValue: false },
+];
+
+/**
+ * Pro timing and branching nodes shown as explorable locked palette items
+ * (lock type 1). Free has no engine backing for these, so the teaser opens the
+ * explainer rather than inserting a node, matching the form builder's Pro
+ * advanced fields.
+ */
+const PRO_NODES: { key: string; label: string; summary: string; icon: LucideIcon }[] = [
+    {
+        key: "branch",
+        label: __("Branch (Yes / No)"),
+        summary: __("Split the workflow into separate paths for different answers."),
+        icon: GitBranch,
+    },
+    {
+        key: "delay",
+        label: __("Delay"),
+        summary: __("Wait hours or days before the next step runs."),
+        icon: Clock,
+    },
+    {
+        key: "schedule",
+        label: __("Schedule"),
+        summary: __("Run steps at a set date or time."),
+        icon: CalendarClock,
+    },
+];
 
 const ACTION_META: Record<string, { label: string; icon: LucideIcon; defaults: Record<string, unknown> }> = {
     send_email: {
@@ -78,11 +123,43 @@ function extActionByType(type: string): ExtensionWorkflowAction | undefined {
 
 /** Label + icon for any node type, built-in or extension, with a safe fallback. */
 function metaFor(type: string): { label: string; icon: LucideIcon } {
+    if (type === "condition") return { label: __("Condition"), icon: Filter };
     const builtin = ACTION_META[type];
     if (builtin) return { label: builtin.label, icon: builtin.icon };
     const ext = extActionByType(type);
     if (ext) return { label: ext.label, icon: extensionIcon(ext.icon) };
     return { label: type, icon: Mail };
+}
+
+/** A plain-language title for an action card, built from its config. */
+function describeAction(action: WorkflowAction): string {
+    const cfg = action.config;
+    const str = (key: string) => (typeof cfg[key] === "string" ? (cfg[key] as string) : "");
+    switch (action.type) {
+        case "send_email": {
+            const subject = str("subject").trim();
+            return subject ? sprintf(__('Send email: "%s"'), subject) : __("Send email");
+        }
+        case "webhook": {
+            const url = str("url").trim();
+            return url ? sprintf(__("Send webhook to %s"), hostOf(url)) : __("Send webhook");
+        }
+        case "set_status":
+            return sprintf(__("Mark entry as %s"), str("status") || __("read"));
+        case "add_note":
+            return __("Add an internal note");
+        default:
+            return metaFor(action.type).label;
+    }
+}
+
+/** Best-effort host for the webhook sentence; falls back to the raw string. */
+function hostOf(url: string): string {
+    try {
+        return new URL(url).host || url;
+    } catch {
+        return url;
+    }
 }
 
 function extDefaults(ext: ExtensionWorkflowAction | undefined): Record<string, unknown> {
@@ -117,10 +194,12 @@ export function WorkflowBuilderPage({ id }: { id: number }) {
 
     useEffect(() => {
         if (workflow && draft === null) {
+            const cond = workflow.condition;
             setDraft({
                 title: workflow.title,
                 status: workflow.status,
                 triggerFormId: workflow.trigger.form_id,
+                condition: cond && "field" in cond ? (cond as WorkflowCondition) : null,
                 actions: workflow.actions,
             });
         }
@@ -131,10 +210,12 @@ export function WorkflowBuilderPage({ id }: { id: number }) {
 
     const dirty = useMemo(() => {
         if (!workflow || !draft) return false;
+        const savedCondition = workflow.condition && "field" in workflow.condition ? workflow.condition : null;
         return (
             draft.title !== workflow.title ||
             draft.status !== workflow.status ||
             draft.triggerFormId !== workflow.trigger.form_id ||
+            JSON.stringify(draft.condition) !== JSON.stringify(savedCondition) ||
             JSON.stringify(draft.actions) !== JSON.stringify(workflow.actions)
         );
     }, [workflow, draft]);
@@ -153,6 +234,7 @@ export function WorkflowBuilderPage({ id }: { id: number }) {
             status: next.status,
             config: {
                 trigger: { type: "form_submitted", form_id: next.triggerFormId },
+                condition: next.condition ?? {},
                 actions: next.actions,
             },
         });
@@ -199,6 +281,24 @@ export function WorkflowBuilderPage({ id }: { id: number }) {
     };
 
     const addAction = (type: string) => setDraft({ ...draft, actions: [...draft.actions, newAction(type)] });
+
+    const triggerForm = forms.find((f) => f.id === draft.triggerFormId);
+
+    const addCondition = () => {
+        const first = triggerForm?.fields[0];
+        setDraft({
+            ...draft,
+            condition: { field: first?.id ?? "", operator: "equals", value: "" },
+        });
+    };
+
+    const updateCondition = (patch: Partial<WorkflowCondition>) =>
+        setDraft({ ...draft, condition: draft.condition ? { ...draft.condition, ...patch } : draft.condition });
+
+    const removeCondition = () => setDraft({ ...draft, condition: null });
+
+    // Align the flat run log back onto the nodes so each step shows its result.
+    const run = testLog ? mapRun(testLog, draft) : null;
 
     return (
         <div className="ff:flex ff:min-h-screen ff:flex-1 ff:flex-col ff:bg-slate-50">
@@ -248,6 +348,19 @@ export function WorkflowBuilderPage({ id }: { id: number }) {
                     onChange={(formId) => setDraft({ ...draft, triggerFormId: formId })}
                 />
 
+                {draft.condition && (
+                    <div className="ff:flex ff:flex-col ff:items-stretch">
+                        <Connector />
+                        <ConditionNode
+                            condition={draft.condition}
+                            triggerForm={triggerForm}
+                            result={run?.condition ?? null}
+                            onChange={updateCondition}
+                            onRemove={removeCondition}
+                        />
+                    </div>
+                )}
+
                 {draft.actions.map((action, i) => (
                     <div key={action.id} className="ff:flex ff:flex-col ff:items-stretch">
                         <Connector />
@@ -256,6 +369,7 @@ export function WorkflowBuilderPage({ id }: { id: number }) {
                             forms={forms}
                             templates={templates}
                             triggerFormId={draft.triggerFormId}
+                            result={run?.actions[i] ?? null}
                             isFirst={i === 0}
                             isLast={i === draft.actions.length - 1}
                             onUp={() => moveAction(i, -1)}
@@ -267,29 +381,23 @@ export function WorkflowBuilderPage({ id }: { id: number }) {
                 ))}
 
                 <Connector />
-                <AddAction onAdd={addAction} />
+                <Palette
+                    onAdd={addAction}
+                    onAddCondition={addCondition}
+                    canAddCondition={draft.condition === null}
+                />
 
-                {testLog !== null && (
-                    <div className="ff:mt-8 ff:rounded-xl ff:border ff:border-slate-200 ff:bg-white ff:p-4">
-                        <h3 className="ff:mb-3 ff:text-sm ff:font-semibold ff:text-slate-900">{__("Test run")}</h3>
-                        {testNote !== "" ? (
-                            <p className="ff:text-sm ff:text-slate-500">{testNote}</p>
-                        ) : testLog.length === 0 ? (
-                            <p className="ff:text-sm ff:text-slate-500">{__("No actions to run.")}</p>
-                        ) : (
-                            <ul className="ff:flex ff:flex-col ff:gap-2">
-                                {testLog.map((entry, i) => (
-                                    <li key={i} className="ff:flex ff:items-center ff:gap-2 ff:text-sm">
-                                        <StatusDot status={entry.status} />
-                                        <span className="ff:font-medium ff:text-slate-700">
-                                            {metaFor(entry.type).label}
-                                        </span>
-                                        <span className="ff:text-slate-500">{entry.detail}</span>
-                                    </li>
-                                ))}
-                            </ul>
-                        )}
+                {testNote !== "" && (
+                    <div className="ff:mt-8 ff:rounded-xl ff:border ff:border-amber-200 ff:bg-amber-50 ff:p-4 ff:text-sm ff:text-amber-800">
+                        {testNote}
                     </div>
+                )}
+                {testLog !== null && testNote === "" && (
+                    <p className="ff:mt-6 ff:text-center ff:text-xs ff:text-slate-400">
+                        {testLog.length === 0
+                            ? __("Test run complete. This workflow has no steps to run yet.")
+                            : __("Test run complete. Each step above shows its result.")}
+                    </p>
                 )}
             </div>
         </div>
@@ -304,6 +412,32 @@ function StatusDot({ status }: { status: ActionResult["status"] }) {
     const color =
         status === "ok" ? "ff:bg-emerald-500" : status === "error" ? "ff:bg-red-500" : "ff:bg-slate-300";
     return <span className={`ff:h-2 ff:w-2 ff:shrink-0 ff:rounded-full ${color}`} aria-hidden />;
+}
+
+/**
+ * Realign the flat run log onto the canvas nodes. The engine logs the condition
+ * (when present) first, then each action in order, so a single cursor walks the
+ * log alongside the draft. A short log (condition not met) leaves later actions
+ * with no result, which the nodes render as "not run".
+ */
+function mapRun(log: ActionResult[], draft: Draft): { condition: ActionResult | null; actions: (ActionResult | null)[] } {
+    let cursor = 0;
+    const condition = draft.condition && log[0]?.type === "condition" ? log[cursor++] : null;
+    const actions = draft.actions.map((_, i) => log[cursor + i] ?? null);
+    return { condition, actions };
+}
+
+/** The per-node result badge shown on the canvas after a test run. */
+function NodeStatus({ result }: { result: ActionResult | null }) {
+    if (!result) {
+        return null;
+    }
+    return (
+        <span className="ff:flex ff:items-center ff:gap-1.5 ff:text-xs ff:text-slate-500">
+            <StatusDot status={result.status} />
+            {result.detail}
+        </span>
+    );
 }
 
 function TriggerNode({
@@ -346,6 +480,7 @@ function ActionNode({
     forms,
     templates,
     triggerFormId,
+    result,
     isFirst,
     isLast,
     onUp,
@@ -357,6 +492,7 @@ function ActionNode({
     forms: FormOption[];
     templates: TemplateOption[];
     triggerFormId: number;
+    result: ActionResult | null;
     isFirst: boolean;
     isLast: boolean;
     onUp: () => void;
@@ -364,8 +500,7 @@ function ActionNode({
     onRemove: () => void;
     onChange: (patch: Record<string, unknown>) => void;
 }) {
-    const meta = metaFor(action.type);
-    const Icon = meta.icon;
+    const Icon = metaFor(action.type).icon;
 
     return (
         <section className="ff:rounded-xl ff:border ff:border-slate-200 ff:bg-white ff:p-4 ff:shadow-sm">
@@ -373,8 +508,11 @@ function ActionNode({
                 <span className="ff:flex ff:h-8 ff:w-8 ff:items-center ff:justify-center ff:rounded-lg ff:bg-slate-100 ff:text-slate-600">
                     <Icon aria-hidden className="ff:h-4 ff:w-4" />
                 </span>
-                <div className="ff:flex-1 ff:text-sm ff:font-semibold ff:text-slate-900">
-                    {meta.label}
+                <div className="ff:flex ff:min-w-0 ff:flex-1 ff:flex-col">
+                    <span className="ff:truncate ff:text-sm ff:font-semibold ff:text-slate-900">
+                        {describeAction(action)}
+                    </span>
+                    <NodeStatus result={result} />
                 </div>
                 <div className="ff:flex ff:gap-0.5">
                     <Button variant="ghost" size="icon" aria-label={__("Move up")} onClick={onUp} disabled={isFirst}>
@@ -574,59 +712,198 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
     );
 }
 
-function AddAction({ onAdd }: { onAdd: (type: string) => void }) {
+function ConditionNode({
+    condition,
+    triggerForm,
+    result,
+    onChange,
+    onRemove,
+}: {
+    condition: WorkflowCondition;
+    triggerForm: FormOption | undefined;
+    result: ActionResult | null;
+    onChange: (patch: Partial<WorkflowCondition>) => void;
+    onRemove: () => void;
+}) {
+    const op = OPERATORS.find((o) => o.value === condition.operator) ?? OPERATORS[0];
+    const fieldOptions = (triggerForm?.fields ?? []).map((f) => ({ value: f.id, label: f.label }));
+
+    return (
+        <section className="ff:rounded-xl ff:border ff:border-amber-200 ff:bg-white ff:p-4 ff:shadow-sm">
+            <div className="ff:mb-3 ff:flex ff:items-center ff:gap-2">
+                <span className="ff:flex ff:h-8 ff:w-8 ff:items-center ff:justify-center ff:rounded-lg ff:bg-amber-50 ff:text-amber-600">
+                    <Filter aria-hidden className="ff:h-4 ff:w-4" />
+                </span>
+                <div className="ff:min-w-0 ff:flex-1">
+                    <div className="ff:text-sm ff:font-semibold ff:text-slate-900">{__("Only continue if…")}</div>
+                    {result ? (
+                        <NodeStatus result={result} />
+                    ) : (
+                        <div className="ff:text-xs ff:text-slate-500">
+                            {__("One condition gates every step below. Pro adds branching.")}
+                        </div>
+                    )}
+                </div>
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label={__("Remove condition")}
+                    className="ff:text-red-600 ff:hover:bg-red-50"
+                    onClick={onRemove}
+                >
+                    <Trash2 aria-hidden className="ff:h-4 ff:w-4" />
+                </Button>
+            </div>
+            <div className="ff:flex ff:flex-col ff:gap-3">
+                <Field label={__("Field")}>
+                    {triggerForm ? (
+                        <Select
+                            options={
+                                fieldOptions.length > 0
+                                    ? fieldOptions
+                                    : [{ value: "", label: __("No fields on this form") }]
+                            }
+                            value={condition.field}
+                            onChange={(e) => onChange({ field: e.target.value })}
+                            className="ff:w-full"
+                        />
+                    ) : (
+                        <Input
+                            value={condition.field}
+                            onChange={(e) => onChange({ field: e.target.value })}
+                            placeholder={__("Field ID")}
+                        />
+                    )}
+                </Field>
+                <Field label={__("Condition")}>
+                    <Select
+                        options={OPERATORS.map((o) => ({ value: o.value, label: o.label() }))}
+                        value={condition.operator}
+                        onChange={(e) => onChange({ operator: e.target.value as ConditionOperator })}
+                        className="ff:w-full"
+                    />
+                </Field>
+                {op.needsValue && (
+                    <Field label={__("Value")}>
+                        <Input value={condition.value} onChange={(e) => onChange({ value: e.target.value })} />
+                    </Field>
+                )}
+            </div>
+        </section>
+    );
+}
+
+function Palette({
+    onAdd,
+    onAddCondition,
+    canAddCondition,
+}: {
+    onAdd: (type: string) => void;
+    onAddCondition: () => void;
+    canAddCondition: boolean;
+}) {
     const extras = workflowActionTypes();
     return (
         <section className="ff:rounded-xl ff:border ff:border-dashed ff:border-slate-300 ff:bg-white ff:p-4">
-            <div className="ff:mb-2 ff:flex ff:items-center ff:gap-1.5 ff:text-xs ff:font-medium ff:text-slate-500">
+            <div className="ff:mb-3 ff:flex ff:items-center ff:gap-1.5 ff:text-xs ff:font-medium ff:text-slate-500">
                 <Plus aria-hidden className="ff:h-3.5 ff:w-3.5" />
-                {__("Add an action")}
+                {__("Add a step")}
             </div>
-            <div className="ff:flex ff:flex-wrap ff:gap-2">
-                {ACTION_ORDER.map((type) => {
-                    const meta = ACTION_META[type];
-                    const Icon = meta.icon;
-                    return (
-                        <button
+
+            <div className="ff:flex ff:flex-col ff:gap-3">
+                {canAddCondition && (
+                    <PaletteGroup label={__("Conditions")}>
+                        <PaletteButton icon={Filter} label={__("Only continue if…")} onClick={onAddCondition} />
+                    </PaletteGroup>
+                )}
+
+                <PaletteGroup label={__("Actions")}>
+                    {ACTION_ORDER.map((type) => (
+                        <PaletteButton
                             key={type}
-                            type="button"
+                            icon={ACTION_META[type].icon}
+                            label={ACTION_META[type].label}
                             onClick={() => onAdd(type)}
-                            className="ff:flex ff:items-center ff:gap-1.5 ff:rounded-lg ff:border ff:border-slate-200 ff:bg-white ff:px-3 ff:py-1.5 ff:text-sm ff:text-slate-700 ff:transition-colors ff:hover:border-brand-300 ff:hover:bg-brand-50 ff:hover:text-brand-700"
-                        >
-                            <Icon aria-hidden className="ff:h-4 ff:w-4" />
-                            {meta.label}
-                        </button>
-                    );
-                })}
-                {extras.map((ext) => {
-                    const Icon = extensionIcon(ext.icon);
-                    // Lock type 1 (Pro capability): the node stays addable and explorable
-                    // (dropping it shows a read-only config with a LockedNote). The Pro chip
-                    // opens the compact explainer; no modal, no separate paywall.
-                    const locked = ext.locked === true;
-                    return (
-                        <div key={ext.type} className="ff:flex ff:items-center ff:gap-1">
-                            <button
-                                type="button"
-                                onClick={() => onAdd(ext.type)}
-                                className="ff:flex ff:items-center ff:gap-1.5 ff:rounded-lg ff:border ff:border-slate-200 ff:bg-white ff:px-3 ff:py-1.5 ff:text-sm ff:text-slate-700 ff:transition-colors ff:hover:border-brand-300 ff:hover:bg-brand-50 ff:hover:text-brand-700"
+                        />
+                    ))}
+                    {extras.map((ext) => {
+                        // Lock type 1 (Pro capability): the node stays addable and explorable
+                        // (dropping it shows a read-only config with a LockedNote). The Pro chip
+                        // opens the compact explainer; no modal, no separate paywall.
+                        const locked = ext.locked === true;
+                        return (
+                            <div key={ext.type} className="ff:flex ff:items-center ff:gap-1">
+                                <PaletteButton
+                                    icon={extensionIcon(ext.icon)}
+                                    label={ext.label}
+                                    onClick={() => onAdd(ext.type)}
+                                />
+                                {locked && (
+                                    <LockedExplainer
+                                        title={ext.summary || __("A Pro workflow action.")}
+                                        unlocks={ext.lockedNote || __("Included in FormFlow Pro.")}
+                                        upgradeUrl={PRO_UPGRADE_URL}
+                                    >
+                                        <Badge variant="pro">{__("Pro")}</Badge>
+                                    </LockedExplainer>
+                                )}
+                            </div>
+                        );
+                    })}
+                </PaletteGroup>
+
+                <PaletteGroup label={__("Timing & branching")}>
+                    {PRO_NODES.map((node) => {
+                        const Icon = node.icon;
+                        return (
+                            <LockedExplainer
+                                key={node.key}
+                                title={node.summary}
+                                unlocks={__("Included in FormFlow Pro.")}
+                                upgradeUrl={PRO_UPGRADE_URL}
                             >
-                                <Icon aria-hidden className="ff:h-4 ff:w-4" />
-                                {ext.label}
-                            </button>
-                            {locked && (
-                                <LockedExplainer
-                                    title={ext.summary || __("A Pro workflow action.")}
-                                    unlocks={ext.lockedNote || __("Included in FormFlow Pro.")}
-                                    upgradeUrl={PRO_UPGRADE_URL}
-                                >
+                                <span className="ff:flex ff:items-center ff:gap-1.5 ff:rounded-lg ff:border ff:border-dashed ff:border-slate-300 ff:bg-white ff:px-3 ff:py-1.5 ff:text-sm ff:text-slate-500">
+                                    <Icon aria-hidden className="ff:h-4 ff:w-4" />
+                                    {node.label}
                                     <Badge variant="pro">{__("Pro")}</Badge>
-                                </LockedExplainer>
-                            )}
-                        </div>
-                    );
-                })}
+                                </span>
+                            </LockedExplainer>
+                        );
+                    })}
+                </PaletteGroup>
+
+                <PaletteGroup label={__("Recipes")}>
+                    <PaletteButton
+                        icon={BookMarked}
+                        label={__("Browse recipes")}
+                        onClick={() => navigate("/library")}
+                    />
+                </PaletteGroup>
             </div>
         </section>
+    );
+}
+
+function PaletteGroup({ label, children }: { label: string; children: React.ReactNode }) {
+    return (
+        <div>
+            <p className="ff:mb-1.5 ff:text-[11px] ff:font-semibold ff:uppercase ff:tracking-wide ff:text-slate-400">
+                {label}
+            </p>
+            <div className="ff:flex ff:flex-wrap ff:gap-2">{children}</div>
+        </div>
+    );
+}
+
+function PaletteButton({ icon: Icon, label, onClick }: { icon: LucideIcon; label: string; onClick: () => void }) {
+    return (
+        <button
+            type="button"
+            onClick={onClick}
+            className="ff:flex ff:items-center ff:gap-1.5 ff:rounded-lg ff:border ff:border-slate-200 ff:bg-white ff:px-3 ff:py-1.5 ff:text-sm ff:text-slate-700 ff:transition-colors ff:hover:border-brand-300 ff:hover:bg-brand-50 ff:hover:text-brand-700"
+        >
+            <Icon aria-hidden className="ff:h-4 ff:w-4" />
+            {label}
+        </button>
     );
 }

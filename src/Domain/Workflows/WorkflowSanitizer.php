@@ -19,9 +19,11 @@ defined( 'ABSPATH' ) || exit;
 final class WorkflowSanitizer {
 	private const ACTION_TYPES = [ 'send_email', 'webhook', 'set_status', 'add_note' ];
 
+	private const CONDITION_OPERATORS = [ 'equals', 'not_equals', 'contains', 'not_empty', 'is_empty' ];
+
 	/**
 	 * @param array<string, mixed> $config
-	 * @return array{trigger: array{type: string, form_id: int}, actions: list<array{id: string, type: string, config: array<string, mixed>}>}
+	 * @return array{trigger: array{type: string, form_id: int}, condition: array<string, string>, actions: list<array{id: string, type: string, config: array<string, mixed>}>}
 	 */
 	public static function sanitize( array $config ): array {
 		$trigger_in = is_array( $config['trigger'] ?? null ) ? $config['trigger'] : [];
@@ -29,6 +31,8 @@ final class WorkflowSanitizer {
 			'type'    => 'form_submitted',
 			'form_id' => max( 0, (int) ( $trigger_in['form_id'] ?? 0 ) ),
 		];
+
+		$condition = self::sanitize_condition( $config['condition'] ?? null );
 
 		$extension_types = Registry::workflow_action_type_ids();
 		$allowed_types   = array_merge( self::ACTION_TYPES, $extension_types );
@@ -53,8 +57,34 @@ final class WorkflowSanitizer {
 		}
 
 		return [
-			'trigger' => $trigger,
-			'actions' => $actions,
+			'trigger'   => $trigger,
+			'condition' => $condition,
+			'actions'   => $actions,
+		];
+	}
+
+	/**
+	 * A single gate on the action chain. Returns an empty array when there is
+	 * no field or no known operator, which the engine reads as "always run".
+	 *
+	 * @param mixed $raw
+	 * @return array<string, string>
+	 */
+	private static function sanitize_condition( $raw ): array {
+		if ( ! is_array( $raw ) ) {
+			return [];
+		}
+
+		$field    = sanitize_text_field( (string) ( $raw['field'] ?? '' ) );
+		$operator = (string) ( $raw['operator'] ?? '' );
+		if ( '' === $field || ! in_array( $operator, self::CONDITION_OPERATORS, true ) ) {
+			return [];
+		}
+
+		return [
+			'field'    => $field,
+			'operator' => $operator,
+			'value'    => sanitize_text_field( (string) ( $raw['value'] ?? '' ) ),
 		];
 	}
 
