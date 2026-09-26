@@ -9,7 +9,6 @@ import {
     Plug,
     Settings,
     Workflow,
-    Zap,
 } from "lucide-react";
 import { AppProviders } from "@/app/providers";
 import { Toaster } from "@/components/Toaster";
@@ -31,6 +30,7 @@ import { __ } from "@/lib/i18n";
 import { cn } from "@/lib/cn";
 import { currentRoute, type Route } from "@/lib/router";
 import { SHOW_UPCOMING } from "@/lib/flags";
+import logoUrl from "@/assets/logo.webp";
 import "./styles/index.css";
 
 interface NavItem {
@@ -148,9 +148,12 @@ function App() {
         <div className="ff:flex ff:min-h-screen ff:bg-slate-50">
             <aside className="ff:sticky ff:top-8 ff:flex ff:h-[calc(100vh-2rem)] ff:w-56 ff:shrink-0 ff:flex-col ff:border-r ff:border-slate-200 ff:bg-white">
                 <div className="ff:flex ff:items-center ff:gap-3 ff:px-4 ff:py-4">
-                    <div className="ff:flex ff:h-9 ff:w-9 ff:items-center ff:justify-center ff:rounded-xl ff:bg-gradient-to-br ff:from-brand-500 ff:to-brand-700 ff:text-white ff:shadow-sm">
-                        <Zap aria-hidden className="ff:h-4.5 ff:w-4.5" />
-                    </div>
+                    <img
+                        src={logoUrl}
+                        alt=""
+                        aria-hidden
+                        className="ff:h-9 ff:w-9 ff:shrink-0 ff:rounded-xl ff:object-contain"
+                    />
                     <div className="ff:flex ff:flex-col">
                         <span className="ff:text-sm ff:font-semibold ff:leading-tight ff:text-slate-900">
                             FormFlow
