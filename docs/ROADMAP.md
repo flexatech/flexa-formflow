@@ -93,7 +93,19 @@ The identity feature. FORM → EMAIL becomes visual.
 - AI form generation and writing assistant (needs `Support\Encryption`
   port): built. Onboarding wizard: built (multi-step first-run tour over
   the existing onboarding state/endpoint). CRM/marketing integrations move
-  to Pro: still pending.
+  to Pro: built. Free keeps the `crm` catalog card as a "soon" placeholder
+  and owns the extension seams (`flexa_formflow.integrations.catalog`,
+  `.connect_fields`, `flexa_formflow.workflows.action_types` / `.run_action`)
+  plus connection storage (`Integrations\Connections`, secrets never leave
+  the server). The real connector ships in the sibling plugin
+  `flexa-formflow-pro` (own repo, absent from the Free zip, `Requires
+  Plugins: flexa-formflow`): a `crm_push` workflow node with a connect-once
+  drawer, provider select (webhook does a live `wp_remote_post`; hosted
+  providers log a demo), field mapping, conditions, and a license gate.
+  Static checks green (php -l, `pnpm type-check`, `pnpm build`) and a PHP
+  harness covers the descriptor/sanitize/runtime branches. Still pending:
+  live wp-admin click-through with Pro active, and confirming the
+  production license API host + product slug before the Pro release.
 
 ## When can it go on WP.org?
 

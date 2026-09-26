@@ -94,6 +94,7 @@ final class WooEmailsEndpoint extends Endpoint {
 				'emails'            => $items,
 				'templates'         => $templates,
 				'tokens'            => OrderTokens::catalog(),
+				'orders'            => $this->recent_orders(),
 				'conditionSubjects' => Conditions::subjects(),
 				'conditionOps'      => Conditions::operators(),
 				'hasWooCommerce'    => class_exists( \WooCommerce::class ),
@@ -131,8 +132,13 @@ final class WooEmailsEndpoint extends Endpoint {
 			return new WP_Error( 'flexa_formflow_not_found', __( 'Unknown email.', 'flexa-formflow' ), [ 'status' => 404 ] );
 		}
 
-		$order = $this->recent_order();
-		$ctx   = new RenderContext(
+		// order_id 0 (or an unknown id) renders sample data; a positive id
+		// renders that specific order so previews can be checked against real data.
+		$params   = (array) $request->get_json_params();
+		$order_id = isset( $params['order_id'] ) ? absint( $params['order_id'] ) : 0;
+		$order    = $order_id > 0 ? $this->load_order( $order_id ) : null;
+
+		$ctx = new RenderContext(
 			type: $id,
 			is_preview: true,
 			order: $order,
@@ -150,21 +156,52 @@ final class WooEmailsEndpoint extends Endpoint {
 		);
 	}
 
-	private function recent_order(): ?\WC_Order {
-		if ( ! function_exists( 'wc_get_orders' ) ) {
+	private function load_order( int $order_id ): ?\WC_Order {
+		if ( ! function_exists( 'wc_get_order' ) ) {
 			return null;
+		}
+
+		$order = wc_get_order( $order_id );
+
+		return $order instanceof \WC_Order ? $order : null;
+	}
+
+	/**
+	 * Recent orders offered in the preview data-source picker. The client always
+	 * prepends a "Sample order" option, so an empty list still previews fine.
+	 *
+	 * @return list<array{id: int, label: string}>
+	 */
+	private function recent_orders(): array {
+		if ( ! function_exists( 'wc_get_orders' ) ) {
+			return [];
 		}
 
 		$orders = wc_get_orders(
 			[
-				'limit'   => 1,
+				'limit'   => 20,
 				'orderby' => 'date',
 				'order'   => 'DESC',
 			]
 		);
+		if ( ! is_array( $orders ) ) {
+			return [];
+		}
 
-		$order = is_array( $orders ) ? ( $orders[0] ?? null ) : null;
+		$out = [];
+		foreach ( $orders as $order ) {
+			// wc_get_orders (no 'return' => 'ids') yields WC_Order objects.
+			$name  = trim( $order->get_formatted_billing_full_name() );
+			$out[] = [
+				'id'    => $order->get_id(),
+				'label' => '' !== $name
+					/* translators: 1: order number, 2: customer name. */
+					? sprintf( __( '#%1$s · %2$s', 'flexa-formflow' ), $order->get_order_number(), $name )
+					/* translators: %s: order number. */
+					: sprintf( __( 'Order #%s', 'flexa-formflow' ), $order->get_order_number() ),
+			];
+		}
 
-		return $order instanceof \WC_Order ? $order : null;
+		return $out;
 	}
 }

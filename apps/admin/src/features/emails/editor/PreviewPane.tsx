@@ -4,6 +4,7 @@ import { cn } from "@/lib/cn";
 import { __ } from "@/lib/i18n";
 import type { FormSummary } from "@/features/forms/types";
 import { useEmailPreview } from "../useEmailTemplates";
+import { PREVIEW_RESET_CSS } from "../previewFrame";
 import {
     BLOCK_DRAG_TYPE,
     BLOCK_MOVE_TYPE,
@@ -32,6 +33,7 @@ interface DropLine {
 }
 
 const EDITOR_STYLE =
+    PREVIEW_RESET_CSS +
     "[data-ff-el]{cursor:pointer}" +
     "[data-ff-el]:hover>tr>td{box-shadow:inset 0 0 0 1px #bcd9f5}" +
     "tbody.ff-selected>tr>td{box-shadow:inset 0 0 0 2px #007bea!important}";

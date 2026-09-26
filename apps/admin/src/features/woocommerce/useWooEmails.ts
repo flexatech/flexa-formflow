@@ -22,10 +22,16 @@ export interface TokenHint {
     label: string;
 }
 
+export interface WooOrderOption {
+    id: number;
+    label: string;
+}
+
 export interface WooEmailsResponse {
     emails: WooEmailRow[];
     templates: WooTemplateOption[];
     tokens: TokenHint[];
+    orders: WooOrderOption[];
     conditionSubjects: Array<{ value: string; label: string; type: string }>;
     conditionOps: Array<{ value: string; label: string }>;
     hasWooCommerce: boolean;
@@ -58,9 +64,20 @@ export function useSaveWooEmail(id: string) {
     });
 }
 
-export function useWooEmailPreview() {
-    return useMutation({
-        mutationFn: async (id: string) =>
-            (await api.post<{ html: string; orderId: number }>(`/woo-emails/${id}/preview`)).html,
+/**
+ * The rendered preview for one Woo email against a chosen data source. An
+ * `orderId` of 0 renders sample data; a positive id renders that order. Kept as
+ * a query so switching the order in the picker refetches and caches per pair.
+ */
+export function useWooEmailPreview(id: string | null, orderId: number) {
+    return useQuery({
+        queryKey: ["woo-email-preview", id, orderId],
+        enabled: id !== null,
+        queryFn: async () =>
+            (
+                await api.post<{ html: string; orderId: number }>(`/woo-emails/${id}/preview`, {
+                    order_id: orderId,
+                })
+            ).html,
     });
 }

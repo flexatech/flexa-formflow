@@ -1,5 +1,5 @@
-import { Eye, ShoppingCart } from "lucide-react";
-import { useState } from "react";
+import { Eye, Monitor, ShoppingCart, Smartphone } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -12,6 +12,7 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/custom/EmptyState";
+import { withPreviewReset } from "@/features/emails/previewFrame";
 import { __ } from "@/lib/i18n";
 import { useUiStore } from "@/lib/store";
 import {
@@ -20,6 +21,7 @@ import {
     useWooEmails,
     type TokenHint,
     type WooEmailRow,
+    type WooOrderOption,
     type WooTemplateOption,
 } from "./useWooEmails";
 
@@ -30,7 +32,7 @@ import {
  */
 export function WooEmailsTab() {
     const { data, isLoading } = useWooEmails();
-    const [preview, setPreview] = useState<{ title: string; html: string } | null>(null);
+    const [preview, setPreview] = useState<{ id: string; title: string } | null>(null);
 
     if (isLoading || !data) {
         return <div className="ff:h-64 ff:animate-pulse ff:rounded-xl ff:border ff:border-slate-200 ff:bg-white" />;
@@ -57,27 +59,107 @@ export function WooEmailsTab() {
                         key={email.id}
                         email={email}
                         templates={data.templates}
-                        onPreview={(title, html) => setPreview({ title, html })}
+                        onPreview={(id, title) => setPreview({ id, title })}
                     />
                 ))}
             </div>
 
-            <Dialog open={preview !== null} onOpenChange={(open) => !open && setPreview(null)}>
-                <DialogContent className="ff:max-w-2xl">
-                    <DialogHeader>
-                        <DialogTitle>{preview?.title ?? __("Preview")}</DialogTitle>
-                        <DialogDescription>
-                            {__("Rendered with your most recent order, or sample data if there are no orders yet.")}
-                        </DialogDescription>
-                    </DialogHeader>
-                    <iframe
-                        title={__("Email preview")}
-                        srcDoc={preview?.html ?? ""}
-                        className="ff:h-[60vh] ff:w-full ff:rounded-md ff:border ff:border-slate-200 ff:bg-white"
-                    />
-                </DialogContent>
-            </Dialog>
+            <WooPreviewDialog email={preview} orders={data.orders} onClose={() => setPreview(null)} />
         </>
+    );
+}
+
+/**
+ * Preview one Woo email against a chosen data source. "Sample order" (id 0)
+ * renders consistent sample data; picking a real order renders that order so
+ * merge tags can be checked against live values. The picker mirrors the Free
+ * editor's "Preview with data from" selector.
+ */
+function WooPreviewDialog({
+    email,
+    orders,
+    onClose,
+}: {
+    email: { id: string; title: string } | null;
+    orders: WooOrderOption[];
+    onClose: () => void;
+}) {
+    const [orderId, setOrderId] = useState(0);
+    const [viewport, setViewport] = useState<"desktop" | "mobile">("desktop");
+    const preview = useWooEmailPreview(email?.id ?? null, orderId);
+
+    // Reset the data source and viewport whenever a different email opens.
+    useEffect(() => {
+        setOrderId(0);
+        setViewport("desktop");
+    }, [email?.id]);
+
+    const orderOptions = [
+        { value: "0", label: __("Sample order") },
+        ...orders.map((o) => ({ value: String(o.id), label: o.label })),
+    ];
+
+    return (
+        <Dialog open={email !== null} onOpenChange={(open) => !open && onClose()}>
+            <DialogContent className="ff:max-w-2xl">
+                <DialogHeader>
+                    <DialogTitle>{email?.title ?? __("Preview")}</DialogTitle>
+                    <DialogDescription>
+                        {__("Choose the order this email renders with, or use sample data.")}
+                    </DialogDescription>
+                </DialogHeader>
+                <div className="ff:flex ff:flex-wrap ff:items-center ff:gap-2">
+                    <span className="ff:text-xs ff:font-medium ff:text-slate-600">{__("Preview with")}</span>
+                    <Select
+                        aria-label={__("Preview data source")}
+                        value={String(orderId)}
+                        options={orderOptions}
+                        onChange={(e) => setOrderId(Number(e.target.value))}
+                        className="ff:min-w-52"
+                    />
+                    {preview.isFetching && (
+                        <span className="ff:text-xs ff:text-slate-400">{__("Rendering…")}</span>
+                    )}
+                    {/* Toggle the recipient's view (desktop vs. mobile inbox), mirroring
+                        the Free editor's viewport switch. */}
+                    <div className="ff:ml-auto ff:flex ff:items-center ff:gap-1 ff:rounded-md ff:border ff:border-slate-200 ff:p-0.5">
+                        <Button
+                            variant={viewport === "desktop" ? "default" : "ghost"}
+                            size="icon"
+                            onClick={() => setViewport("desktop")}
+                            aria-label={__("Desktop preview")}
+                        >
+                            <Monitor aria-hidden className="ff:h-4 ff:w-4" />
+                        </Button>
+                        <Button
+                            variant={viewport === "mobile" ? "default" : "ghost"}
+                            size="icon"
+                            onClick={() => setViewport("mobile")}
+                            aria-label={__("Mobile preview")}
+                        >
+                            <Smartphone aria-hidden className="ff:h-4 ff:w-4" />
+                        </Button>
+                    </div>
+                </div>
+                {preview.isError ? (
+                    <div className="ff:flex ff:h-[60vh] ff:items-center ff:justify-center ff:rounded-md ff:border ff:border-slate-200 ff:bg-white ff:px-6 ff:text-center ff:text-sm ff:text-slate-500">
+                        {__("Could not render the preview.")}
+                    </div>
+                ) : (
+                    <div className="ff:flex ff:h-[60vh] ff:justify-center ff:overflow-auto ff:rounded-md ff:bg-slate-100 ff:p-4">
+                        <iframe
+                            title={__("Email preview")}
+                            srcDoc={preview.data ? withPreviewReset(preview.data) : ""}
+                            className={
+                                viewport === "desktop"
+                                    ? "ff:h-full ff:w-full ff:rounded-md ff:border ff:border-slate-200 ff:bg-white"
+                                    : "ff:h-full ff:w-[390px] ff:shrink-0 ff:rounded-md ff:border ff:border-slate-200 ff:bg-white"
+                            }
+                        />
+                    </div>
+                )}
+            </DialogContent>
+        </Dialog>
     );
 }
 
@@ -112,24 +194,15 @@ function EmailCard({
 }: {
     email: WooEmailRow;
     templates: WooTemplateOption[];
-    onPreview: (title: string, html: string) => void;
+    onPreview: (id: string, title: string) => void;
 }) {
     const save = useSaveWooEmail(email.id);
-    const preview = useWooEmailPreview();
     const showToast = useUiStore((s) => s.showToast);
 
     const templateOptions = [
         { value: "0", label: __("Default design") },
         ...templates.map((t) => ({ value: String(t.id), label: t.title })),
     ];
-
-    const onPreviewClick = () => {
-        preview.mutate(email.id, {
-            onSuccess: (html) => onPreview(email.title, html),
-            onError: (error) =>
-                showToast(error instanceof Error ? error.message : __("Could not render the preview."), "error"),
-        });
-    };
 
     const patch = (fields: Parameters<typeof save.mutate>[0]) => {
         save.mutate(fields, {
@@ -185,9 +258,9 @@ function EmailCard({
                                 onChange={(e) => patch({ template_id: parseInt(e.target.value, 10) })}
                             />
                         </div>
-                        <Button variant="outline" onClick={onPreviewClick} disabled={preview.isPending}>
+                        <Button variant="outline" onClick={() => onPreview(email.id, email.title)}>
                             <Eye aria-hidden className="ff:h-4 ff:w-4" />
-                            {preview.isPending ? __("Rendering…") : __("Preview")}
+                            {__("Preview")}
                         </Button>
                     </div>
                 </div>
