@@ -12,7 +12,7 @@ defined( 'ABSPATH' ) || exit;
  * need a manual re-activation.
  */
 final class Schema {
-	public const DB_VERSION  = 4;
+	public const DB_VERSION  = 5;
 	public const VERSION_KEY = 'flexa_formflow_db_version';
 
 	public static function forms_table(): string {
@@ -40,6 +40,11 @@ final class Schema {
 		return $wpdb->prefix . 'flexa_formflow_library';
 	}
 
+	public static function workflow_runs_table(): string {
+		global $wpdb;
+		return $wpdb->prefix . 'flexa_formflow_workflow_runs';
+	}
+
 	public static function maybe_upgrade(): void {
 		if ( (int) get_option( self::VERSION_KEY, 0 ) < self::DB_VERSION || ! self::tables_present() ) {
 			self::migrate();
@@ -54,7 +59,7 @@ final class Schema {
 	private static function tables_present(): bool {
 		global $wpdb;
 
-		$table = self::library_table();
+		$table = self::workflow_runs_table();
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- schema probe on our own table name; value is escaped with esc_like + prepare.
 		$found = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table ) ) );
 
@@ -72,6 +77,7 @@ final class Schema {
 		$email_templates = self::email_templates_table();
 		$workflows       = self::workflows_table();
 		$library         = self::library_table();
+		$workflow_runs   = self::workflow_runs_table();
 
 		dbDelta(
 			"CREATE TABLE {$forms} (
@@ -148,6 +154,24 @@ final class Schema {
 			) {$charset_collate};"
 		);
 
+		// Workflow run history: one row per fired workflow, holding the same
+		// per-step log the engine returns to the test runner. Powers the Logs
+		// tab; the engine prunes to the newest rows per workflow so it never
+		// grows without bound.
+		dbDelta(
+			"CREATE TABLE {$workflow_runs} (
+				id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+				workflow_id BIGINT UNSIGNED NOT NULL,
+				entry_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+				form_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+				status VARCHAR(20) NOT NULL DEFAULT 'ok',
+				log LONGTEXT NOT NULL,
+				created_at DATETIME NOT NULL,
+				PRIMARY KEY  (id),
+				KEY workflow_created (workflow_id, created_at)
+			) {$charset_collate};"
+		);
+
 		update_option( self::VERSION_KEY, self::DB_VERSION );
 	}
 
@@ -155,6 +179,7 @@ final class Schema {
 		global $wpdb;
 
 		// phpcs:disable WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- destructive teardown of our own tables; names are not user input.
+		$wpdb->query( 'DROP TABLE IF EXISTS ' . self::workflow_runs_table() );
 		$wpdb->query( 'DROP TABLE IF EXISTS ' . self::library_table() );
 		$wpdb->query( 'DROP TABLE IF EXISTS ' . self::workflows_table() );
 		$wpdb->query( 'DROP TABLE IF EXISTS ' . self::email_templates_table() );

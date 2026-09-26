@@ -68,17 +68,25 @@ Each slice ends in a state that passes `pnpm type-check` and `pnpm build`, and
       workflow" round-trip.
 - [x] Kept Save, Run test, the enable switch and Save as recipe in the top bar.
 
-#### Slice A3 - Test Run trail (Logs tab deferred) · PARTIAL
+#### Slice A3 - Test Run trail + Logs tab · DONE
 
 - [x] Test Run lights the canvas up node by node: `mapRun` realigns the flat
       run log onto the condition + action nodes, and each node shows its result
       (ok / skipped / error) inline via `NodeStatus`. The separate result box
       is replaced by an on-canvas trail plus a slim completion line.
-- [ ] Logs tab: deferred. There is no queryable run store yet
-      (`flexa_formflow.workflow.ran` fires but is not persisted at the workflow
-      level). A run-log table + migration + endpoint is its own backend slice;
-      per the containment rule the tab stays unbuilt rather than shipping a
-      half-built surface. Revisit as a dedicated slice if it earns priority.
+- [x] Run-log persistence: a `flexa_formflow_workflow_runs` table (Schema
+      DB_VERSION 5) stores one row per fired run (workflow, entry, form, overall
+      status, and the same per-step log the test runner returns).
+      `WorkflowRun` + `WorkflowRunRepository` own the shape; the repo prunes to
+      the newest 100 rows per workflow after each insert so the table stays
+      bounded. `Engine::run` records through a single `finish()` exit point with
+      a `$record` flag (false for test runs, so the tab shows only live runs);
+      deleting a workflow drops its run history. `Schema::drop()` (the reset /
+      uninstall path) tears the table down too.
+- [x] Logs tab: `GET /workflows/{id}/runs` (paginated) backs a Build / Logs tab
+      in the builder. Each run row shows its outcome, locale-formatted time and
+      step count, and expands to the per-step log reusing the canvas status
+      dots. Empty state explains that only live runs are recorded.
 
 ### Pillar B: Form builder (design section H)
 
@@ -102,7 +110,7 @@ Each slice ends in a state that passes `pnpm type-check` and `pnpm build`, and
       the rule server-side (whitelisted operators); `FormField` carries the
       shape on the TS side. php -l + phpstan L6 clean.
 
-#### Slice B3 - Field logic at render + Patterns insert category · PARTIAL
+#### Slice B3 - Field logic at render + Patterns insert + Save as pattern · DONE
 
 - [x] Server render (`templates/form.php`) emits each field's rule as a
       `data-ff-logic` JSON attribute; `assets/frontend/form.js` evaluates
@@ -112,10 +120,14 @@ Each slice ends in a state that passes `pnpm type-check` and `pnpm build`, and
       Library form patterns list in the palette; inserting drops the fields in
       one action with regenerated ids and remapped intra-pattern logic. Pack
       patterns appear here once imported.
-- [ ] Canvas multi-select "Save as pattern": deferred. Saving a whole form as a
-      template already ships from the builder header; a canvas multi-select
-      interaction (shift-select + floating action) is a larger UX change left
-      as a follow-up.
+- [x] Canvas multi-select "Save as pattern": each canvas card carries a
+      hover-revealed checkbox; checking one or more fields raises a floating bar
+      (`SelectionBar`) with a count, Clear, and Save as pattern. Saving posts the
+      checked fields, in canvas order, to My Library as a form pattern through
+      the existing `/library/mine` create primitive, so a group of fields can be
+      reused without saving the whole form. The multi-selection is independent
+      of the single inspector selection and is cleaned up when a field is
+      removed.
 
 ## Acceptance for the epic
 

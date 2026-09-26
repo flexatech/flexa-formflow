@@ -8,6 +8,7 @@ import {
     Clock,
     Filter,
     GitBranch,
+    History,
     Mail,
     Play,
     Plus,
@@ -37,6 +38,7 @@ import {
     useSaveWorkflow,
     useTestWorkflow,
     useWorkflow,
+    useWorkflowRuns,
     useWorkflows,
     type ActionResult,
     type ConditionOperator,
@@ -44,6 +46,7 @@ import {
     type TemplateOption,
     type WorkflowAction,
     type WorkflowCondition,
+    type WorkflowRun,
 } from "../useWorkflows";
 
 interface Draft {
@@ -191,6 +194,7 @@ export function WorkflowBuilderPage({ id }: { id: number }) {
     const [draft, setDraft] = useState<Draft | null>(null);
     const [testLog, setTestLog] = useState<ActionResult[] | null>(null);
     const [testNote, setTestNote] = useState<string>("");
+    const [tab, setTab] = useState<"build" | "logs">("build");
 
     useEffect(() => {
         if (workflow && draft === null) {
@@ -341,6 +345,18 @@ export function WorkflowBuilderPage({ id }: { id: number }) {
                 </div>
             </header>
 
+            <nav className="ff:flex ff:gap-1 ff:border-b ff:border-slate-200 ff:bg-white ff:px-5">
+                <TabButton active={tab === "build"} onClick={() => setTab("build")}>
+                    {__("Build")}
+                </TabButton>
+                <TabButton active={tab === "logs"} onClick={() => setTab("logs")}>
+                    {__("Logs")}
+                </TabButton>
+            </nav>
+
+            {tab === "logs" ? (
+                <LogsPanel workflowId={id} active={tab === "logs"} />
+            ) : (
             <div className="ff:mx-auto ff:flex ff:w-full ff:max-w-xl ff:flex-col ff:items-stretch ff:gap-0 ff:px-4 ff:py-8">
                 <TriggerNode
                     forms={forms}
@@ -400,8 +416,134 @@ export function WorkflowBuilderPage({ id }: { id: number }) {
                     </p>
                 )}
             </div>
+            )}
         </div>
     );
+}
+
+function TabButton({
+    active,
+    onClick,
+    children,
+}: {
+    active: boolean;
+    onClick: () => void;
+    children: React.ReactNode;
+}) {
+    return (
+        <button
+            type="button"
+            onClick={onClick}
+            className={
+                active
+                    ? "ff:-mb-px ff:cursor-pointer ff:border-b-2 ff:border-brand-600 ff:bg-transparent ff:px-3 ff:py-2.5 ff:text-sm ff:font-medium ff:text-brand-700"
+                    : "ff:-mb-px ff:cursor-pointer ff:border-b-2 ff:border-transparent ff:bg-transparent ff:px-3 ff:py-2.5 ff:text-sm ff:font-medium ff:text-slate-500 ff:transition-colors ff:hover:text-slate-800"
+            }
+        >
+            {children}
+        </button>
+    );
+}
+
+/** Live run history (the Logs tab). Newest first; each run expands to its steps. */
+function LogsPanel({ workflowId, active }: { workflowId: number; active: boolean }) {
+    const { data, isLoading } = useWorkflowRuns(workflowId, active);
+    const runs = data?.items ?? [];
+
+    if (isLoading) {
+        return (
+            <div className="ff:mx-auto ff:w-full ff:max-w-2xl ff:px-4 ff:py-8">
+                <div className="ff:h-40 ff:w-full ff:animate-pulse ff:rounded-xl ff:border ff:border-slate-200 ff:bg-white" />
+            </div>
+        );
+    }
+
+    if (runs.length === 0) {
+        return (
+            <div className="ff:mx-auto ff:w-full ff:max-w-2xl ff:px-4 ff:py-16 ff:text-center">
+                <span className="ff:mx-auto ff:mb-3 ff:flex ff:h-11 ff:w-11 ff:items-center ff:justify-center ff:rounded-full ff:bg-slate-100 ff:text-slate-400">
+                    <History aria-hidden className="ff:h-5 ff:w-5" />
+                </span>
+                <p className="ff:text-sm ff:font-medium ff:text-slate-700">{__("No runs yet")}</p>
+                <p className="ff:mx-auto ff:mt-1 ff:max-w-sm ff:text-sm ff:text-slate-500">
+                    {__("Each time the live form fires this workflow, the run is logged here. Test runs are not recorded.")}
+                </p>
+            </div>
+        );
+    }
+
+    return (
+        <div className="ff:mx-auto ff:flex ff:w-full ff:max-w-2xl ff:flex-col ff:gap-2 ff:px-4 ff:py-8">
+            <p className="ff:mb-1 ff:text-xs ff:text-slate-400">
+                {sprintf(__("Showing the %d most recent runs."), runs.length)}
+            </p>
+            {runs.map((run) => (
+                <RunRow key={run.id} run={run} />
+            ))}
+        </div>
+    );
+}
+
+const RUN_STATUS: Record<WorkflowRun["status"], { label: () => string; dot: string; text: string }> = {
+    ok: { label: () => __("Ran"), dot: "ff:bg-emerald-500", text: "ff:text-emerald-700" },
+    skipped: { label: () => __("Skipped"), dot: "ff:bg-slate-400", text: "ff:text-slate-600" },
+    error: { label: () => __("Error"), dot: "ff:bg-red-500", text: "ff:text-red-700" },
+};
+
+function RunRow({ run }: { run: WorkflowRun }) {
+    const [open, setOpen] = useState(false);
+    const meta = RUN_STATUS[run.status] ?? RUN_STATUS.ok;
+    const steps = run.log.filter((s) => s.type !== "condition");
+
+    return (
+        <section className="ff:rounded-xl ff:border ff:border-slate-200 ff:bg-white ff:shadow-sm">
+            <button
+                type="button"
+                onClick={() => setOpen((v) => !v)}
+                className="ff:flex ff:w-full ff:cursor-pointer ff:items-center ff:gap-3 ff:bg-transparent ff:px-4 ff:py-3 ff:text-left"
+            >
+                <span className={`ff:h-2 ff:w-2 ff:shrink-0 ff:rounded-full ${meta.dot}`} aria-hidden />
+                <span className={`ff:text-sm ff:font-medium ${meta.text}`}>{meta.label()}</span>
+                <span className="ff:min-w-0 ff:flex-1 ff:truncate ff:text-sm ff:text-slate-500">
+                    {formatRunTime(run.created_at)}
+                </span>
+                <span className="ff:text-xs ff:text-slate-400 ff:tabular-nums">
+                    {sprintf(__("%d steps"), steps.length)}
+                </span>
+            </button>
+            {open && (
+                <div className="ff:flex ff:flex-col ff:gap-2 ff:border-t ff:border-slate-100 ff:px-4 ff:py-3">
+                    {run.log.length === 0 ? (
+                        <p className="ff:text-xs ff:text-slate-400">{__("No steps ran.")}</p>
+                    ) : (
+                        run.log.map((step, i) => (
+                            <div key={i} className="ff:flex ff:items-start ff:gap-2">
+                                <span className="ff:mt-1">
+                                    <StatusDot status={step.status} />
+                                </span>
+                                <div className="ff:min-w-0 ff:flex-1">
+                                    <span className="ff:text-xs ff:font-medium ff:text-slate-600">
+                                        {metaFor(step.type).label}
+                                    </span>
+                                    <p className="ff:text-xs ff:text-slate-500">{step.detail}</p>
+                                </div>
+                            </div>
+                        ))
+                    )}
+                </div>
+            )}
+        </section>
+    );
+}
+
+/** Format a UTC "YYYY-MM-DD HH:MM:SS" run timestamp in the browser's locale. */
+function formatRunTime(mysqlUtc: string): string {
+    const iso = mysqlUtc.replace(" ", "T") + "Z";
+    const date = new Date(iso);
+    if (Number.isNaN(date.getTime())) {
+        return mysqlUtc;
+    }
+    return date.toLocaleString();
 }
 
 function Connector() {

@@ -10,6 +10,7 @@ use Flexa\FormFlow\Domain\Entries\EntryRepository;
 use Flexa\FormFlow\Domain\Forms\Form;
 use Flexa\FormFlow\Domain\Workflows\Workflow;
 use Flexa\FormFlow\Domain\Workflows\WorkflowRepository;
+use Flexa\FormFlow\Domain\Workflows\WorkflowRunRepository;
 use Flexa\FormFlow\Emails\Notifications;
 use Flexa\FormFlow\Emails\Render\DefaultTemplates;
 use Flexa\FormFlow\Emails\Render\RenderContext;
@@ -49,11 +50,12 @@ final class Engine {
 
 	/**
 	 * Run every action in order and return a per-action log. Also used by the
-	 * test-run endpoint, so it never assumes an admin request.
+	 * test-run endpoint, so it never assumes an admin request. `$record` is false
+	 * for test runs so the Logs tab only shows runs the live form actually fired.
 	 *
 	 * @return list<array{type: string, status: string, detail: string}>
 	 */
-	public function run( Workflow $workflow, Form $form, Entry $entry ): array {
+	public function run( Workflow $workflow, Form $form, Entry $entry, bool $record = true ): array {
 		$ctx = new RenderContext( form: $form, entry: $entry, type: 'admin' );
 		$log = [];
 
@@ -69,9 +71,7 @@ final class Engine {
 			);
 
 			if ( ! $met ) {
-				do_action( 'flexa_formflow.workflow.ran', $workflow->id, $entry->id, $log );
-
-				return $log;
+				return $this->finish( $workflow, $form, $entry, $log, $record );
 			}
 		}
 
@@ -79,9 +79,50 @@ final class Engine {
 			$log[] = $this->run_action( $action['type'], $action['config'], $form, $entry, $ctx );
 		}
 
+		return $this->finish( $workflow, $form, $entry, $log, $record );
+	}
+
+	/**
+	 * Single exit point: persist the run (live runs only) and fire the extension
+	 * hook, then return the log. Both the condition-skip path and the full-chain
+	 * path funnel through here so recording never drifts between them.
+	 *
+	 * @param list<array{type: string, status: string, detail: string}> $log
+	 * @return list<array{type: string, status: string, detail: string}>
+	 */
+	private function finish( Workflow $workflow, Form $form, Entry $entry, array $log, bool $record ): array {
+		if ( $record ) {
+			WorkflowRunRepository::instance()->record(
+				$workflow->id,
+				$entry->id,
+				$form->id,
+				$this->overall_status( $log ),
+				$log
+			);
+		}
+
 		do_action( 'flexa_formflow.workflow.ran', $workflow->id, $entry->id, $log );
 
 		return $log;
+	}
+
+	/**
+	 * Collapse the per-step statuses into one run outcome: any error wins; a
+	 * short log led by a skipped condition is a skip; otherwise the run is ok.
+	 *
+	 * @param list<array{type: string, status: string, detail: string}> $log
+	 */
+	private function overall_status( array $log ): string {
+		foreach ( $log as $step ) {
+			if ( 'error' === $step['status'] ) {
+				return 'error';
+			}
+		}
+		if ( isset( $log[0] ) && 'condition' === $log[0]['type'] && 'skipped' === $log[0]['status'] ) {
+			return 'skipped';
+		}
+
+		return 'ok';
 	}
 
 	/**

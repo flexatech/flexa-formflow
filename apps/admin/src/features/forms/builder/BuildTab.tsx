@@ -12,6 +12,8 @@ import {
 import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import {
+    Bookmark,
+    Check,
     GripVertical,
     MapPin,
     MousePointerClick,
@@ -24,14 +26,25 @@ import {
     type LucideIcon,
 } from "lucide-react";
 import { useState } from "react";
-import { __ } from "@/lib/i18n";
+import { __, sprintf } from "@/lib/i18n";
 import { cn } from "@/lib/cn";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
 import { LockedExplainer } from "@/components/custom/LockedExplainer";
 import { PRO_UPGRADE_URL } from "@/lib/links";
 import { getPluginGlobal } from "@/lib/wp";
 import { useUiStore } from "@/lib/store";
-import { useMyLibrary } from "@/features/library/useLibrary";
+import { useMyLibrary, useSaveToLibrary } from "@/features/library/useLibrary";
 import type { SavedAsset } from "@/features/library/types";
 import {
     FIELD_CATEGORIES,
@@ -81,6 +94,9 @@ export function BuildTab({ config, onChange }: BuildTabProps) {
     const selectedFieldId = useUiStore((s) => s.selectedFieldId);
     const setSelectedField = useUiStore((s) => s.setSelectedField);
     const [paletteDrag, setPaletteDrag] = useState<FieldType | null>(null);
+    // Multi-select for "Save as pattern"; independent of the single inspector
+    // selection (selectedFieldId). Holds the checked field ids.
+    const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set());
     const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
 
     const fields = config.fields;
@@ -112,6 +128,22 @@ export function BuildTab({ config, onChange }: BuildTabProps) {
         }));
         setFields([...fields, ...remapped]);
     };
+
+    const toggleChecked = (id: string) =>
+        setCheckedIds((prev) => {
+            const next = new Set(prev);
+            if (next.has(id)) {
+                next.delete(id);
+            } else {
+                next.add(id);
+            }
+            return next;
+        });
+
+    const clearChecked = () => setCheckedIds(new Set());
+
+    // Selected fields in canvas order, so a saved pattern preserves layout.
+    const checkedFields = fields.filter((f) => checkedIds.has(f.id));
 
     const onDragStart = (event: DragStartEvent) => {
         const data = event.active.data.current;
@@ -188,10 +220,18 @@ export function BuildTab({ config, onChange }: BuildTabProps) {
                 <Canvas
                     fields={fields}
                     selectedId={selectedFieldId}
+                    checkedIds={checkedIds}
                     onSelect={setSelectedField}
+                    onToggleChecked={toggleChecked}
                     onRemove={(id) => {
                         setFields(fields.filter((f) => f.id !== id));
                         if (selectedFieldId === id) setSelectedField(null);
+                        setCheckedIds((prev) => {
+                            if (!prev.has(id)) return prev;
+                            const next = new Set(prev);
+                            next.delete(id);
+                            return next;
+                        });
                     }}
                 />
 
@@ -208,10 +248,112 @@ export function BuildTab({ config, onChange }: BuildTabProps) {
                 </aside>
             </div>
 
+            <SelectionBar fields={checkedFields} onClear={clearChecked} />
+
             <DragOverlay>
                 {paletteDrag ? <PaletteGhost type={paletteDrag} /> : null}
             </DragOverlay>
         </DndContext>
+    );
+}
+
+/**
+ * Floating bar shown while one or more canvas fields are checked. Saves the
+ * checked fields (in canvas order) as a form pattern in My Library, so a group
+ * of fields can be reused without saving the whole form.
+ */
+function SelectionBar({ fields, onClear }: { fields: FormField[]; onClear: () => void }) {
+    const [open, setOpen] = useState(false);
+    const [name, setName] = useState("");
+    const save = useSaveToLibrary();
+    const showToast = useUiStore((s) => s.showToast);
+    const count = fields.length;
+
+    if (count === 0) {
+        return null;
+    }
+
+    const start = () => {
+        setName("");
+        setOpen(true);
+    };
+
+    const onSave = () => {
+        const trimmed = name.trim();
+        if (trimmed === "") {
+            return;
+        }
+        save.mutate(
+            { type: "pattern", kind: "form", name: trimmed, payload: { fields } },
+            {
+                onSuccess: () => {
+                    showToast(__("Saved to your library"));
+                    setOpen(false);
+                    onClear();
+                },
+                onError: () => showToast(__("Could not save to the library."), "error"),
+            },
+        );
+    };
+
+    return (
+        <>
+            <div className="ff:fixed ff:bottom-6 ff:left-1/2 ff:z-[120] ff:flex ff:-translate-x-1/2 ff:items-center ff:gap-3 ff:rounded-full ff:border ff:border-slate-200 ff:bg-white ff:py-2 ff:pe-2 ff:ps-4 ff:shadow-lg">
+                <span className="ff:text-sm ff:font-medium ff:text-slate-700">
+                    {sprintf(__("%d selected"), count)}
+                </span>
+                <button
+                    type="button"
+                    onClick={onClear}
+                    className="ff:cursor-pointer ff:rounded ff:bg-transparent ff:px-2 ff:py-1 ff:text-sm ff:text-slate-500 ff:transition-colors ff:hover:text-slate-800"
+                >
+                    {__("Clear")}
+                </button>
+                <Button size="sm" onClick={start}>
+                    <Bookmark aria-hidden className="ff:h-4 ff:w-4" />
+                    {__("Save as pattern")}
+                </Button>
+            </div>
+
+            <Dialog open={open} onOpenChange={(next) => !next && setOpen(false)}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>{__("Save selection as a pattern")}</DialogTitle>
+                        <DialogDescription>
+                            {sprintf(
+                                __("These %d fields become a reusable pattern you can drop into any form later."),
+                                count,
+                            )}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="ff:py-2">
+                        <Label htmlFor="ff-save-pattern-name" className="ff:mb-1.5 ff:block">
+                            {__("Name")}
+                        </Label>
+                        <Input
+                            id="ff-save-pattern-name"
+                            value={name}
+                            onChange={(e) => setName(e.target.value)}
+                            placeholder={__("Name this pattern")}
+                            autoFocus
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                    onSave();
+                                }
+                            }}
+                        />
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setOpen(false)}>
+                            {__("Cancel")}
+                        </Button>
+                        <Button onClick={onSave} disabled={save.isPending || name.trim() === ""}>
+                            {save.isPending ? __("Saving…") : __("Save pattern")}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        </>
     );
 }
 
@@ -324,12 +466,16 @@ function PaletteGhost({ type }: { type: FieldType }) {
 function Canvas({
     fields,
     selectedId,
+    checkedIds,
     onSelect,
+    onToggleChecked,
     onRemove,
 }: {
     fields: FormField[];
     selectedId: string | null;
+    checkedIds: Set<string>;
     onSelect: (id: string | null) => void;
+    onToggleChecked: (id: string) => void;
     onRemove: (id: string) => void;
 }) {
     const { setNodeRef, isOver } = useDroppable({ id: "canvas" });
@@ -357,7 +503,9 @@ function Canvas({
                                 key={field.id}
                                 field={field}
                                 selected={field.id === selectedId}
+                                checked={checkedIds.has(field.id)}
                                 onSelect={() => onSelect(field.id)}
+                                onToggleChecked={() => onToggleChecked(field.id)}
                                 onRemove={() => onRemove(field.id)}
                             />
                         ))}
@@ -371,12 +519,16 @@ function Canvas({
 function FieldCard({
     field,
     selected,
+    checked,
     onSelect,
+    onToggleChecked,
     onRemove,
 }: {
     field: FormField;
     selected: boolean;
+    checked: boolean;
     onSelect: () => void;
+    onToggleChecked: () => void;
     onRemove: () => void;
 }) {
     const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } =
@@ -392,7 +544,9 @@ function FieldCard({
                 "ff:group ff:flex ff:items-center ff:gap-2 ff:rounded-lg ff:border ff:bg-white ff:px-3 ff:py-2.5 ff:transition-colors",
                 selected
                     ? "ff:border-brand-500 ff:bg-brand-50/40 ff:ring-1 ff:ring-brand-500"
-                    : "ff:border-slate-200 ff:hover:border-slate-300",
+                    : checked
+                      ? "ff:border-brand-300 ff:bg-brand-50/30"
+                      : "ff:border-slate-200 ff:hover:border-slate-300",
                 isDragging && "ff:opacity-40",
             )}
             onClick={(e) => {
@@ -400,6 +554,23 @@ function FieldCard({
                 onSelect();
             }}
         >
+            <button
+                type="button"
+                aria-label={checked ? __("Deselect field") : __("Select field")}
+                aria-pressed={checked}
+                onClick={(e) => {
+                    e.stopPropagation();
+                    onToggleChecked();
+                }}
+                className={cn(
+                    "ff:flex ff:h-4 ff:w-4 ff:shrink-0 ff:cursor-pointer ff:items-center ff:justify-center ff:rounded ff:border ff:transition-all",
+                    checked
+                        ? "ff:border-brand-500 ff:bg-brand-500 ff:text-white ff:opacity-100"
+                        : "ff:border-slate-300 ff:bg-white ff:text-transparent ff:opacity-0 ff:group-hover:opacity-100",
+                )}
+            >
+                <Check aria-hidden className="ff:h-3 ff:w-3" />
+            </button>
             <button
                 ref={setActivatorNodeRef}
                 type="button"

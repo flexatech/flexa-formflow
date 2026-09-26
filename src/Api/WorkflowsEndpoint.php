@@ -9,6 +9,7 @@ use Flexa\FormFlow\Domain\EmailTemplates\EmailTemplateRepository;
 use Flexa\FormFlow\Domain\Entries\EntryRepository;
 use Flexa\FormFlow\Domain\Forms\FormRepository;
 use Flexa\FormFlow\Domain\Workflows\WorkflowRepository;
+use Flexa\FormFlow\Domain\Workflows\WorkflowRunRepository;
 use Flexa\FormFlow\Workflows\Engine;
 use WP_Error;
 use WP_REST_Request;
@@ -59,6 +60,19 @@ final class WorkflowsEndpoint extends Endpoint {
 				[
 					'methods'             => 'DELETE',
 					'callback'            => [ $this, 'destroy' ],
+					'permission_callback' => [ $this, 'manage_permission' ],
+					'args'                => [ 'id' => [ 'sanitize_callback' => 'absint' ] ],
+				],
+			]
+		);
+
+		register_rest_route(
+			self::NAMESPACE,
+			'/workflows/(?P<id>\d+)/runs',
+			[
+				[
+					'methods'             => 'GET',
+					'callback'            => [ $this, 'runs' ],
 					'permission_callback' => [ $this, 'manage_permission' ],
 					'args'                => [ 'id' => [ 'sanitize_callback' => 'absint' ] ],
 				],
@@ -177,6 +191,7 @@ final class WorkflowsEndpoint extends Endpoint {
 		}
 
 		$repo->delete( $id );
+		WorkflowRunRepository::instance()->delete_for_workflow( $id );
 
 		return new WP_REST_Response( [ 'deleted' => true ], 200 );
 	}
@@ -208,12 +223,34 @@ final class WorkflowsEndpoint extends Endpoint {
 			return $this->not_found();
 		}
 
-		$log = Engine::instance()->run( $workflow, $form, $entry );
+		// Test runs never persist: the Logs tab shows only runs the live form fired.
+		$log = Engine::instance()->run( $workflow, $form, $entry, false );
 
 		return new WP_REST_Response(
 			[
 				'ran' => true,
 				'log' => $log,
+			],
+			200
+		);
+	}
+
+	public function runs( WP_REST_Request $request ): WP_REST_Response|WP_Error {
+		$id = (int) $request->get_param( 'id' );
+		if ( null === WorkflowRepository::instance()->find( $id ) ) {
+			return $this->not_found();
+		}
+
+		$page   = max( 1, (int) $request->get_param( 'page' ) );
+		$result = WorkflowRunRepository::instance()->for_workflow( $id, [ 'page' => $page ] );
+
+		return new WP_REST_Response(
+			[
+				'items' => array_map(
+					static fn( $run ) => $run->to_array(),
+					$result['items']
+				),
+				'total' => $result['total'],
 			],
 			200
 		);

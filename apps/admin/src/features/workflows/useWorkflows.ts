@@ -68,6 +68,22 @@ export interface TestResult {
     note?: string;
 }
 
+/** One recorded live run, as returned by GET /workflows/{id}/runs. */
+export interface WorkflowRun {
+    id: number;
+    workflow_id: number;
+    entry_id: number;
+    form_id: number;
+    status: "ok" | "error" | "skipped";
+    log: ActionResult[];
+    created_at: string;
+}
+
+export interface WorkflowRunsPage {
+    items: WorkflowRun[];
+    total: number;
+}
+
 export interface WorkflowConfig {
     trigger: WorkflowTrigger;
     condition?: WorkflowCondition | Record<string, never>;
@@ -132,5 +148,14 @@ export function useDeleteWorkflow() {
 export function useTestWorkflow(id: number) {
     return useMutation({
         mutationFn: async () => api.post<TestResult>(`/workflows/${id}/test`),
+    });
+}
+
+/** Live run history for the Logs tab. Enabled only while the tab is open. */
+export function useWorkflowRuns(id: number, enabled: boolean) {
+    return useQuery({
+        queryKey: ["workflow", id, "runs"],
+        queryFn: async () => api.get<WorkflowRunsPage>(`/workflows/${id}/runs`),
+        enabled: id > 0 && enabled,
     });
 }
