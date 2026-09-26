@@ -1,13 +1,15 @@
-import { Eye, Monitor, ShoppingCart, Smartphone } from "lucide-react";
+import { Eye, Monitor, Send, ShoppingCart, Smartphone } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import {
     Dialog,
     DialogContent,
     DialogDescription,
+    DialogFooter,
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
@@ -17,6 +19,7 @@ import { __ } from "@/lib/i18n";
 import { useUiStore } from "@/lib/store";
 import {
     useSaveWooEmail,
+    useSendWooTestEmail,
     useWooEmailPreview,
     useWooEmails,
     type TokenHint,
@@ -86,13 +89,32 @@ function WooPreviewDialog({
 }) {
     const [orderId, setOrderId] = useState(0);
     const [viewport, setViewport] = useState<"desktop" | "mobile">("desktop");
+    const [to, setTo] = useState("");
     const preview = useWooEmailPreview(email?.id ?? null, orderId);
+    const testSend = useSendWooTestEmail(email?.id ?? "");
+    const showToast = useUiStore((s) => s.showToast);
 
-    // Reset the data source and viewport whenever a different email opens.
+    // Reset the data source, viewport, and test address whenever a different
+    // email opens.
     useEffect(() => {
         setOrderId(0);
         setViewport("desktop");
+        setTo("");
     }, [email?.id]);
+
+    const onSendTest = () => {
+        testSend.mutate(
+            { to, orderId },
+            {
+                onSuccess: (sent) =>
+                    showToast(
+                        sent ? __("Test email sent.") : __("Could not send. Check your mail setup."),
+                        sent ? "success" : "error",
+                    ),
+                onError: () => showToast(__("Please enter a valid email address."), "error"),
+            },
+        );
+    };
 
     const orderOptions = [
         { value: "0", label: __("Sample order") },
@@ -158,6 +180,27 @@ function WooPreviewDialog({
                         />
                     </div>
                 )}
+                {/* Send this email once to a real inbox, using the same data
+                    source selected above, to check how it actually lands. */}
+                <DialogFooter className="ff:items-end">
+                    <div className="ff:mr-auto ff:flex ff:flex-1 ff:flex-col ff:gap-1.5 ff:text-left">
+                        <Label htmlFor="ff-woo-test-to" className="ff:block">
+                            {__("Send a test to")}
+                        </Label>
+                        <Input
+                            id="ff-woo-test-to"
+                            type="email"
+                            value={to}
+                            placeholder="you@example.com"
+                            onChange={(e) => setTo(e.target.value)}
+                            className="ff:max-w-72"
+                        />
+                    </div>
+                    <Button onClick={onSendTest} disabled={testSend.isPending || to === ""}>
+                        <Send aria-hidden className="ff:h-4 ff:w-4" />
+                        {testSend.isPending ? __("Sending…") : __("Send test")}
+                    </Button>
+                </DialogFooter>
             </DialogContent>
         </Dialog>
     );

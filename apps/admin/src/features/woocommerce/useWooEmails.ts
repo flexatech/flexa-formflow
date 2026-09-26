@@ -81,3 +81,19 @@ export function useWooEmailPreview(id: string | null, orderId: number) {
             ).html,
     });
 }
+
+/**
+ * Send one Woo email to a chosen address, rendered with the same data source as
+ * the preview (`orderId` 0 = sample data). Returns whether wp_mail accepted it.
+ */
+export function useSendWooTestEmail(id: string) {
+    return useMutation({
+        mutationFn: async ({ to, orderId }: { to: string; orderId: number }) =>
+            (
+                await api.post<{ sent: boolean }>(`/woo-emails/${id}/test`, {
+                    to,
+                    order_id: orderId,
+                })
+            ).sent,
+    });
+}

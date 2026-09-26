@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Flexa\FormFlow\Api;
 
 use Flexa\FormFlow\Domain\EmailTemplates\EmailTemplateRepository;
+use Flexa\FormFlow\Emails\Notifications;
 use Flexa\FormFlow\Emails\Render\RenderContext;
 use Flexa\FormFlow\Emails\Render\Renderer;
 use Flexa\FormFlow\WooCommerce\Catalog;
@@ -57,6 +58,19 @@ final class WooEmailsEndpoint extends Endpoint {
 				[
 					'methods'             => 'POST',
 					'callback'            => [ $this, 'preview' ],
+					'permission_callback' => [ $this, 'manage_permission' ],
+					'args'                => [ 'id' => [ 'sanitize_callback' => 'sanitize_key' ] ],
+				],
+			]
+		);
+
+		register_rest_route(
+			self::NAMESPACE,
+			'/woo-emails/(?P<id>[a-z0-9_]+)/test',
+			[
+				[
+					'methods'             => 'POST',
+					'callback'            => [ $this, 'test' ],
 					'permission_callback' => [ $this, 'manage_permission' ],
 					'args'                => [ 'id' => [ 'sanitize_callback' => 'sanitize_key' ] ],
 				],
@@ -154,6 +168,39 @@ final class WooEmailsEndpoint extends Endpoint {
 			],
 			200
 		);
+	}
+
+	/**
+	 * Send this Woo email once to a chosen address, rendered with the same data
+	 * source as the preview (order_id 0 = sample data). Lets an admin confirm the
+	 * template lands well in a real inbox before taking the email over.
+	 */
+	public function test( WP_REST_Request $request ): WP_REST_Response|WP_Error {
+		$id = (string) $request->get_param( 'id' );
+		if ( ! Catalog::exists( $id ) ) {
+			return new WP_Error( 'flexa_formflow_not_found', __( 'Unknown email.', 'flexa-formflow' ), [ 'status' => 404 ] );
+		}
+
+		$params = (array) $request->get_json_params();
+		$to     = sanitize_email( (string) ( $params['to'] ?? '' ) );
+		if ( ! is_email( $to ) ) {
+			return new WP_Error( 'flexa_formflow_invalid_email', __( 'Please enter a valid email address.', 'flexa-formflow' ), [ 'status' => 400 ] );
+		}
+
+		$order_id = isset( $params['order_id'] ) ? absint( $params['order_id'] ) : 0;
+		$order    = $order_id > 0 ? $this->load_order( $order_id ) : null;
+
+		$ctx  = new RenderContext( type: $id, is_preview: true, order: $order );
+		$tree = WooTemplates::tree_for( $id );
+		$html = Renderer::instance()->render_tree( $tree, $ctx );
+
+		$title = (string) ( Catalog::emails()[ $id ]['title'] ?? $id );
+		/* translators: %s: email name. */
+		$subject = sprintf( __( '[Test] %s', 'flexa-formflow' ), $title );
+
+		$sent = Notifications::instance()->send( $to, $subject, $html, $id );
+
+		return new WP_REST_Response( [ 'sent' => $sent ], 200 );
 	}
 
 	private function load_order( int $order_id ): ?\WC_Order {
