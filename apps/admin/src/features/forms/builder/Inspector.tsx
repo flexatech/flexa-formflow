@@ -4,9 +4,6 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import { LockedExplainer } from "@/components/custom/LockedExplainer";
-import { PRO_UPGRADE_URL } from "@/lib/links";
 import { cn } from "@/lib/cn";
 import { __ } from "@/lib/i18n";
 import {
@@ -250,7 +247,6 @@ function LogicTab({
                 >
                     {__("Add a rule")}
                 </button>
-                <ProLogicHint />
             </div>
         );
     }
@@ -300,24 +296,7 @@ function LogicTab({
             >
                 {__("Remove rule")}
             </button>
-            <ProLogicHint />
         </div>
-    );
-}
-
-/** Lock type 1 teaser for Pro condition groups; keeps the upgrade legible in place. */
-function ProLogicHint() {
-    return (
-        <LockedExplainer
-            title={__("Combine several conditions with AND / OR groups.")}
-            unlocks={__("Included in FormFlow Pro.")}
-            upgradeUrl={PRO_UPGRADE_URL}
-        >
-            <span className="ff:flex ff:items-center ff:gap-2 ff:text-xs ff:font-medium ff:text-slate-500">
-                {__("Condition groups")}
-                <Badge variant="pro">{__("Pro")}</Badge>
-            </span>
-        </LockedExplainer>
     );
 }
 

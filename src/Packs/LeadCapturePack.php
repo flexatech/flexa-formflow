@@ -24,8 +24,6 @@ final class LeadCapturePack {
 			name: __( 'Lead Capture Pack', 'flexa-formflow' ),
 			description: __( 'Turn visitors into leads: a short lead form, an instant thank-you email, and a workflow that files each lead for follow-up.', 'flexa-formflow' ),
 			category: __( 'Marketing', 'flexa-formflow' ),
-			price: '$29',
-			requires_pro: false,
 			version: '1.0.0',
 			compatibility: 'FormFlow 1.x',
 			forms: [ self::lead_form() ],
@@ -49,9 +47,26 @@ final class LeadCapturePack {
 				'kind'    => 'form',
 				'payload' => [
 					'fields'   => [
-						[ 'id' => 'name', 'type' => 'text', 'label' => __( 'Your name', 'flexa-formflow' ), 'required' => true, 'width' => 'half' ],
-						[ 'id' => 'email', 'type' => 'email', 'label' => __( 'Work email', 'flexa-formflow' ), 'required' => true, 'width' => 'half' ],
-						[ 'id' => 'company', 'type' => 'text', 'label' => __( 'Company', 'flexa-formflow' ), 'width' => 'half' ],
+						[
+							'id'       => 'name',
+							'type'     => 'text',
+							'label'    => __( 'Your name', 'flexa-formflow' ),
+							'required' => true,
+							'width'    => 'half',
+						],
+						[
+							'id'       => 'email',
+							'type'     => 'email',
+							'label'    => __( 'Work email', 'flexa-formflow' ),
+							'required' => true,
+							'width'    => 'half',
+						],
+						[
+							'id'    => 'company',
+							'type'  => 'text',
+							'label' => __( 'Company', 'flexa-formflow' ),
+							'width' => 'half',
+						],
 						[
 							'id'       => 'interest',
 							'type'     => 'select',
@@ -65,8 +80,17 @@ final class LeadCapturePack {
 								__( 'Something else', 'flexa-formflow' ),
 							],
 						],
-						[ 'id' => 'message', 'type' => 'textarea', 'label' => __( 'How can we help?', 'flexa-formflow' ) ],
-						[ 'id' => 'consent', 'type' => 'checkbox', 'label' => __( 'Keep me posted with occasional updates', 'flexa-formflow' ), 'options' => [ __( 'Yes, that is fine', 'flexa-formflow' ) ] ],
+						[
+							'id'    => 'message',
+							'type'  => 'textarea',
+							'label' => __( 'How can we help?', 'flexa-formflow' ),
+						],
+						[
+							'id'      => 'consent',
+							'type'    => 'checkbox',
+							'label'   => __( 'Keep me posted with occasional updates', 'flexa-formflow' ),
+							'options' => [ __( 'Yes, that is fine', 'flexa-formflow' ) ],
+						],
 					],
 					'settings' => [
 						'submit_label'    => __( 'Send message', 'flexa-formflow' ),
@@ -87,12 +111,36 @@ final class LeadCapturePack {
 					'version'  => 1,
 					'settings' => [],
 					'elements' => [
-						[ 'id' => 'el_logo', 'type' => 'logo', 'props' => [] ],
-						[ 'id' => 'el_head', 'type' => 'heading', 'props' => [ 'text' => __( 'Thanks, we got your message', 'flexa-formflow' ) ] ],
-						[ 'id' => 'el_body', 'type' => 'text', 'props' => [ 'html' => __( 'A member of our team will read this and reply personally, usually within one business day. Here is a copy of what you sent us.', 'flexa-formflow' ) ] ],
-						[ 'id' => 'el_table', 'type' => 'fields_table', 'props' => [ 'title' => __( 'Your message', 'flexa-formflow' ) ] ],
-						[ 'id' => 'el_div', 'type' => 'divider', 'props' => [] ],
-						[ 'id' => 'el_foot', 'type' => 'footer_text', 'props' => [] ],
+						[
+							'id'    => 'el_logo',
+							'type'  => 'logo',
+							'props' => [],
+						],
+						[
+							'id'    => 'el_head',
+							'type'  => 'heading',
+							'props' => [ 'text' => __( 'Thanks, we got your message', 'flexa-formflow' ) ],
+						],
+						[
+							'id'    => 'el_body',
+							'type'  => 'text',
+							'props' => [ 'html' => __( 'A member of our team will read this and reply personally, usually within one business day. Here is a copy of what you sent us.', 'flexa-formflow' ) ],
+						],
+						[
+							'id'    => 'el_table',
+							'type'  => 'fields_table',
+							'props' => [ 'title' => __( 'Your message', 'flexa-formflow' ) ],
+						],
+						[
+							'id'    => 'el_div',
+							'type'  => 'divider',
+							'props' => [],
+						],
+						[
+							'id'    => 'el_foot',
+							'type'  => 'footer_text',
+							'props' => [],
+						],
 					],
 				],
 			]
@@ -106,7 +154,10 @@ final class LeadCapturePack {
 				'name'    => __( 'Lead intake', 'flexa-formflow' ),
 				'kind'    => 'workflow',
 				'payload' => [
-					'trigger' => [ 'type' => 'form_submitted', 'form_ref' => 'lead' ],
+					'trigger' => [
+						'type'     => 'form_submitted',
+						'form_ref' => 'lead',
+					],
 					'actions' => [
 						[
 							'type'   => 'send_email',
@@ -135,10 +186,32 @@ final class LeadCapturePack {
 				'kind'    => 'form',
 				'payload' => [
 					'fields' => [
-						[ 'id' => 'name', 'type' => 'text', 'label' => __( 'Your name', 'flexa-formflow' ), 'required' => true, 'width' => 'half' ],
-						[ 'id' => 'email', 'type' => 'email', 'label' => __( 'Email', 'flexa-formflow' ), 'required' => true, 'width' => 'half' ],
-						[ 'id' => 'phone', 'type' => 'text', 'label' => __( 'Phone', 'flexa-formflow' ), 'width' => 'half' ],
-						[ 'id' => 'company', 'type' => 'text', 'label' => __( 'Company', 'flexa-formflow' ), 'width' => 'half' ],
+						[
+							'id'       => 'name',
+							'type'     => 'text',
+							'label'    => __( 'Your name', 'flexa-formflow' ),
+							'required' => true,
+							'width'    => 'half',
+						],
+						[
+							'id'       => 'email',
+							'type'     => 'email',
+							'label'    => __( 'Email', 'flexa-formflow' ),
+							'required' => true,
+							'width'    => 'half',
+						],
+						[
+							'id'    => 'phone',
+							'type'  => 'text',
+							'label' => __( 'Phone', 'flexa-formflow' ),
+							'width' => 'half',
+						],
+						[
+							'id'    => 'company',
+							'type'  => 'text',
+							'label' => __( 'Company', 'flexa-formflow' ),
+							'width' => 'half',
+						],
 					],
 				],
 			]
@@ -153,7 +226,12 @@ final class LeadCapturePack {
 				'kind'    => 'form',
 				'payload' => [
 					'fields' => [
-						[ 'id' => 'consent', 'type' => 'checkbox', 'label' => __( 'Keep me posted with occasional updates', 'flexa-formflow' ), 'options' => [ __( 'Yes, that is fine', 'flexa-formflow' ) ] ],
+						[
+							'id'      => 'consent',
+							'type'    => 'checkbox',
+							'label'   => __( 'Keep me posted with occasional updates', 'flexa-formflow' ),
+							'options' => [ __( 'Yes, that is fine', 'flexa-formflow' ) ],
+						],
 					],
 				],
 			]

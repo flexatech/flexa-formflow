@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { LockedNote, SchemaFields } from "@/components/custom/SchemaFields";
+import { SchemaFields } from "@/components/custom/SchemaFields";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { __ } from "@/lib/i18n";
@@ -38,8 +38,6 @@ export function ConnectDrawer({
         setValues({ ...defaults, ...(connection.data?.values ?? {}) });
     }, [open, integration.fields, connection.data]);
 
-    const locked = integration.locked === true;
-
     const onSave = () => {
         save.mutate(values, {
             onSuccess: () => {
@@ -58,21 +56,18 @@ export function ConnectDrawer({
                     {integration.summary && <DialogDescription>{integration.summary}</DialogDescription>}
                 </DialogHeader>
 
-                {locked && <LockedNote note={integration.lockedNote} />}
-
                 <SchemaFields
                     fields={integration.fields}
                     values={values}
                     onChange={(patch) => setValues((prev) => ({ ...prev, ...patch }))}
                     context={{ savedSecrets: connection.data?.secrets }}
-                    disabled={locked}
                 />
 
                 <DialogFooter>
                     <Button variant="ghost" onClick={onClose}>
                         {__("Cancel")}
                     </Button>
-                    <Button onClick={onSave} disabled={locked || save.isPending}>
+                    <Button onClick={onSave} disabled={save.isPending}>
                         {save.isPending ? __("Saving…") : __("Save connection")}
                     </Button>
                 </DialogFooter>

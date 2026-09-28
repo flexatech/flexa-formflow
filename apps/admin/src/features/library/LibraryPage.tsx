@@ -4,7 +4,6 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { AssetCard } from "@/components/custom/AssetCard";
 import { PackCard } from "@/components/custom/PackCard";
-import { BundleCard } from "@/components/custom/BundleCard";
 import { EmptyState } from "@/components/custom/EmptyState";
 import { __ } from "@/lib/i18n";
 import { cn } from "@/lib/cn";
@@ -12,7 +11,7 @@ import { navigate } from "@/lib/router";
 import { useUiStore } from "@/lib/store";
 import { useCatalog, useDeleteLibraryAsset, useMyLibrary, useReuseAsset } from "./useLibrary";
 import { LibraryPreviewDialog } from "./LibraryPreviewDialog";
-import type { Bundle, LibraryAsset, LibraryTab, OwnershipFacet, Pack, SavedAsset, TypeFacet } from "./types";
+import type { LibraryAsset, LibraryTab, OwnershipFacet, Pack, SavedAsset, TypeFacet } from "./types";
 
 const TYPE_FACETS: { value: TypeFacet; label: () => string }[] = [
     { value: "all", label: () => __("All") },
@@ -20,14 +19,10 @@ const TYPE_FACETS: { value: TypeFacet; label: () => string }[] = [
     { value: "pattern", label: () => __("Patterns") },
     { value: "recipe", label: () => __("Workflows") },
     { value: "pack", label: () => __("Packs") },
-    { value: "bundle", label: () => __("Bundles") },
 ];
 
 const OWNERSHIP_FACETS: { value: OwnershipFacet; label: () => string }[] = [
     { value: "all", label: () => __("All") },
-    { value: "free", label: () => __("Free") },
-    { value: "pro", label: () => __("Pro") },
-    { value: "purchased", label: () => __("Purchased") },
     { value: "installed", label: () => __("Installed") },
 ];
 
@@ -37,12 +32,6 @@ function matchesOwnership(asset: LibraryAsset, facet: OwnershipFacet): boolean {
             return true;
         case "installed":
             return Boolean(asset.installed);
-        case "purchased":
-            return Boolean(asset.purchased);
-        case "free":
-            return asset.ownership === "free";
-        case "pro":
-            return asset.ownership === "pro" || Boolean(asset.requiresPro);
         default:
             return true;
     }
@@ -117,7 +106,7 @@ export function LibraryPage() {
             <div className="ff:flex ff:flex-col ff:gap-1">
                 <h1 className="ff:text-2xl ff:font-semibold ff:text-slate-900">{__("Library")}</h1>
                 <p className="ff:m-0 ff:text-sm ff:text-slate-500">
-                    {__("Ready-made forms, emails, workflows and industry packs. Pro gives you power; packs give you solutions.")}
+                    {__("Ready-made forms, emails, workflows and industry packs.")}
                 </p>
             </div>
 
@@ -179,7 +168,7 @@ export function LibraryPage() {
                 <EmptyState
                     icon={Search}
                     title={__("Nothing matches those filters.")}
-                    description={__("Try a different type, ownership or search term.")}
+                    description={__("Try a different type, filter or search term.")}
                 />
             ) : (
                 <div className="ff:grid ff:grid-cols-1 ff:gap-4 ff:md:grid-cols-2 ff:xl:grid-cols-3">
@@ -189,12 +178,6 @@ export function LibraryPage() {
                                 key={asset.id}
                                 pack={asset as Pack}
                                 onSelect={(p) => navigate(`/library/pack/${p.id}`)}
-                            />
-                        ) : asset.type === "bundle" ? (
-                            <BundleCard
-                                key={asset.id}
-                                bundle={asset as unknown as Bundle}
-                                onOpenPack={(packId) => navigate(`/library/pack/${packId}`)}
                             />
                         ) : (
                             <AssetCard

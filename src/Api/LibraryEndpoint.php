@@ -6,7 +6,6 @@ namespace Flexa\FormFlow\Api;
 
 use Flexa\FormFlow\Domain\Library\LibraryRepository;
 use Flexa\FormFlow\Library\Catalog;
-use Flexa\FormFlow\Packs\Entitlement;
 use Flexa\FormFlow\Packs\InstallState;
 use Flexa\FormFlow\Packs\Installer;
 use Flexa\FormFlow\Packs\Registry;
@@ -130,8 +129,6 @@ final class LibraryEndpoint extends Endpoint {
 		}
 
 		$detail                    = $manifest->to_detail_array();
-		$detail['canInstall']      = Entitlement::can_install( $manifest );
-		$detail['purchased']       = Entitlement::purchased( $manifest );
 		$detail['installed']       = InstallState::is_installed( $manifest->id );
 		$detail['updateAvailable'] = $detail['installed'] && InstallState::version_of( $manifest->id ) !== $manifest->version;
 
@@ -154,9 +151,6 @@ final class LibraryEndpoint extends Endpoint {
 		$manifest = Registry::find( (string) $request->get_param( 'id' ) );
 		if ( null === $manifest ) {
 			return new WP_Error( 'flexa_formflow_pack_not_found', __( 'Pack not found.', 'flexa-formflow' ), [ 'status' => 404 ] );
-		}
-		if ( ! Entitlement::can_install( $manifest ) ) {
-			return new WP_Error( 'flexa_formflow_pack_requires_pro', __( 'This pack needs FormFlow Pro.', 'flexa-formflow' ), [ 'status' => 403 ] );
 		}
 		if ( ! InstallState::is_installed( $manifest->id ) ) {
 			return new WP_Error( 'flexa_formflow_pack_not_installed', __( 'This pack is not installed.', 'flexa-formflow' ), [ 'status' => 409 ] );
@@ -182,9 +176,6 @@ final class LibraryEndpoint extends Endpoint {
 		$manifest = Registry::find( (string) $request->get_param( 'id' ) );
 		if ( null === $manifest ) {
 			return new WP_Error( 'flexa_formflow_pack_not_found', __( 'Pack not found.', 'flexa-formflow' ), [ 'status' => 404 ] );
-		}
-		if ( ! Entitlement::can_install( $manifest ) ) {
-			return new WP_Error( 'flexa_formflow_pack_requires_pro', __( 'This pack needs FormFlow Pro.', 'flexa-formflow' ), [ 'status' => 403 ] );
 		}
 		if ( InstallState::is_installed( $manifest->id ) ) {
 			return new WP_Error( 'flexa_formflow_pack_installed', __( 'This pack is already installed.', 'flexa-formflow' ), [ 'status' => 409 ] );

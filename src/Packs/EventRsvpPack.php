@@ -23,8 +23,6 @@ final class EventRsvpPack {
 			name: __( 'Event RSVP Pack', 'flexa-formflow' ),
 			description: __( 'Run an event without spreadsheets: an RSVP form, a confirmation email with the details, and a workflow that confirms each guest.', 'flexa-formflow' ),
 			category: __( 'Events', 'flexa-formflow' ),
-			price: '$29',
-			requires_pro: false,
 			version: '1.0.0',
 			compatibility: 'FormFlow 1.x',
 			forms: [ self::rsvp_form() ],
@@ -48,8 +46,20 @@ final class EventRsvpPack {
 				'kind'    => 'form',
 				'payload' => [
 					'fields'   => [
-						[ 'id' => 'name', 'type' => 'text', 'label' => __( 'Your name', 'flexa-formflow' ), 'required' => true, 'width' => 'half' ],
-						[ 'id' => 'email', 'type' => 'email', 'label' => __( 'Email', 'flexa-formflow' ), 'required' => true, 'width' => 'half' ],
+						[
+							'id'       => 'name',
+							'type'     => 'text',
+							'label'    => __( 'Your name', 'flexa-formflow' ),
+							'required' => true,
+							'width'    => 'half',
+						],
+						[
+							'id'       => 'email',
+							'type'     => 'email',
+							'label'    => __( 'Email', 'flexa-formflow' ),
+							'required' => true,
+							'width'    => 'half',
+						],
 						[
 							'id'       => 'attending',
 							'type'     => 'radio',
@@ -60,9 +70,23 @@ final class EventRsvpPack {
 								__( 'Sorry, I cannot make it', 'flexa-formflow' ),
 							],
 						],
-						[ 'id' => 'party_size', 'type' => 'number', 'label' => __( 'How many guests (including you)?', 'flexa-formflow' ), 'width' => 'half' ],
-						[ 'id' => 'dietary', 'type' => 'text', 'label' => __( 'Dietary requirements', 'flexa-formflow' ), 'width' => 'half' ],
-						[ 'id' => 'note', 'type' => 'textarea', 'label' => __( 'Anything we should know?', 'flexa-formflow' ) ],
+						[
+							'id'    => 'party_size',
+							'type'  => 'number',
+							'label' => __( 'How many guests (including you)?', 'flexa-formflow' ),
+							'width' => 'half',
+						],
+						[
+							'id'    => 'dietary',
+							'type'  => 'text',
+							'label' => __( 'Dietary requirements', 'flexa-formflow' ),
+							'width' => 'half',
+						],
+						[
+							'id'    => 'note',
+							'type'  => 'textarea',
+							'label' => __( 'Anything we should know?', 'flexa-formflow' ),
+						],
 					],
 					'settings' => [
 						'submit_label'    => __( 'Send RSVP', 'flexa-formflow' ),
@@ -83,12 +107,36 @@ final class EventRsvpPack {
 					'version'  => 1,
 					'settings' => [],
 					'elements' => [
-						[ 'id' => 'el_logo', 'type' => 'logo', 'props' => [] ],
-						[ 'id' => 'el_head', 'type' => 'heading', 'props' => [ 'text' => __( 'Your RSVP is confirmed', 'flexa-formflow' ) ] ],
-						[ 'id' => 'el_body', 'type' => 'text', 'props' => [ 'html' => __( 'Thanks for letting us know. We have you down as below. If anything changes, just reply to this email and we will update your RSVP.', 'flexa-formflow' ) ] ],
-						[ 'id' => 'el_table', 'type' => 'fields_table', 'props' => [ 'title' => __( 'Your RSVP', 'flexa-formflow' ) ] ],
-						[ 'id' => 'el_div', 'type' => 'divider', 'props' => [] ],
-						[ 'id' => 'el_foot', 'type' => 'footer_text', 'props' => [] ],
+						[
+							'id'    => 'el_logo',
+							'type'  => 'logo',
+							'props' => [],
+						],
+						[
+							'id'    => 'el_head',
+							'type'  => 'heading',
+							'props' => [ 'text' => __( 'Your RSVP is confirmed', 'flexa-formflow' ) ],
+						],
+						[
+							'id'    => 'el_body',
+							'type'  => 'text',
+							'props' => [ 'html' => __( 'Thanks for letting us know. We have you down as below. If anything changes, just reply to this email and we will update your RSVP.', 'flexa-formflow' ) ],
+						],
+						[
+							'id'    => 'el_table',
+							'type'  => 'fields_table',
+							'props' => [ 'title' => __( 'Your RSVP', 'flexa-formflow' ) ],
+						],
+						[
+							'id'    => 'el_div',
+							'type'  => 'divider',
+							'props' => [],
+						],
+						[
+							'id'    => 'el_foot',
+							'type'  => 'footer_text',
+							'props' => [],
+						],
 					],
 				],
 			]
@@ -102,7 +150,10 @@ final class EventRsvpPack {
 				'name'    => __( 'Confirm RSVP', 'flexa-formflow' ),
 				'kind'    => 'workflow',
 				'payload' => [
-					'trigger' => [ 'type' => 'form_submitted', 'form_ref' => 'rsvp' ],
+					'trigger' => [
+						'type'     => 'form_submitted',
+						'form_ref' => 'rsvp',
+					],
 					'actions' => [
 						[
 							'type'   => 'send_email',
@@ -131,10 +182,32 @@ final class EventRsvpPack {
 				'kind'    => 'form',
 				'payload' => [
 					'fields' => [
-						[ 'id' => 'name', 'type' => 'text', 'label' => __( 'Guest name', 'flexa-formflow' ), 'required' => true, 'width' => 'half' ],
-						[ 'id' => 'email', 'type' => 'email', 'label' => __( 'Email', 'flexa-formflow' ), 'required' => true, 'width' => 'half' ],
-						[ 'id' => 'party_size', 'type' => 'number', 'label' => __( 'Party size', 'flexa-formflow' ), 'width' => 'half' ],
-						[ 'id' => 'dietary', 'type' => 'text', 'label' => __( 'Dietary requirements', 'flexa-formflow' ), 'width' => 'half' ],
+						[
+							'id'       => 'name',
+							'type'     => 'text',
+							'label'    => __( 'Guest name', 'flexa-formflow' ),
+							'required' => true,
+							'width'    => 'half',
+						],
+						[
+							'id'       => 'email',
+							'type'     => 'email',
+							'label'    => __( 'Email', 'flexa-formflow' ),
+							'required' => true,
+							'width'    => 'half',
+						],
+						[
+							'id'    => 'party_size',
+							'type'  => 'number',
+							'label' => __( 'Party size', 'flexa-formflow' ),
+							'width' => 'half',
+						],
+						[
+							'id'    => 'dietary',
+							'type'  => 'text',
+							'label' => __( 'Dietary requirements', 'flexa-formflow' ),
+							'width' => 'half',
+						],
 					],
 				],
 			]

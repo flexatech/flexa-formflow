@@ -57,9 +57,6 @@ export function ImportPackDialog({
     };
 
     const c = pack.contents;
-    const proItems = [...pack.items.forms, ...pack.items.emails, ...pack.items.workflows, ...pack.items.patterns].filter(
-        (i) => i.requiresPro,
-    );
 
     return (
         <Dialog open={open} onOpenChange={(next) => !next && close()}>
@@ -82,19 +79,6 @@ export function ImportPackDialog({
                             <p className="ff:m-0 ff:rounded-lg ff:bg-slate-50 ff:px-3 ff:py-2 ff:text-xs ff:text-slate-500">
                                 {__("Workflows are added turned off. Review each one, then activate it when you are ready.")}
                             </p>
-                            {!pack.canInstall && (
-                                <p className="ff:m-0 ff:rounded-lg ff:bg-amber-50 ff:px-3 ff:py-2 ff:text-xs ff:text-amber-700">
-                                    {__("Some content needs FormFlow Pro and will be skipped on this site.")}
-                                </p>
-                            )}
-                            {pack.canInstall && proItems.length > 0 && (
-                                <p className="ff:m-0 ff:rounded-lg ff:bg-amber-50 ff:px-3 ff:py-2 ff:text-xs ff:text-amber-700">
-                                    {sprintf(
-                                        __("%d item(s) need Pro and will be skipped on this site."),
-                                        proItems.length,
-                                    )}
-                                </p>
-                            )}
                         </div>
                         <DialogFooter>
                             <Button variant="outline" onClick={close}>
@@ -124,23 +108,13 @@ export function ImportPackDialog({
                             </DialogDescription>
                         </DialogHeader>
                         {summary && (
-                            <div className="ff:flex ff:flex-col ff:gap-3 ff:py-2">
+                            <div className="ff:py-2">
                                 <ul className="ff:m-0 ff:flex ff:flex-col ff:gap-2 ff:p-0">
                                     <ReviewRow icon={FileText} n={summary.created.forms} label={__("forms added")} />
                                     <ReviewRow icon={Mail} n={summary.created.emails} label={__("email templates added")} />
                                     <ReviewRow icon={Workflow} n={summary.created.workflows} label={__("workflows added")} />
                                     <ReviewRow icon={Check} n={summary.created.patterns} label={__("saved patterns added")} />
                                 </ul>
-                                {summary.skipped.length > 0 && (
-                                    <div className="ff:rounded-lg ff:bg-amber-50 ff:px-3 ff:py-2 ff:text-xs ff:text-amber-700">
-                                        <p className="ff:m-0 ff:font-medium">{__("Skipped (needs Pro):")}</p>
-                                        <ul className="ff:m-0 ff:mt-1 ff:list-disc ff:pl-4">
-                                            {summary.skipped.map((s) => (
-                                                <li key={s.name}>{s.name}</li>
-                                            ))}
-                                        </ul>
-                                    </div>
-                                )}
                             </div>
                         )}
                         <DialogFooter>

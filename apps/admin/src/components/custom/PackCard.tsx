@@ -7,7 +7,7 @@ import { ownershipChip } from "./AssetCard";
 
 /**
  * Pack cards are visually senior to asset cards (PRODUCT_DESIGN.md section L):
- * a cover band, a contents summary, price/state chip, and the requirement line.
+ * a cover band, a contents summary, and the state chip.
  * Presentational; the parent supplies the click and the primary action.
  */
 export function PackCard({ pack, onSelect }: { pack: Pack; onSelect?: (pack: Pack) => void }) {
@@ -21,7 +21,7 @@ export function PackCard({ pack, onSelect }: { pack: Pack; onSelect?: (pack: Pac
 
     return (
         <div className="ff:flex ff:flex-col ff:overflow-hidden ff:rounded-xl ff:border ff:border-slate-200 ff:bg-white ff:transition-shadow ff:hover:shadow-md">
-            <div className="ff:flex ff:items-center ff:justify-between ff:gap-3 ff:bg-gradient-to-br ff:from-brand-500 ff:to-brand-700 ff:px-5 ff:py-4 ff:text-white">
+            <div className="ff:flex ff:items-center ff:gap-3 ff:bg-gradient-to-br ff:from-brand-500 ff:to-brand-700 ff:px-5 ff:py-4 ff:text-white">
                 <div className="ff:flex ff:items-center ff:gap-3">
                     <span className="ff:flex ff:h-10 ff:w-10 ff:items-center ff:justify-center ff:rounded-xl ff:bg-white/15">
                         <Package aria-hidden className="ff:h-5 ff:w-5" />
@@ -33,7 +33,6 @@ export function PackCard({ pack, onSelect }: { pack: Pack; onSelect?: (pack: Pac
                         <span className="ff:text-base ff:font-semibold ff:leading-tight">{pack.name}</span>
                     </div>
                 </div>
-                {pack.price && <span className="ff:text-lg ff:font-semibold">{pack.price}</span>}
             </div>
 
             <div className="ff:flex ff:flex-1 ff:flex-col ff:gap-4 ff:p-5">
@@ -53,16 +52,7 @@ export function PackCard({ pack, onSelect }: { pack: Pack; onSelect?: (pack: Pac
                 </div>
 
                 <div className="ff:mt-auto ff:flex ff:items-center ff:justify-between ff:gap-3">
-                    <div className="ff:flex ff:flex-col ff:gap-1">
-                        <Badge variant={chip.variant} className="ff:self-start">
-                            {chip.label}
-                        </Badge>
-                        {pack.requiresPro && (
-                            <span className="ff:text-[11px] ff:text-slate-400">
-                                {__("Requires: FormFlow Pro")}
-                            </span>
-                        )}
-                    </div>
+                    <Badge variant={chip.variant}>{chip.label}</Badge>
                     <Button variant="outline" size="sm" onClick={() => onSelect?.(pack)}>
                         {__("View pack")}
                     </Button>

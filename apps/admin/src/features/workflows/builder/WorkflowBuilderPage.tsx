@@ -3,11 +3,8 @@ import {
     ArrowLeft,
     ArrowUp,
     BookMarked,
-    CalendarClock,
     CheckCheck,
-    Clock,
     Filter,
-    GitBranch,
     History,
     Mail,
     Play,
@@ -20,7 +17,6 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
     Dialog,
     DialogContent,
@@ -32,13 +28,11 @@ import {
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { LockedExplainer } from "@/components/custom/LockedExplainer";
-import { LockedNote, SchemaFields } from "@/components/custom/SchemaFields";
+import { SchemaFields } from "@/components/custom/SchemaFields";
 import { Skeleton } from "@/components/ui/skeleton";
 import { __, sprintf } from "@/lib/i18n";
 import { extensionIcon, integrationConnections, workflowActionTypes } from "@/lib/extensions";
 import { navigate } from "@/lib/router";
-import { PRO_UPGRADE_URL } from "@/lib/links";
 import { SHOW_UPCOMING } from "@/lib/flags";
 import { useUiStore } from "@/lib/store";
 import { SaveToLibraryButton } from "@/features/library/SaveToLibrary";
@@ -76,33 +70,6 @@ const OPERATORS: { value: ConditionOperator; label: () => string; needsValue: bo
     { value: "is_empty", label: () => __("is empty"), needsValue: false },
 ];
 
-/**
- * Pro timing and branching nodes shown as explorable locked palette items
- * (lock type 1). Free has no engine backing for these, so the teaser opens the
- * explainer rather than inserting a node, matching the form builder's Pro
- * advanced fields.
- */
-const PRO_NODES: { key: string; label: string; summary: string; icon: LucideIcon }[] = [
-    {
-        key: "branch",
-        label: __("Branch (Yes / No)"),
-        summary: __("Split the workflow into separate paths for different answers."),
-        icon: GitBranch,
-    },
-    {
-        key: "delay",
-        label: __("Delay"),
-        summary: __("Wait hours or days before the next step runs."),
-        icon: Clock,
-    },
-    {
-        key: "schedule",
-        label: __("Schedule"),
-        summary: __("Run steps at a set date or time."),
-        icon: CalendarClock,
-    },
-];
-
 const ACTION_META: Record<string, { label: string; icon: LucideIcon; defaults: Record<string, unknown> }> = {
     send_email: {
         label: __("Send email"),
@@ -128,7 +95,7 @@ const ACTION_META: Record<string, { label: string; icon: LucideIcon; defaults: R
 
 const ACTION_ORDER = ["send_email", "webhook", "set_status", "add_note"];
 
-/** Extension-registered node type (the Pro plugin), or undefined for a built-in. */
+/** Extension-registered node type (an add-on), or undefined for a built-in. */
 function extActionByType(type: string): ExtensionWorkflowAction | undefined {
     return workflowActionTypes().find((a) => a.type === type);
 }
@@ -916,16 +883,12 @@ function ActionConfig({
     if (ext) {
         const triggerForm = forms.find((f) => f.id === triggerFormId);
         return (
-            <div className="ff:flex ff:flex-col">
-                {ext.locked && <LockedNote note={ext.lockedNote} />}
-                <SchemaFields
-                    fields={ext.fields}
-                    values={cfg}
-                    onChange={onChange}
-                    context={{ formFields: triggerForm?.fields, connections: integrationConnections() }}
-                    disabled={ext.locked}
-                />
-            </div>
+            <SchemaFields
+                fields={ext.fields}
+                values={cfg}
+                onChange={onChange}
+                context={{ formFields: triggerForm?.fields, connections: integrationConnections() }}
+            />
         );
     }
 
@@ -969,7 +932,7 @@ function ConditionNode({
                         <NodeStatus result={result} />
                     ) : (
                         <div className="ff:text-xs ff:text-slate-500">
-                            {__("One condition gates every step below. Pro adds branching.")}
+                            {__("One condition gates every step below.")}
                         </div>
                     )}
                 </div>
@@ -1057,50 +1020,14 @@ function Palette({
                             onClick={() => onAdd(type)}
                         />
                     ))}
-                    {extras.map((ext) => {
-                        // Lock type 1 (Pro capability): the node stays addable and explorable
-                        // (dropping it shows a read-only config with a LockedNote). The Pro chip
-                        // opens the compact explainer; no modal, no separate paywall.
-                        const locked = ext.locked === true;
-                        return (
-                            <div key={ext.type} className="ff:flex ff:items-center ff:gap-1">
-                                <PaletteButton
-                                    icon={extensionIcon(ext.icon)}
-                                    label={ext.label}
-                                    onClick={() => onAdd(ext.type)}
-                                />
-                                {locked && (
-                                    <LockedExplainer
-                                        title={ext.summary || __("A Pro workflow action.")}
-                                        unlocks={ext.lockedNote || __("Included in FormFlow Pro.")}
-                                        upgradeUrl={PRO_UPGRADE_URL}
-                                    >
-                                        <Badge variant="pro">{__("Pro")}</Badge>
-                                    </LockedExplainer>
-                                )}
-                            </div>
-                        );
-                    })}
-                </PaletteGroup>
-
-                <PaletteGroup label={__("Timing & branching")}>
-                    {PRO_NODES.map((node) => {
-                        const Icon = node.icon;
-                        return (
-                            <LockedExplainer
-                                key={node.key}
-                                title={node.summary}
-                                unlocks={__("Included in FormFlow Pro.")}
-                                upgradeUrl={PRO_UPGRADE_URL}
-                            >
-                                <span className="ff:flex ff:items-center ff:gap-1.5 ff:rounded-lg ff:border ff:border-dashed ff:border-slate-300 ff:bg-white ff:px-3 ff:py-1.5 ff:text-sm ff:text-slate-500">
-                                    <Icon aria-hidden className="ff:h-4 ff:w-4" />
-                                    {node.label}
-                                    <Badge variant="pro">{__("Pro")}</Badge>
-                                </span>
-                            </LockedExplainer>
-                        );
-                    })}
+                    {extras.map((ext) => (
+                        <PaletteButton
+                            key={ext.type}
+                            icon={extensionIcon(ext.icon)}
+                            label={ext.label}
+                            onClick={() => onAdd(ext.type)}
+                        />
+                    ))}
                 </PaletteGroup>
 
                 <PaletteGroup label={__("Recipes")}>

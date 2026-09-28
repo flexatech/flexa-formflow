@@ -9,7 +9,7 @@ defined( 'ABSPATH' ) || exit;
 /**
  * A pack: versioned metadata plus four groups of installable content. The same
  * shape backs both the catalog listing (counts only) and the pack detail /
- * import review (the named content list), so the store and the importer never
+ * import review (the named content list), so the catalog and the importer never
  * disagree about what a pack contains.
  */
 final class PackManifest {
@@ -25,8 +25,6 @@ final class PackManifest {
 		public readonly string $name,
 		public readonly string $description,
 		public readonly string $category,
-		public readonly string $price,
-		public readonly bool $requires_pro,
 		public readonly string $version,
 		public readonly string $compatibility,
 		public readonly array $forms,
@@ -49,7 +47,7 @@ final class PackManifest {
 	}
 
 	/**
-	 * The flat catalog entry. Ownership/install state are merged in by the
+	 * The flat catalog entry. Install state is merged in by the
 	 * Catalog; this is the pack's own description of itself.
 	 *
 	 * @return array<string, mixed>
@@ -62,9 +60,7 @@ final class PackManifest {
 			'description'   => $this->description,
 			'category'      => $this->category,
 			'kind'          => 'form',
-			'ownership'     => 'paid',
-			'price'         => $this->price,
-			'requiresPro'   => $this->requires_pro,
+			'ownership'     => 'free',
 			'version'       => $this->version,
 			'compatibility' => $this->compatibility,
 			'contents'      => $this->contents_count(),
@@ -72,8 +68,7 @@ final class PackManifest {
 	}
 
 	/**
-	 * The named content list for the pack detail / import review step. Each item
-	 * reports whether it needs Pro so the review can flag what will be skipped.
+	 * The named content list for the pack detail / import review step..
 	 *
 	 * @return array<string, mixed>
 	 */
@@ -93,13 +88,12 @@ final class PackManifest {
 	}
 
 	/**
-	 * @return array{ref: string, name: string, requiresPro: bool}
+	 * @return array{ref: string, name: string}
 	 */
 	private static function item_array( PackContent $content ): array {
 		return [
-			'ref'         => $content->ref,
-			'name'        => $content->name,
-			'requiresPro' => $content->requires_pro,
+			'ref'  => $content->ref,
+			'name' => $content->name,
 		];
 	}
 }

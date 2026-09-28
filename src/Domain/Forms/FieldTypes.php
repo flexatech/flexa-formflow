@@ -202,7 +202,7 @@ final class FieldTypes {
 	/**
 	 * The single Free show/hide rule on a field. Returns an empty array when
 	 * there is no target field or no known operator, which the front-end reads
-	 * as "always visible". Pro extends this into condition groups.
+	 * as "always visible". Add-ons can extend this into condition groups.
 	 *
 	 * @param mixed $raw
 	 * @return array<string, string>

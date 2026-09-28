@@ -17,7 +17,7 @@ export interface OnboardingState {
 
 /**
  * One field in an extension node's config form. The Free app owns the control
- * vocabulary; an extension (the Pro plugin) only names which control to render
+ * vocabulary; an extension (an add-on) only names which control to render
  * and its options. See src/Extensions/Registry.php for the PHP-side contract.
  */
 export interface ExtensionField {
@@ -56,9 +56,6 @@ export interface ExtensionWorkflowAction {
     icon: string;
     group: string;
     summary?: string;
-    /** True when the add-on is installed but not licensed: render read-only. */
-    locked?: boolean;
-    lockedNote?: string;
     fields: ExtensionField[];
 }
 
@@ -67,9 +64,6 @@ export interface ExtensionIntegration {
     id: string;
     label: string;
     summary?: string;
-    /** True when the add-on is installed but not licensed: render read-only. */
-    locked?: boolean;
-    lockedNote?: string;
     fields: ExtensionField[];
     /** Whether values are currently stored for this connection (status snapshot). */
     connected?: boolean;
@@ -95,7 +89,7 @@ export interface PluginGlobal {
     hasWooCommerce: boolean;
     /** First-run guide state, localized so the guide renders on first paint. */
     onboarding?: OnboardingState;
-    /** Declarative UI registered by add-ons (Pro). Empty when none is active. */
+    /** Declarative UI registered by add-ons. Empty when none is active. */
     extensions?: Extensions;
 }
 

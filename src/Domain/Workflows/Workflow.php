@@ -57,7 +57,7 @@ final class Workflow {
 	/**
 	 * The optional single gate on the action chain. An empty array means the
 	 * workflow always runs its actions (the pre-Phase-2 behavior). Free allows
-	 * exactly one condition; Pro extends the same node into branches.
+	 * exactly one condition; add-ons can extend the same node into branches.
 	 *
 	 * @return array{field: string, operator: string, value: string}|array{}
 	 */

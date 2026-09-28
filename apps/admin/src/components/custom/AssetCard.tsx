@@ -2,7 +2,6 @@ import { type ReactNode } from "react";
 import { FileText, LayoutGrid, Mail, ShoppingCart, Workflow, type LucideIcon } from "lucide-react";
 import { Badge, type BadgeProps } from "@/components/ui/badge";
 import { __ } from "@/lib/i18n";
-import { cn } from "@/lib/cn";
 import type { AssetKind, AssetType, LibraryAsset } from "@/features/library/types";
 
 const TYPE_LABEL: Record<AssetType, () => string> = {
@@ -10,7 +9,6 @@ const TYPE_LABEL: Record<AssetType, () => string> = {
     pattern: () => __("Pattern"),
     recipe: () => __("Recipe"),
     pack: () => __("Pack"),
-    bundle: () => __("Bundle"),
 };
 
 const KIND_ICON: Record<AssetKind, LucideIcon> = {
@@ -22,7 +20,7 @@ const KIND_ICON: Record<AssetKind, LucideIcon> = {
 
 /**
  * The single ownership chip (PRODUCT_DESIGN.md section N). Installed wins over
- * every other state; then purchased, then update, then the base ownership.
+ * every other state; then update, then Free.
  */
 export function ownershipChip(asset: LibraryAsset): { variant: BadgeProps["variant"]; label: string } {
     if (asset.installed) {
@@ -31,16 +29,7 @@ export function ownershipChip(asset: LibraryAsset): { variant: BadgeProps["varia
     if (asset.updateAvailable) {
         return { variant: "update", label: __("Update") };
     }
-    if (asset.purchased) {
-        return { variant: "purchased", label: __("Purchased") };
-    }
-    if (asset.ownership === "free") {
-        return { variant: "free", label: __("Free") };
-    }
-    if (asset.ownership === "pro") {
-        return { variant: "pro", label: __("Pro") };
-    }
-    return { variant: "price", label: asset.price ?? __("Paid") };
+    return { variant: "free", label: __("Free") };
 }
 
 interface AssetCardProps {
@@ -80,17 +69,7 @@ export function AssetCard({ asset, onSelect, action }: AssetCardProps) {
                     </p>
                 </div>
             </button>
-            <div className="ff:flex ff:items-center ff:justify-between ff:gap-2">
-                <span
-                    className={cn(
-                        "ff:text-[11px] ff:text-slate-400",
-                        asset.requiresPro ? "ff:visible" : "ff:invisible",
-                    )}
-                >
-                    {__("Requires: FormFlow Pro")}
-                </span>
-                {action}
-            </div>
+            {action && <div className="ff:flex ff:items-center ff:justify-end ff:gap-2">{action}</div>}
         </div>
     );
 }

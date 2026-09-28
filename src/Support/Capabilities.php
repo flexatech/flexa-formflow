@@ -7,7 +7,7 @@ namespace Flexa\FormFlow\Support;
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Capability helpers. Extensions (e.g. the Pro build) can hook the filters
+ * Capability helpers. Extensions (add-ons) can hook the filters
  * below to re-gate access per role.
  */
 final class Capabilities {

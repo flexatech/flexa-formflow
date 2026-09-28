@@ -9,7 +9,7 @@ use Flexa\FormFlow\Integrations\Connections;
 defined( 'ABSPATH' ) || exit;
 
 /**
- * The declarative extension registry. Add-ons (the Pro plugin) describe new UI
+ * The declarative extension registry. Add-ons describe new UI
  * as data through filter seams; this class collects those descriptors, coerces
  * them to a safe shape, and hands the result to the admin app via localization.
  *
@@ -193,12 +193,10 @@ final class Registry {
 		}
 
 		return [
-			'id'         => $id,
-			'label'      => sanitize_text_field( (string) ( $connection['label'] ?? '' ) ),
-			'summary'    => sanitize_text_field( (string) ( $connection['summary'] ?? '' ) ),
-			'locked'     => (bool) ( $connection['locked'] ?? false ),
-			'lockedNote' => sanitize_text_field( (string) ( $connection['lockedNote'] ?? '' ) ),
-			'fields'     => $fields,
+			'id'      => $id,
+			'label'   => sanitize_text_field( (string) ( $connection['label'] ?? '' ) ),
+			'summary' => sanitize_text_field( (string) ( $connection['summary'] ?? '' ) ),
+			'fields'  => $fields,
 		];
 	}
 
@@ -226,14 +224,12 @@ final class Registry {
 		}
 
 		return [
-			'type'       => $id,
-			'label'      => sanitize_text_field( (string) ( $type['label'] ?? $id ) ),
-			'icon'       => sanitize_key( (string) ( $type['icon'] ?? 'puzzle' ) ),
-			'group'      => sanitize_key( (string) ( $type['group'] ?? 'core' ) ),
-			'summary'    => sanitize_text_field( (string) ( $type['summary'] ?? '' ) ),
-			'locked'     => (bool) ( $type['locked'] ?? false ),
-			'lockedNote' => sanitize_text_field( (string) ( $type['lockedNote'] ?? '' ) ),
-			'fields'     => $fields,
+			'type'    => $id,
+			'label'   => sanitize_text_field( (string) ( $type['label'] ?? $id ) ),
+			'icon'    => sanitize_key( (string) ( $type['icon'] ?? 'puzzle' ) ),
+			'group'   => sanitize_key( (string) ( $type['group'] ?? 'core' ) ),
+			'summary' => sanitize_text_field( (string) ( $type['summary'] ?? '' ) ),
+			'fields'  => $fields,
 		];
 	}
 

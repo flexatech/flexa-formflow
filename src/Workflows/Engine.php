@@ -173,7 +173,7 @@ final class Engine {
 	}
 
 	/**
-	 * Runtime seam for extension-registered action types (the Pro plugin). An
+	 * Runtime seam for extension-registered action types (add-ons). An
 	 * add-on that adds a node via `flexa_formflow.workflows.action_types` handles
 	 * it here by returning a result array `{type, status, detail}`. Anything else
 	 * (no handler, malformed return) falls back to a skipped log line.

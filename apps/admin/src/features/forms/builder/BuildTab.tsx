@@ -15,20 +15,13 @@ import {
     Bookmark,
     Check,
     GripVertical,
-    MapPin,
     MousePointerClick,
-    Phone,
-    ShoppingCart,
     Sparkles,
-    Star,
     Trash2,
-    Upload,
-    type LucideIcon,
 } from "lucide-react";
 import { useState } from "react";
 import { __, sprintf } from "@/lib/i18n";
 import { cn } from "@/lib/cn";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -40,9 +33,6 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
-import { LockedExplainer } from "@/components/custom/LockedExplainer";
-import { PRO_UPGRADE_URL } from "@/lib/links";
-import { getPluginGlobal } from "@/lib/wp";
 import { useUiStore } from "@/lib/store";
 import { useMyLibrary, useSaveToLibrary } from "@/features/library/useLibrary";
 import type { SavedAsset } from "@/features/library/types";
@@ -58,28 +48,6 @@ import {
     type FormField,
 } from "../types";
 import { Inspector } from "./Inspector";
-
-/**
- * Pro advanced fields shown as explorable locked palette items (lock type 1).
- * Free has no engine backing for these, so the item opens the explainer rather
- * than inserting, matching the workflow builder's Pro timing nodes.
- */
-const PRO_FIELDS: { key: string; label: string; summary: string; icon: LucideIcon }[] = [
-    { key: "file", label: __("File upload"), summary: __("Let people attach files to a submission."), icon: Upload },
-    { key: "phone", label: __("Phone"), summary: __("A phone field with format validation."), icon: Phone },
-    { key: "rating", label: __("Rating"), summary: __("Collect a star rating."), icon: Star },
-    { key: "address", label: __("Address"), summary: __("A grouped multi-line address field."), icon: MapPin },
-];
-
-/** Woo-specific Pro fields; only shown when WooCommerce is active. */
-const WOO_FIELDS: { key: string; label: string; summary: string; icon: LucideIcon }[] = [
-    {
-        key: "product",
-        label: __("Product picker"),
-        summary: __("Let customers choose a product on the form."),
-        icon: ShoppingCart,
-    },
-];
 
 interface BuildTabProps {
     config: FormConfig;
@@ -194,25 +162,6 @@ export function BuildTab({ config, onChange }: BuildTabProps) {
                             </PaletteSection>
                         );
                     })}
-
-                    <PaletteSection label={__("Advanced")}>
-                        {PRO_FIELDS.map((field) => (
-                            <ProPaletteItem key={field.key} label={field.label} summary={field.summary} icon={field.icon} />
-                        ))}
-                    </PaletteSection>
-
-                    {getPluginGlobal().hasWooCommerce && (
-                        <PaletteSection label={__("WooCommerce")}>
-                            {WOO_FIELDS.map((field) => (
-                                <ProPaletteItem
-                                    key={field.key}
-                                    label={field.label}
-                                    summary={field.summary}
-                                    icon={field.icon}
-                                />
-                            ))}
-                        </PaletteSection>
-                    )}
 
                     <PatternsSection onInsert={insertPattern} />
                 </aside>
@@ -374,24 +323,6 @@ function PaletteSection({ label, children }: { label: string; children: React.Re
             </p>
             <div className="ff:flex ff:flex-col ff:gap-1">{children}</div>
         </div>
-    );
-}
-
-/** A locked advanced-field row: clicking opens the Pro explainer, never inserts. */
-function ProPaletteItem({ label, summary, icon: Icon }: { label: string; summary: string; icon: LucideIcon }) {
-    return (
-        <LockedExplainer
-            title={summary}
-            unlocks={__("Included in FormFlow Pro.")}
-            upgradeUrl={PRO_UPGRADE_URL}
-            className="ff:w-full"
-        >
-            <span className="ff:flex ff:w-full ff:items-center ff:gap-2.5 ff:rounded-lg ff:border ff:border-dashed ff:border-slate-200 ff:px-2.5 ff:py-2 ff:text-sm ff:font-medium ff:text-slate-500">
-                <Icon aria-hidden className="ff:h-4 ff:w-4 ff:text-slate-400" />
-                <span className="ff:flex-1 ff:text-left">{label}</span>
-                <Badge variant="pro">{__("Pro")}</Badge>
-            </span>
-        </LockedExplainer>
     );
 }
 

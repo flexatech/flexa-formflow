@@ -5,13 +5,13 @@
  * contents summary.
  */
 
-export type AssetType = "template" | "pattern" | "recipe" | "pack" | "bundle";
+export type AssetType = "template" | "pattern" | "recipe" | "pack";
 
 /** Which builder an asset targets. Drives the "For:" facet. */
 export type AssetKind = "form" | "email" | "workflow" | "woocommerce";
 
-/** How a user gets the asset. Free installs directly; paid needs a purchase. */
-export type Ownership = "free" | "pro" | "paid";
+/** How a user gets the asset. Everything in the catalog is free to install. */
+export type Ownership = "free";
 
 export interface LibraryAsset {
     id: string;
@@ -21,14 +21,8 @@ export interface LibraryAsset {
     category: string;
     kind: AssetKind;
     ownership: Ownership;
-    /** Display price for paid packs, e.g. "$29". Only set when ownership is "paid". */
-    price?: string;
-    /** True when the asset's automation needs Pro capabilities to run. */
-    requiresPro?: boolean;
     /** True once installed / saved into this site's My Library. */
     installed?: boolean;
-    /** True once the entitlement is owned but not yet installed. */
-    purchased?: boolean;
     /** True when an installed pack has a newer version available. */
     updateAvailable?: boolean;
 }
@@ -51,7 +45,6 @@ export interface Pack extends LibraryAsset {
 export interface PackItem {
     ref: string;
     name: string;
-    requiresPro: boolean;
 }
 
 /** One changelog entry, newest first, shown on the update screen. */
@@ -60,7 +53,7 @@ export interface PackChangelogEntry {
     notes: string[];
 }
 
-/** A Pack plus its named content lists and this site's install eligibility. */
+/** A Pack plus its named content lists and changelog. */
 export interface PackDetail extends Pack {
     items: {
         forms: PackItem[];
@@ -68,27 +61,7 @@ export interface PackDetail extends Pack {
         workflows: PackItem[];
         patterns: PackItem[];
     };
-    /** False when the pack needs Pro this site does not have. */
-    canInstall: boolean;
-    /** True once this site owns the pack (a Free pack is owned by everyone). */
-    purchased: boolean;
     changelog: PackChangelogEntry[];
-}
-
-/** A catalog bundle: member packs presented at a combined price. */
-export interface Bundle {
-    id: string;
-    type: "bundle";
-    name: string;
-    description: string;
-    category: string;
-    kind: AssetKind;
-    ownership: Ownership;
-    price?: string;
-    /** The un-bundled total, for the savings line. */
-    listPrice?: string;
-    memberCount: number;
-    members: { id: string; name: string }[];
 }
 
 /** How the user wants to resolve one item in a pack update. */
@@ -123,11 +96,10 @@ export interface UpdateSummary {
     applied: { updated: number; kept: number; added: number; unchanged: number };
 }
 
-/** What an import created and what it skipped (Pro-only content on Free). */
+/** What an import created. */
 export interface ImportSummary {
     pack: string;
     created: { forms: number; emails: number; workflows: number; patterns: number };
-    skipped: { name: string; reason: string }[];
 }
 
 /** The raw My Library row as stored and returned by the server. */
@@ -145,4 +117,4 @@ export interface SavedAsset {
 
 export type LibraryTab = "catalog" | "mine";
 export type TypeFacet = "all" | AssetType;
-export type OwnershipFacet = "all" | "free" | "pro" | "purchased" | "installed";
+export type OwnershipFacet = "all" | "installed";

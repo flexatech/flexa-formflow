@@ -8,7 +8,6 @@ use Flexa\FormFlow\Concerns\HasInstance;
 use Flexa\FormFlow\Domain\EmailTemplates\EmailTemplateRepository;
 use Flexa\FormFlow\Domain\Forms\FormRepository;
 use Flexa\FormFlow\Domain\Library\LibraryRepository;
-use Flexa\FormFlow\Domain\Packs\PackContent;
 use Flexa\FormFlow\Domain\Packs\PackManifest;
 use Flexa\FormFlow\Domain\Workflows\WorkflowRepository;
 
@@ -20,7 +19,6 @@ defined( 'ABSPATH' ) || exit;
  * then resolved to those ids before it is created. Workflows arrive inactive
  * (the repository forces it), so nothing runs until the user reviews and turns
  * it on. Shared patterns are deduped by content id and stamped with provenance.
- * Pro-only content is skipped on Free and reported back, never half-installed.
  */
 final class Installer {
 	use HasInstance;
@@ -28,8 +26,7 @@ final class Installer {
 	/**
 	 * @return array{
 	 *     pack: string,
-	 *     created: array{forms: int, emails: int, workflows: int, patterns: int},
-	 *     skipped: list<array{name: string, reason: string}>
+	 *     created: array{forms: int, emails: int, workflows: int, patterns: int}
 	 * }
 	 */
 	public function import( PackManifest $manifest ): array {
@@ -39,7 +36,6 @@ final class Installer {
 			'workflows' => 0,
 			'patterns'  => 0,
 		];
-		$skipped = [];
 
 		/** @var array<string, int> $form_ids */
 		$form_ids = [];
@@ -47,34 +43,22 @@ final class Installer {
 		$email_ids = [];
 
 		foreach ( $manifest->forms as $content ) {
-			if ( ! $this->guard( $content, $skipped ) ) {
-				continue;
-			}
 			$form_ids[ $content->ref ] = FormRepository::instance()->create( $content->name, $content->payload );
 			++$created['forms'];
 		}
 
 		foreach ( $manifest->emails as $content ) {
-			if ( ! $this->guard( $content, $skipped ) ) {
-				continue;
-			}
 			$email_ids[ $content->ref ] = EmailTemplateRepository::instance()->create( $content->name, $content->payload );
 			++$created['emails'];
 		}
 
 		foreach ( $manifest->workflows as $content ) {
-			if ( ! $this->guard( $content, $skipped ) ) {
-				continue;
-			}
 			$config = $this->resolve_workflow( $content->payload, $form_ids, $email_ids );
 			WorkflowRepository::instance()->create( $content->name, $config );
 			++$created['workflows'];
 		}
 
 		foreach ( $manifest->patterns as $content ) {
-			if ( ! $this->guard( $content, $skipped ) ) {
-				continue;
-			}
 			// A shared pattern keeps its content id across packs: install it once.
 			if ( null !== LibraryRepository::instance()->find_by_content_id( $content->ref ) ) {
 				continue;
@@ -98,7 +82,6 @@ final class Installer {
 		return [
 			'pack'    => $manifest->id,
 			'created' => $created,
-			'skipped' => $skipped,
 		];
 	}
 
@@ -215,10 +198,6 @@ final class Installer {
 		];
 
 		foreach ( $manifest->patterns as $content ) {
-			if ( ! Entitlement::content_available( $content ) ) {
-				continue;
-			}
-
 			$asset       = $repo->find_by_content_id( $content->ref );
 			$target_hash = LibraryRepository::hash( $content->payload );
 
@@ -303,24 +282,6 @@ final class Installer {
 			'pack'    => $manifest->id,
 			'applied' => $applied,
 		];
-	}
-
-	/**
-	 * Skip and record Pro-only content on Free; otherwise allow.
-	 *
-	 * @param list<array{name: string, reason: string}> $skipped
-	 */
-	private function guard( PackContent $content, array &$skipped ): bool {
-		if ( Entitlement::content_available( $content ) ) {
-			return true;
-		}
-
-		$skipped[] = [
-			'name'   => $content->name,
-			'reason' => __( 'Needs FormFlow Pro', 'flexa-formflow' ),
-		];
-
-		return false;
 	}
 
 	/**

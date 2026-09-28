@@ -13,10 +13,7 @@ const badgeVariants = cva(
         variants: {
             variant: {
                 free: "ff:bg-slate-100 ff:text-slate-600 ff:ring-1 ff:ring-inset ff:ring-slate-200",
-                pro: "ff:bg-brand-50 ff:text-brand-700 ff:ring-1 ff:ring-inset ff:ring-brand-200",
-                price: "ff:bg-slate-900 ff:text-white",
                 installed: "ff:bg-emerald-50 ff:text-emerald-700 ff:ring-1 ff:ring-inset ff:ring-emerald-200",
-                purchased: "ff:bg-slate-100 ff:text-slate-700 ff:ring-1 ff:ring-inset ff:ring-slate-200",
                 update: "ff:bg-amber-50 ff:text-amber-700 ff:ring-1 ff:ring-inset ff:ring-amber-200",
                 neutral: "ff:bg-slate-100 ff:text-slate-600",
             },

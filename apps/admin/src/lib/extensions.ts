@@ -1,6 +1,6 @@
 /**
  * Client access to the declarative extension registry localized by
- * Enqueue.php (`flexaFormFlow.extensions`). Add-ons (the Pro plugin) describe
+ * Enqueue.php (`flexaFormFlow.extensions`). Add-ons describe
  * nodes and panels as data on the PHP side; the Free app reads them here and
  * renders them with the control vocabulary it owns (see SchemaFields). No
  * add-on React runs in this bundle, so there is always exactly one React
@@ -47,7 +47,7 @@ export function integrationConnection(id: string): ExtensionIntegration | undefi
 
 /**
  * Map an add-on's icon name (a lucide key) to a component. Add-ons pick from
- * this shared set so the Free bundle stays the single source of icons; unknown
+ * this shared set so the core bundle stays the single source of icons; unknown
  * names fall back to a neutral puzzle piece.
  */
 const ICONS: Record<string, LucideIcon> = {

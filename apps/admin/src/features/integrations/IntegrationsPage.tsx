@@ -1,13 +1,10 @@
 import { CheckCircle2, Circle, Clock, Plug, Send } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { LockedExplainer } from "@/components/custom/LockedExplainer";
 import { CardGridSkeleton } from "@/components/custom/Skeletons";
 import { Skeleton } from "@/components/ui/skeleton";
 import { integrationConnection } from "@/lib/extensions";
 import { __ } from "@/lib/i18n";
-import { PRO_UPGRADE_URL } from "@/lib/links";
 import { ConnectDrawer } from "./ConnectDrawer";
 import { useIntegrations, type IntegrationCard, type IntegrationStatus } from "./useIntegrations";
 
@@ -49,8 +46,7 @@ export function IntegrationsPage() {
                         <IntegrationTile
                             key={card.id}
                             card={card}
-                            canConnect={connection !== undefined && connection.locked !== true}
-                            locked={connection?.locked === true}
+                            canConnect={connection !== undefined}
                             onConnect={() => setOpenId(card.id)}
                         />
                     );
@@ -112,12 +108,10 @@ const STATUS_META: Record<IntegrationStatus, { label: string; icon: typeof Circl
 function IntegrationTile({
     card,
     canConnect,
-    locked,
     onConnect,
 }: {
     card: IntegrationCard;
     canConnect: boolean;
-    locked: boolean;
     onConnect: () => void;
 }) {
     const meta = STATUS_META[card.status];
@@ -134,23 +128,11 @@ function IntegrationTile({
             <p className="ff:text-sm ff:text-slate-500">{card.description}</p>
             <div className="ff:mt-auto ff:flex ff:items-center ff:justify-between ff:gap-2 ff:pt-1">
                 <p className="ff:m-0 ff:text-xs ff:text-slate-400">{card.detail}</p>
-                {locked ? (
-                    // Lock type 1: a hosted connector the Pro plugin describes but does not
-                    // license here. The chip explains and links to upgrade; no paywall wall.
-                    <LockedExplainer
-                        title={__("A hosted connector, kept in sync for you.")}
-                        unlocks={__("Included in FormFlow Pro.")}
-                        upgradeUrl={PRO_UPGRADE_URL}
-                    >
-                        <Badge variant="pro">{__("Pro")}</Badge>
-                    </LockedExplainer>
-                ) : (
-                    canConnect && (
-                        <Button variant="outline" size="sm" onClick={onConnect}>
-                            <Plug aria-hidden className="ff:h-4 ff:w-4" />
-                            {__("Connect")}
-                        </Button>
-                    )
+                {canConnect && (
+                    <Button variant="outline" size="sm" onClick={onConnect}>
+                        <Plug aria-hidden className="ff:h-4 ff:w-4" />
+                        {__("Connect")}
+                    </Button>
                 )}
             </div>
         </section>

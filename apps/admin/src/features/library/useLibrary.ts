@@ -4,7 +4,6 @@ import { __ } from "@/lib/i18n";
 import type {
     AssetKind,
     AssetType,
-    Bundle,
     ImportSummary,
     LibraryAsset,
     Pack,
@@ -53,16 +52,7 @@ export function usePacks() {
     };
 }
 
-/** Bundles derived from the catalog, for the bundle cards. */
-export function useBundles() {
-    const query = useCatalog();
-    return {
-        ...query,
-        data: (query.data ?? []).filter((a): a is Bundle => a.type === "bundle"),
-    };
-}
-
-/** Full pack detail (named contents + install eligibility) for the pack page. */
+/** Full pack detail (named contents + changelog) for the pack page. */
 export function usePackDetail(id: string) {
     return useQuery<PackDetail>({
         queryKey: ["library", "pack", id],
@@ -251,7 +241,6 @@ const TYPE_NOUN: Record<AssetType, () => string> = {
     pattern: () => __("Saved pattern"),
     recipe: () => __("Saved recipe"),
     pack: () => __("Saved pack"),
-    bundle: () => __("Saved bundle"),
 };
 
 /** A saved asset has no marketing copy, so present it as an installed, free item. */

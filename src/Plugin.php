@@ -41,7 +41,6 @@ final class Plugin {
 			Admin\Menu::instance()->register();
 			Admin\Enqueue::instance()->register();
 			Admin\ActivationRedirect::instance()->register();
-			Support\DeactivationSurvey::instance()->register();
 		}
 	}
 }

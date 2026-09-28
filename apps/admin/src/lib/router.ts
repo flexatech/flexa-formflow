@@ -31,7 +31,7 @@ export type Route =
     | { name: "settings" };
 
 export function parseHash(hash: string): Route {
-    // Drop any query string (e.g. ?purchased=1) before matching segments.
+    // Drop any query string before matching segments.
     const path = hash.replace(/^#\/?/, "").split("?")[0];
     const segments = path.split("/").filter(Boolean);
     const [head, second, third] = segments;
@@ -78,12 +78,6 @@ export function parseHash(hash: string): Route {
 
 export function currentRoute(): Route {
     return parseHash(window.location.hash);
-}
-
-/** The query string of the current hash route, e.g. `?purchased=1`. */
-export function hashQuery(): URLSearchParams {
-    const q = window.location.hash.split("?")[1] ?? "";
-    return new URLSearchParams(q);
 }
 
 export function navigate(path: string): void {

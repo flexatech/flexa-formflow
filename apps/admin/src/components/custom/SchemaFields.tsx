@@ -1,4 +1,4 @@
-import { AlertCircle, CheckCircle2, ExternalLink, Lock, Plus, Trash2 } from "lucide-react";
+import { AlertCircle, CheckCircle2, ExternalLink, Plus, Trash2 } from "lucide-react";
 import { useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -27,7 +27,7 @@ export interface SchemaContext {
  * Renders an extension node's config form from its declarative field schema.
  * The Free app owns every control here; an add-on only describes which control
  * to use and its options (see src/Extensions/Registry.php). This is the single
- * seam through which Pro nodes (CRM push, conditions, delay, ...) get their UI
+ * seam through which add-on nodes (CRM push, ...) get their UI
  * without shipping React into this bundle.
  */
 export function SchemaFields({
@@ -437,7 +437,7 @@ export function ConditionsBuilder({
  * Integrations page, reuse from any workflow). The control shows the live
  * connection status and links to manage it; the config only stores the
  * connection id, so credentials never live in the workflow. Runtime reads the
- * saved values on the add-on side (see flexa-formflow-pro Connections::get).
+ * saved values on the add-on side.
  */
 function ConnectionControl({
     field,
@@ -496,16 +496,6 @@ function ConnectionControl({
                 <ExternalLink aria-hidden className="ff:h-3.5 ff:w-3.5" />
                 {connected ? __("Manage connection") : __("Go to Integrations")}
             </a>
-        </div>
-    );
-}
-
-/** Amber banner an extension node shows when the add-on is installed but unlicensed. */
-export function LockedNote({ note }: { note?: string }) {
-    return (
-        <div className="ff:mb-3 ff:flex ff:items-center ff:gap-2 ff:rounded-lg ff:bg-amber-50 ff:px-3 ff:py-2 ff:text-xs ff:text-amber-800 ff:ring-1 ff:ring-amber-200">
-            <Lock aria-hidden className="ff:h-3.5 ff:w-3.5 ff:shrink-0" />
-            <span>{note || __("This is a Pro action. Activate a license to use it.")}</span>
         </div>
     );
 }
