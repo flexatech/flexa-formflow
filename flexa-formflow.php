@@ -4,7 +4,7 @@
  * Plugin URI:        https://github.com/flexatech/flexa-formflow
  * Description:       Build forms, collect entries, and design the emails they trigger. Every form field becomes a token you can drop into a visual email.
  * Version:           1.0.0
- * Requires at least: 6.2
+ * Requires at least: 6.5
  * Requires PHP:      8.1
  * Author:            FlexaTech
  * Author URI:        https://github.com/flexatech

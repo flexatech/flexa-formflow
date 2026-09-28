@@ -13,7 +13,7 @@ not required.
 | Tool | Version |
 | --- | --- |
 | PHP | 8.1+ |
-| WordPress | 6.2+ |
+| WordPress | 6.5+ |
 | Node | 20+ |
 | pnpm | 9+ |
 

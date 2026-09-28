@@ -1,7 +1,7 @@
 === Flexa FormFlow ===
 Contributors: flexatech
 Tags: forms, form builder, email builder, contact form, form entries
-Requires at least: 6.2
+Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 8.1
 Stable tag: 1.0.0
@@ -76,6 +76,8 @@ Each request also carries your API key and the model name, which the provider ne
 * Google Gemini: sent to `https://generativelanguage.googleapis.com`. See the [Gemini API Terms](https://ai.google.dev/gemini-api/terms) and [Google Privacy Policy](https://policies.google.com/privacy).
 
 Your API key is stored encrypted and is never shown in the browser after you save it.
+
+FormFlow calls these providers directly with `wp_remote_post()` instead of the WordPress AI Client (`wp_ai_client_prompt()`). The AI Client only exists in WordPress 7.0 and later, and FormFlow supports WordPress 6.5 and later, so a direct request is the only way to offer the same AI tools on every supported version. The request goes from your server straight to the provider you picked, using your own API key; there is no FormFlow server or proxy in between.
 
 **Workflow webhooks (optional).** A workflow can include a "Send webhook" action. It only runs if you add it to a workflow yourself and enter a URL. Each time that workflow runs (for example, when a form is submitted), FormFlow sends a POST request to the URL you entered with the form ID, form title, entry ID, submission time, and the submitted field values as JSON. There is no fixed third-party service: the data goes only to the address you choose, and the terms and privacy policy of that endpoint apply. Local and private-network addresses are refused.
 
