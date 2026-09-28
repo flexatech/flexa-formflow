@@ -10,11 +10,12 @@
 /.DS_Store
 /node_modules
 /vendor
-# React admin source and its build config stay out of the zip. WP.org
-# guideline 4 is met by the public GitHub link in readme.txt instead.
-/apps
-/package.json
-/pnpm-lock.yaml
+# The React admin source (apps/admin), package.json and pnpm-lock.yaml ship in
+# the zip so reviewers can read and rebuild assets/dist. Only local dev
+# leftovers inside apps/ are dropped.
+/apps/admin/.dev
+/apps/admin/node_modules
+*.tsbuildinfo
 /tests
 /docs
 /release.sh

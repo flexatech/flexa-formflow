@@ -197,6 +197,8 @@ final class FormRepository {
 		}
 
 		$entries      = Schema::entries_table();
+		// One %d per form ID: the interpolated part is only a list of placeholders,
+		// and every ID is still bound by prepare().
 		$placeholders = implode( ',', array_fill( 0, count( $form_ids ), '%d' ) );
 		$rows         = $wpdb->get_results(
 			$wpdb->prepare( "SELECT form_id, COUNT(*) AS total FROM %i WHERE form_id IN ({$placeholders}) GROUP BY form_id", $entries, ...$form_ids ),

@@ -40,7 +40,10 @@ if [[ -f .distignore ]]; then
         line="${line## }"
         line="${line%% }"
         [[ -z "${line}" ]] && continue
-        EXCLUDES+=(--exclude="${line#/}")
+        # Keep the leading "/": rsync anchors it to the plugin root, so
+        # "/scripts" or "/docs" cannot also strip a same-named folder
+        # inside apps/admin/src.
+        EXCLUDES+=(--exclude="${line}")
     done < .distignore
 fi
 

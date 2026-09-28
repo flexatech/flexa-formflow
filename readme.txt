@@ -38,13 +38,18 @@ FormFlow does not send mail in any special way; it hands the finished message to
 
 **Source code and build tools**
 
-The admin screens are a React app compiled with Vite. The compiled, minified files in `assets/dist/` are built from human-readable source that is not included in this zip. The full source, with the build config (`package.json`, `pnpm-lock.yaml`, `apps/admin/vite.config.ts`, `apps/admin/tsconfig.json`), is public on GitHub: https://github.com/flexatech/flexa-formflow
+The admin screens are a React app compiled with Vite. The compiled, minified files in `assets/dist/` are built from the human-readable source that ships in this plugin:
 
-The admin source lives in `apps/admin/src/`. To rebuild the bundle you need Node.js 20+ and pnpm 9+:
+* `apps/admin/src/`: the React and TypeScript source (entry point `apps/admin/src/main.tsx`).
+* `apps/admin/vite.config.ts` and `apps/admin/tsconfig.json`: the build and TypeScript config.
+* `package.json` and `pnpm-lock.yaml` in the plugin root: the dependency list and exact versions.
 
-1. Clone the repository.
-2. Run `pnpm install` in the repository root.
-3. Run `pnpm build`. The output goes to `assets/dist/`.
+The same source is also public on GitHub: https://github.com/flexatech/flexa-formflow
+
+To rebuild the bundle you need Node.js 20+ and pnpm 9+. From the plugin folder (or a clone of the repository):
+
+1. Run `pnpm install`.
+2. Run `pnpm build`. The output goes to `assets/dist/`.
 
 The frontend form script (`assets/frontend/form.js`) and the block editor script (`assets/blocks/form/editor.js`) are plain, unminified JavaScript with no build step. Third-party libraries bundled into `assets/dist/` (React, TanStack Query, dnd-kit, Radix UI, Zustand, Lucide icons, Tailwind CSS) are listed in the repository's `package.json` and their source is available from npm.
 
@@ -59,11 +64,16 @@ The frontend form script (`assets/frontend/form.js`) and the block editor script
 
 FormFlow stores your forms, entries, and templates in your own database and does not send them anywhere. Two optional features can send data off your site, described below. Neither is on by default.
 
-**AI assistant (optional).** If you add an AI provider API key in Settings and use the AI tools (generate a form, or the writing assistant), the text you submit and your form description are sent to the provider you selected so it can return a result. No visitor or entry data is sent, and nothing is sent automatically. You choose the provider:
+**AI assistant (optional).** This only works after you add an AI provider API key in Settings, and a request is sent only when an admin clicks one of the AI tools in the builder. Nothing is sent automatically or on the front end. What each tool sends to the provider you selected:
 
-* Anthropic (Claude): sent to `https://api.anthropic.com`. See the [Anthropic Terms](https://www.anthropic.com/legal/consumer-terms) and [Privacy Policy](https://www.anthropic.com/legal/privacy).
-* OpenAI: sent to `https://api.openai.com`. See the [OpenAI Terms](https://openai.com/policies/terms-of-use/) and [Privacy Policy](https://openai.com/policies/privacy-policy/).
-* Google Gemini: sent to `https://generativelanguage.googleapis.com`. See the [Google Terms](https://policies.google.com/terms) and [Privacy Policy](https://policies.google.com/privacy).
+* Generate a form: the form description you typed.
+* Writing assistant (rewrite, shorten, change tone, subject ideas): the text you asked it to work on, the chosen tone, and your site name (so the copy can mention it).
+
+Each request also carries your API key and the model name, which the provider needs to authenticate and answer. No visitor data, entries, or submitted field values are sent. You choose the provider:
+
+* Anthropic (Claude): sent to `https://api.anthropic.com`. See the [Anthropic Commercial Terms](https://www.anthropic.com/legal/commercial-terms) and [Privacy Policy](https://www.anthropic.com/legal/privacy).
+* OpenAI: sent to `https://api.openai.com`. See the [OpenAI Business Terms](https://openai.com/policies/business-terms/) and [Privacy Policy](https://openai.com/policies/privacy-policy/).
+* Google Gemini: sent to `https://generativelanguage.googleapis.com`. See the [Gemini API Terms](https://ai.google.dev/gemini-api/terms) and [Google Privacy Policy](https://policies.google.com/privacy).
 
 Your API key is stored encrypted and is never shown in the browser after you save it.
 
@@ -93,7 +103,7 @@ Nothing is removed unless you turn on "Delete data on uninstall" in Settings fir
 
 = How is the admin interface built, and where is the source? =
 
-The admin app is written in React and TypeScript and compiled to the files in `assets/dist/`. The full, unminified source is not in the zip; it lives under `apps/admin/src/` in the public repository at https://github.com/flexatech/flexa-formflow. To build it yourself: install Node 20+ and pnpm 9+, run `pnpm install`, then `pnpm build`. The `README.md` in the repository has the full developer setup.
+The admin app is written in React and TypeScript and compiled to the files in `assets/dist/`. The unminified source ships with the plugin in `apps/admin/src/`, next to its build config, and is also public at https://github.com/flexatech/flexa-formflow. To build it yourself: install Node 20+ and pnpm 9+, run `pnpm install`, then `pnpm build`. The `README.md` in the repository has the full developer setup.
 
 == Screenshots ==
 
