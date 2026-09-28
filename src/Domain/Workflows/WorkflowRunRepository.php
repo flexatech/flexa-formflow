@@ -9,7 +9,7 @@ use Flexa\FormFlow\Database\Schema;
 
 defined( 'ABSPATH' ) || exit;
 
-// phpcs:disable WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders, PluginCheck.Security.DirectDB.UnescapedDBParameter -- data-access class for our own tables; table names come from Schema, values go through $wpdb->prepare().
+// phpcs:disable WordPress.DB.DirectDatabaseQuery -- data-access class for our own tables; every query goes through $wpdb->prepare() (table names via %i).
 
 final class WorkflowRunRepository {
 	use HasInstance;
@@ -58,13 +58,14 @@ final class WorkflowRunRepository {
 		$per_page = max( 1, min( 100, (int) ( $args['per_page'] ?? 25 ) ) );
 
 		$total = (int) $wpdb->get_var(
-			$wpdb->prepare( "SELECT COUNT(*) FROM {$table} WHERE workflow_id = %d", $workflow_id )
+			$wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE workflow_id = %d', $table, $workflow_id )
 		);
 
 		$offset = ( $page - 1 ) * $per_page;
 		$rows   = $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT * FROM {$table} WHERE workflow_id = %d ORDER BY created_at DESC, id DESC LIMIT %d OFFSET %d",
+				'SELECT * FROM %i WHERE workflow_id = %d ORDER BY created_at DESC, id DESC LIMIT %d OFFSET %d',
+				$table,
 				$workflow_id,
 				$per_page,
 				$offset
@@ -101,7 +102,8 @@ final class WorkflowRunRepository {
 
 		$cutoff = $wpdb->get_var(
 			$wpdb->prepare(
-				"SELECT id FROM {$table} WHERE workflow_id = %d ORDER BY id DESC LIMIT 1 OFFSET %d",
+				'SELECT id FROM %i WHERE workflow_id = %d ORDER BY id DESC LIMIT 1 OFFSET %d',
+				$table,
 				$workflow_id,
 				$keep
 			)
@@ -112,7 +114,8 @@ final class WorkflowRunRepository {
 
 		$wpdb->query(
 			$wpdb->prepare(
-				"DELETE FROM {$table} WHERE workflow_id = %d AND id <= %d",
+				'DELETE FROM %i WHERE workflow_id = %d AND id <= %d',
+				$table,
 				$workflow_id,
 				(int) $cutoff
 			)

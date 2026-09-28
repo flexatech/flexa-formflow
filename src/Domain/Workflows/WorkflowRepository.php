@@ -9,7 +9,7 @@ use Flexa\FormFlow\Database\Schema;
 
 defined( 'ABSPATH' ) || exit;
 
-// phpcs:disable WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders, PluginCheck.Security.DirectDB.UnescapedDBParameter -- data-access class for our own tables; table names come from Schema, values go through $wpdb->prepare().
+// phpcs:disable WordPress.DB.DirectDatabaseQuery -- data-access class for our own tables; every query goes through $wpdb->prepare() (table names via %i).
 
 final class WorkflowRepository {
 	use HasInstance;
@@ -18,7 +18,7 @@ final class WorkflowRepository {
 		global $wpdb;
 
 		$table = Schema::workflows_table();
-		$row   = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE id = %d", $id ), ARRAY_A );
+		$row   = $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM %i WHERE id = %d', $table, $id ), ARRAY_A );
 
 		return is_array( $row ) ? Workflow::from_row( $row ) : null;
 	}
@@ -30,7 +30,7 @@ final class WorkflowRepository {
 		global $wpdb;
 
 		$table = Schema::workflows_table();
-		$rows  = $wpdb->get_results( "SELECT * FROM {$table} ORDER BY updated_at DESC, id DESC", ARRAY_A );
+		$rows  = $wpdb->get_results( $wpdb->prepare( 'SELECT * FROM %i ORDER BY updated_at DESC, id DESC', $table ), ARRAY_A );
 
 		$items = [];
 		foreach ( is_array( $rows ) ? $rows : [] as $row ) {
@@ -50,7 +50,7 @@ final class WorkflowRepository {
 
 		$table = Schema::workflows_table();
 		$rows  = $wpdb->get_results(
-			$wpdb->prepare( "SELECT * FROM {$table} WHERE status = %s ORDER BY id ASC", 'active' ),
+			$wpdb->prepare( 'SELECT * FROM %i WHERE status = %s ORDER BY id ASC', $table, 'active' ),
 			ARRAY_A
 		);
 
@@ -123,6 +123,6 @@ final class WorkflowRepository {
 
 		$table = Schema::workflows_table();
 
-		return (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$table}" );
+		return (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', $table ) );
 	}
 }

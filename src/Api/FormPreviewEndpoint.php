@@ -65,9 +65,15 @@ final class FormPreviewEndpoint extends Endpoint {
 	 * from actually submitting inside the iframe.
 	 */
 	private function document( string $markup ): string {
-		$css  = (string) @file_get_contents( FLEXA_FORMFLOW_PATH . 'assets/frontend/form.css' );
+		$css_path = FLEXA_FORMFLOW_PATH . 'assets/frontend/form.css';
+		// Local read of the plugin's own stylesheet, not a remote URL.
+		$css  = is_readable( $css_path ) ? (string) file_get_contents( $css_path ) : ''; // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
 		$body = __( 'This is a preview. The form does not submit here.', 'flexa-formflow' );
 
+		// Inline <style> and <script> are required here: this is a standalone
+		// document returned over REST and loaded into the preview iframe's srcdoc,
+		// not a WordPress page, so there is no enqueue pipeline to go through. The
+		// CSS is the plugin's own stylesheet and the script only blocks submit.
 		return '<!DOCTYPE html><html><head><meta charset="utf-8" />'
 			. '<meta name="viewport" content="width=device-width, initial-scale=1" />'
 			. '<style>'

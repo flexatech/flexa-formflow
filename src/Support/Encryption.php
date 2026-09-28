@@ -50,6 +50,7 @@ final class Encryption {
 			return $payload;
 		}
 
+		// Decodes our own AES-256-GCM ciphertext (stored API keys), not code.
 		$raw = base64_decode( substr( $payload, strlen( self::PREFIX ) ), true );
 		if ( false === $raw || strlen( $raw ) <= self::IV_LEN + self::TAG_LEN ) {
 			return '';

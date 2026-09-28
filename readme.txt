@@ -57,7 +57,7 @@ The frontend form script (`assets/frontend/form.js`) and the block editor script
 
 == External services ==
 
-FormFlow stores your forms, entries, and templates in your own database and does not send them anywhere. One optional feature reaches a third party, described below. It runs only in wp-admin, never on the front end.
+FormFlow stores your forms, entries, and templates in your own database and does not send them anywhere. Two optional features can send data off your site, described below. Neither is on by default.
 
 **AI assistant (optional).** If you add an AI provider API key in Settings and use the AI tools (generate a form, or the writing assistant), the text you submit and your form description are sent to the provider you selected so it can return a result. No visitor or entry data is sent, and nothing is sent automatically. You choose the provider:
 
@@ -66,6 +66,8 @@ FormFlow stores your forms, entries, and templates in your own database and does
 * Google Gemini: sent to `https://generativelanguage.googleapis.com`. See the [Google Terms](https://policies.google.com/terms) and [Privacy Policy](https://policies.google.com/privacy).
 
 Your API key is stored encrypted and is never shown in the browser after you save it.
+
+**Workflow webhooks (optional).** A workflow can include a "Send webhook" action. It only runs if you add it to a workflow yourself and enter a URL. Each time that workflow runs (for example, when a form is submitted), FormFlow sends a POST request to the URL you entered with the form ID, form title, entry ID, submission time, and the submitted field values as JSON. There is no fixed third-party service: the data goes only to the address you choose, and the terms and privacy policy of that endpoint apply. Local and private-network addresses are refused.
 
 == Frequently Asked Questions ==
 

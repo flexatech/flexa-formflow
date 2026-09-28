@@ -9,7 +9,7 @@ use Flexa\FormFlow\Database\Schema;
 
 defined( 'ABSPATH' ) || exit;
 
-// phpcs:disable WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, PluginCheck.Security.DirectDB.UnescapedDBParameter -- data-access class for our own tables; table names come from Schema, values go through $wpdb->prepare().
+// phpcs:disable WordPress.DB.DirectDatabaseQuery -- data-access class for our own tables; every query goes through $wpdb->prepare() (table names via %i).
 
 final class LibraryRepository {
 	use HasInstance;
@@ -21,7 +21,7 @@ final class LibraryRepository {
 		global $wpdb;
 
 		$table = Schema::library_table();
-		$row   = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE id = %d", $id ), ARRAY_A );
+		$row   = $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM %i WHERE id = %d', $table, $id ), ARRAY_A );
 
 		return is_array( $row ) ? LibraryAsset::from_row( $row ) : null;
 	}
@@ -33,7 +33,7 @@ final class LibraryRepository {
 		global $wpdb;
 
 		$table = Schema::library_table();
-		$rows  = $wpdb->get_results( "SELECT * FROM {$table} ORDER BY updated_at DESC, id DESC", ARRAY_A );
+		$rows  = $wpdb->get_results( $wpdb->prepare( 'SELECT * FROM %i ORDER BY updated_at DESC, id DESC', $table ), ARRAY_A );
 
 		$items = [];
 		foreach ( is_array( $rows ) ? $rows : [] as $row ) {
@@ -57,7 +57,8 @@ final class LibraryRepository {
 		$table = Schema::library_table();
 		$row   = $wpdb->get_row(
 			$wpdb->prepare(
-				"SELECT * FROM {$table} WHERE source_pack = %s AND source_content_id = %s LIMIT 1",
+				'SELECT * FROM %i WHERE source_pack = %s AND source_content_id = %s LIMIT 1',
+				$table,
 				$pack,
 				$content_id
 			),
@@ -82,7 +83,8 @@ final class LibraryRepository {
 		$table = Schema::library_table();
 		$row   = $wpdb->get_row(
 			$wpdb->prepare(
-				"SELECT * FROM {$table} WHERE source_content_id = %s LIMIT 1",
+				'SELECT * FROM %i WHERE source_content_id = %s LIMIT 1',
+				$table,
 				$content_id
 			),
 			ARRAY_A
@@ -104,10 +106,10 @@ final class LibraryRepository {
 			Schema::library_table(),
 			[
 				'uuid'              => wp_generate_uuid4(),
-				'type'             => self::normalize_type( $type ),
-				'name'             => sanitize_text_field( $name ),
-				'kind'             => self::normalize_kind( $kind ),
-				'payload'          => (string) wp_json_encode( $payload ),
+				'type'              => self::normalize_type( $type ),
+				'name'              => sanitize_text_field( $name ),
+				'kind'              => self::normalize_kind( $kind ),
+				'payload'           => (string) wp_json_encode( $payload ),
 				'source_pack'       => $pack,
 				'source_content_id' => sanitize_text_field( (string) ( $source['contentId'] ?? '' ) ),
 				'source_version'    => sanitize_text_field( (string) ( $source['version'] ?? '' ) ),
@@ -170,7 +172,7 @@ final class LibraryRepository {
 
 		$table = Schema::library_table();
 		$rows  = $wpdb->get_results(
-			$wpdb->prepare( "SELECT * FROM {$table} WHERE source_pack = %s ORDER BY id ASC", $pack ),
+			$wpdb->prepare( 'SELECT * FROM %i WHERE source_pack = %s ORDER BY id ASC', $table, $pack ),
 			ARRAY_A
 		);
 
@@ -224,7 +226,7 @@ final class LibraryRepository {
 
 		$table = Schema::library_table();
 
-		return (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$table}" );
+		return (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', $table ) );
 	}
 
 	private static function normalize_type( string $type ): string {

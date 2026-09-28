@@ -241,7 +241,9 @@ final class Engine {
 			'data'       => $entry->data,
 		];
 
-		$response = wp_remote_post(
+		// wp_safe_remote_post() refuses local and private-network hosts, so a
+		// webhook URL cannot be pointed at the server's own internal services.
+		$response = wp_safe_remote_post(
 			$url,
 			[
 				'timeout' => 15,
