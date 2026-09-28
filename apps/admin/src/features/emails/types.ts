@@ -8,12 +8,14 @@ import {
     Minus,
     MousePointerClick,
     MoveVertical,
+    Receipt,
     Share2,
     Table,
     Text,
     type LucideIcon,
 } from "lucide-react";
 import { __ } from "@/lib/i18n";
+import type { ConditionSet } from "@/components/custom/SchemaFields";
 
 /**
  * TS mirror of the email tree contract (see docs/M2_PLAN.md) and of the PHP
@@ -25,9 +27,15 @@ export interface TreeSettings {
     backgroundColor?: string;
     contentBackground?: string;
     textColor?: string;
+    /** Falls back to textColor when blank. */
+    headingColor?: string;
+    /** Falls back to brandColor when blank. */
+    linkColor?: string;
     brandColor?: string;
     fontFamily?: string;
     width?: number;
+    /** Text direction of the whole email; defaults to ltr. */
+    direction?: "ltr" | "rtl";
 }
 
 export interface EmailElement {
@@ -39,6 +47,12 @@ export interface EmailElement {
      * Nesting is one level deep (a column cannot itself hold a `columns` block).
      */
     columns?: EmailElement[][];
+    /**
+     * Optional form-entry visibility rules. When present with rules, the block
+     * is hidden at send time unless the entry matches (see src/Emails/Render/
+     * Visibility.php). Absent or empty means the block is always shown.
+     */
+    visibility?: ConditionSet;
 }
 
 /** The block type that holds columns of child blocks. */
@@ -60,6 +74,20 @@ export interface EmailTemplate {
     tree: EmailTree;
     created_at: string;
     updated_at: string;
+}
+
+/** One dynamic-data source: a token, its label and a live sample value. */
+export interface DynamicDataItem {
+    token: string;
+    label: string;
+    sample: string;
+}
+
+/** A group of dynamic-data sources (Form fields, Submission, Site, Order data). */
+export interface DynamicDataCategory {
+    key: string;
+    label: string;
+    items: DynamicDataItem[];
 }
 
 export interface FieldSpec {
@@ -238,6 +266,17 @@ export const ELEMENT_TYPES: ElementDef[] = [
         ],
     },
     {
+        type: "order_details",
+        label: __("Order details"),
+        description: __("WooCommerce line items and totals"),
+        icon: Receipt,
+        defaults: { title: __("Order summary"), borderColor: "#e6e6e6" },
+        fields: [
+            { key: "title", label: __("Title"), type: "text" },
+            { key: "borderColor", label: __("Border color"), type: "color" },
+        ],
+    },
+    {
         type: "footer_text",
         label: __("Footer"),
         description: __("Small print at the bottom"),
@@ -282,6 +321,46 @@ export const BLOCK_DRAG_TYPE = "application/x-ff-block";
 export const BLOCK_MOVE_TYPE = "application/x-ff-move";
 
 /**
+ * dataTransfer MIME used when dragging a curated pattern onto the canvas. The
+ * payload is the pattern `id`; the editor resolves it to its blocks and drops
+ * the whole group at the target.
+ */
+export const BLOCK_PATTERN_TYPE = "application/x-ff-pattern";
+
+/**
+ * One block inside a curated pattern (served by GET /emails/patterns). It has
+ * no id: the editor assigns fresh ids when the pattern is dropped, so the
+ * dropped blocks are normal, editable elements.
+ */
+export interface PatternBlock {
+    type: string;
+    props: Record<string, unknown>;
+    columns?: PatternBlock[][];
+}
+
+/** A curated group of blocks a user can drop in and edit afterwards. */
+export interface EmailPattern {
+    id: string;
+    name: string;
+    category: string;
+    blocks: PatternBlock[];
+}
+
+/** Turn a pattern's id-less blocks into editable elements with fresh ids. */
+export function materializePattern(blocks: PatternBlock[]): EmailElement[] {
+    return blocks.map(materializeBlock);
+}
+
+function materializeBlock(block: PatternBlock): EmailElement {
+    const element = newElement(block.type);
+    element.props = { ...element.props, ...block.props };
+    if (block.columns) {
+        element.columns = block.columns.map((col) => col.map(materializeBlock));
+    }
+    return element;
+}
+
+/**
  * A drop position in the tree. `colId === null` means the top level; otherwise
  * it points inside the column `colIndex` of the layout block `colId`.
  */
@@ -309,6 +388,21 @@ export function insertInTree(
         col.splice(clampIndex(target.index, col.length), 0, element);
         return { ...el, columns };
     });
+}
+
+/** Insert several elements at `target`, keeping their given order. */
+export function insertManyInTree(
+    elements: EmailElement[],
+    target: DropTarget,
+    newElements: EmailElement[],
+): EmailElement[] {
+    let next = elements;
+    let index = target.index;
+    for (const element of newElements) {
+        next = insertInTree(next, { ...target, index }, element);
+        index += 1;
+    }
+    return next;
 }
 
 /**
@@ -404,17 +498,8 @@ function clampIndex(index: number, length: number): number {
     return Math.max(0, Math.min(index, length));
 }
 
-/** Global tokens the editor hint list offers; field tokens are appended per form. */
-export const GLOBAL_TOKENS: Array<{ token: string; label: string }> = [
-    { token: "{site_title}", label: __("Site title") },
-    { token: "{site_url}", label: __("Site URL") },
-    { token: "{admin_email}", label: __("Admin email") },
-    { token: "{year}", label: __("Current year") },
-    { token: "{form_title}", label: __("Form title") },
-    { token: "{entry_id}", label: __("Entry ID") },
-    { token: "{entry_date}", label: __("Submission date") },
-    { token: "{page_url}", label: __("Submission page URL") },
-];
+// Token metadata for the editor is now served by the Dynamic Data endpoint
+// (GET /emails/dynamic-data), which carries live sample values as well.
 
 let counter = 0;
 

@@ -44,7 +44,7 @@ export function LayerList({
 
     return (
         <div className="ff:flex ff:h-full ff:flex-col">
-            <div className="ff:flex-1 ff:overflow-y-auto ff:p-3">
+            <div className="ff:flex-1 ff:overflow-y-auto ff:overflow-x-hidden ff:p-3">
                 {elements.length === 0 ? (
                     <p className="ff:rounded-lg ff:border ff:border-dashed ff:border-slate-300 ff:p-4 ff:text-center ff:text-xs ff:text-slate-500">
                         {__("Add blocks below to start building.")}
@@ -122,7 +122,9 @@ function LayerRow({
     return (
         <li
             ref={setNodeRef}
-            style={{ transform: CSS.Transform.toString(transform), transition }}
+            // Lock dragging to the vertical axis: zero the X translate so a
+            // reorder never slides sideways and grows a horizontal scrollbar.
+            style={{ transform: transform ? CSS.Transform.toString({ ...transform, x: 0 }) : undefined, transition }}
             className={cn(
                 "ff:group ff:flex ff:items-center ff:gap-1.5 ff:rounded-md ff:border ff:px-2 ff:py-1.5",
                 selected

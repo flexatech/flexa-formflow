@@ -1,6 +1,18 @@
-import { ArrowLeft, Monitor, Send, Smartphone } from "lucide-react";
+import {
+    ArrowLeft,
+    Blocks,
+    ChevronLeft,
+    ChevronRight,
+    LayoutTemplate,
+    Monitor,
+    Send,
+    Smartphone,
+    Sparkles,
+} from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { EditorSkeleton } from "@/components/custom/Skeletons";
+import { AiWritingDialog } from "@/features/ai/AiWritingDialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
@@ -15,16 +27,22 @@ import {
 import { __ } from "@/lib/i18n";
 import { cn } from "@/lib/cn";
 import { navigate } from "@/lib/router";
+import { SHOW_UPCOMING } from "@/lib/flags";
 import { useUiStore } from "@/lib/store";
+import { SaveToLibraryButton } from "@/features/library/SaveToLibrary";
 import { useFormsList } from "@/features/forms/useForms";
 import { LayerList } from "./LayerList";
+import { PatternPalette } from "./PatternPalette";
 import { PreviewPane } from "./PreviewPane";
 import { PropsPanel } from "./PropsPanel";
-import { useEmailTemplate, useSaveEmailTemplate, useTestSend } from "../useEmailTemplates";
+import type { ConditionSet } from "@/components/custom/SchemaFields";
+import { useEmailPatterns, useEmailTemplate, useSaveEmailTemplate, useTestSend } from "../useEmailTemplates";
 import {
     emptyTree,
     findInTree,
     insertInTree,
+    insertManyInTree,
+    materializePattern,
     moveInTree,
     newElement,
     removeFromTree,
@@ -41,6 +59,9 @@ function cloneWithIds(source: EmailElement): EmailElement {
     const copy: EmailElement = { ...newElement(source.type), props: { ...source.props } };
     if (source.columns) {
         copy.columns = source.columns.map((col) => col.map(cloneWithIds));
+    }
+    if (source.visibility) {
+        copy.visibility = { match: source.visibility.match, rules: source.visibility.rules.map((r) => ({ ...r })) };
     }
     return copy;
 }
@@ -63,12 +84,17 @@ export function EmailEditorPage({ id }: { id: number }) {
     const setSelectedElement = useUiStore((s) => s.setSelectedElement);
     const [draft, setDraft] = useState<Draft | null>(null);
     const [viewport, setViewport] = useState<"desktop" | "mobile">("desktop");
+    const [leftTab, setLeftTab] = useState<"blocks" | "patterns">("blocks");
+    const [leftCollapsed, setLeftCollapsed] = useState(false);
+    const [rightCollapsed, setRightCollapsed] = useState(false);
     const [previewFormId, setPreviewFormId] = useState(0);
     const [testOpen, setTestOpen] = useState(false);
+    const [aiOpen, setAiOpen] = useState(false);
     const lastSaved = useRef("");
 
     const { data: formsData } = useFormsList({ per_page: 100 });
     const forms = formsData?.items ?? [];
+    const { data: patterns = [], isLoading: patternsLoading } = useEmailPatterns();
 
     useEffect(() => {
         if (template && draft === null) {
@@ -98,21 +124,21 @@ export function EmailEditorPage({ id }: { id: number }) {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [draft]);
 
-    const fieldTokens = useMemo(() => {
+    // Condition subjects for the visibility panel: the preview form's fields.
+    // A template is reusable, so the subjects follow whichever form is picked
+    // for preview; the stored rules key off field ids, which are stable.
+    const conditionFields = useMemo(() => {
         const form = forms.find((f) => f.id === previewFormId);
         if (!form) return [];
         return form.config.fields.map((field) => ({
-            token: `{field:${field.id}}`,
+            id: field.id,
             label: field.label || field.id,
+            type: field.type,
         }));
     }, [forms, previewFormId]);
 
     if (isLoading || !template || !draft) {
-        return (
-            <div className="ff:p-6">
-                <div className="ff:h-screen ff:animate-pulse ff:rounded-xl ff:border ff:border-slate-200 ff:bg-white" />
-            </div>
-        );
+        return <EditorSkeleton />;
     }
 
     const dirty = JSON.stringify(draft) !== lastSaved.current;
@@ -132,6 +158,20 @@ export function EmailEditorPage({ id }: { id: number }) {
         setElements(insertInTree(elements, target, element));
         setSelectedElement(element.id);
     };
+    const onInsertPatternAt = (patternId: string, target: DropTarget) => {
+        const pattern = patterns.find((p) => p.id === patternId);
+        if (!pattern) return;
+        const blocks = materializePattern(pattern.blocks);
+        setElements(insertManyInTree(elements, target, blocks));
+        setSelectedElement(blocks[0]?.id ?? null);
+    };
+    const onAddPattern = (patternId: string) => {
+        const pattern = patterns.find((p) => p.id === patternId);
+        if (!pattern) return;
+        const blocks = materializePattern(pattern.blocks);
+        setElements([...elements, ...blocks]);
+        setSelectedElement(blocks[0]?.id ?? null);
+    };
     const onMove = (id: string, target: DropTarget) => {
         setElements(moveInTree(elements, id, target));
     };
@@ -149,6 +189,16 @@ export function EmailEditorPage({ id }: { id: number }) {
     };
     const onChangeProps = (elId: string, props: Record<string, unknown>) =>
         setElements(updateInTree(elements, elId, (el) => ({ ...el, props })));
+    const onChangeVisibility = (elId: string, visibility: ConditionSet) =>
+        setElements(
+            updateInTree(elements, elId, (el) => {
+                if (visibility.rules.length === 0) {
+                    const { visibility: _drop, ...rest } = el;
+                    return rest;
+                }
+                return { ...el, visibility };
+            }),
+        );
     const onChangeColumnCount = (elId: string, count: number) =>
         setElements(updateInTree(elements, elId, (el) => resizeColumns(el, count)));
     const onChangeSettings = (settings: TreeSettings) => setTree({ ...draft.tree, settings });
@@ -194,6 +244,18 @@ export function EmailEditorPage({ id }: { id: number }) {
                         <Smartphone className="ff:h-4 ff:w-4" />
                     </Button>
                 </div>
+                {SHOW_UPCOMING && (
+                    <SaveToLibraryButton
+                        type="template"
+                        kind="email"
+                        defaultName={draft.title}
+                        getPayload={() => draft.tree as unknown as Record<string, unknown>}
+                    />
+                )}
+                <Button variant="outline" size="sm" onClick={() => setAiOpen(true)}>
+                    <Sparkles aria-hidden className="ff:h-4 ff:w-4" />
+                    {__("Writing assistant")}
+                </Button>
                 <Button variant="outline" size="sm" onClick={() => setTestOpen(true)}>
                     <Send aria-hidden className="ff:h-4 ff:w-4" />
                     {__("Send test")}
@@ -201,17 +263,47 @@ export function EmailEditorPage({ id }: { id: number }) {
             </header>
 
             <div className="ff:flex ff:min-h-0 ff:flex-1">
-                <aside className="ff:w-64 ff:shrink-0 ff:border-r ff:border-slate-200 ff:bg-white">
-                    <LayerList
-                        elements={elements}
-                        selectedId={selectedId}
-                        onSelect={setSelectedElement}
-                        onAdd={onAdd}
-                        onReorder={setElements}
-                        onDuplicate={onDuplicate}
-                        onDelete={onDelete}
-                    />
+                <SidePanel
+                    side="left"
+                    collapsed={leftCollapsed}
+                    onToggle={() => setLeftCollapsed((v) => !v)}
+                >
+                <aside className="ff:flex ff:h-full ff:w-64 ff:shrink-0 ff:flex-col ff:border-r ff:border-slate-200 ff:bg-white">
+                    <div className="ff:flex ff:shrink-0 ff:items-center ff:gap-1 ff:border-b ff:border-slate-200 ff:p-2">
+                        <LeftTab
+                            icon={Blocks}
+                            label={__("Blocks")}
+                            active={leftTab === "blocks"}
+                            onClick={() => setLeftTab("blocks")}
+                        />
+                        <LeftTab
+                            icon={LayoutTemplate}
+                            label={__("Patterns")}
+                            active={leftTab === "patterns"}
+                            onClick={() => setLeftTab("patterns")}
+                        />
+                    </div>
+                    <div className="ff:min-h-0 ff:flex-1">
+                        {leftTab === "blocks" ? (
+                            <LayerList
+                                elements={elements}
+                                selectedId={selectedId}
+                                onSelect={setSelectedElement}
+                                onAdd={onAdd}
+                                onReorder={setElements}
+                                onDuplicate={onDuplicate}
+                                onDelete={onDelete}
+                            />
+                        ) : (
+                            <PatternPalette
+                                patterns={patterns}
+                                isLoading={patternsLoading}
+                                onAdd={onAddPattern}
+                            />
+                        )}
+                    </div>
                 </aside>
+                </SidePanel>
                 <PreviewPane
                     tree={draft.tree}
                     formId={previewFormId}
@@ -221,20 +313,30 @@ export function EmailEditorPage({ id }: { id: number }) {
                     selectedId={selectedId}
                     onSelect={setSelectedElement}
                     onInsert={onInsertAt}
+                    onInsertPattern={onInsertPatternAt}
                     onMove={onMove}
                 />
-                <aside className="ff:w-72 ff:shrink-0 ff:overflow-y-auto ff:border-l ff:border-slate-200 ff:bg-white ff:p-4">
+                <SidePanel
+                    side="right"
+                    collapsed={rightCollapsed}
+                    onToggle={() => setRightCollapsed((v) => !v)}
+                >
+                <aside className="ff:h-full ff:w-72 ff:shrink-0 ff:overflow-y-auto ff:border-l ff:border-slate-200 ff:bg-white ff:p-4">
                     <PropsPanel
                         element={selected}
                         settings={draft.tree.settings}
-                        fieldTokens={fieldTokens}
+                        formId={previewFormId}
+                        conditionFields={conditionFields}
+                        hasPreviewForm={previewFormId > 0}
                         onChangeProps={onChangeProps}
+                        onChangeVisibility={onChangeVisibility}
                         onChangeColumnCount={onChangeColumnCount}
                         onDuplicate={onDuplicate}
                         onDelete={onDelete}
                         onChangeSettings={onChangeSettings}
                     />
                 </aside>
+                </SidePanel>
             </div>
 
             <TestDialog
@@ -245,7 +347,95 @@ export function EmailEditorPage({ id }: { id: number }) {
                 forms={forms}
                 onFormChange={setPreviewFormId}
             />
+
+            <AiWritingDialog open={aiOpen} onClose={() => setAiOpen(false)} />
         </div>
+    );
+}
+
+/**
+ * Wraps a builder side panel with a collapse/expand pill on the edge facing the
+ * canvas. Collapsed, the panel shrinks to a thin rail so the preview gets the
+ * room; the pill flips its arrow to expand it again.
+ */
+function SidePanel({
+    side,
+    collapsed,
+    onToggle,
+    children,
+}: {
+    side: "left" | "right";
+    collapsed: boolean;
+    onToggle: () => void;
+    children: React.ReactNode;
+}) {
+    // The pill sits on the border between the panel and the canvas: the right
+    // edge of a left panel, the left edge of a right panel.
+    const pillOnRight = side === "left";
+    const Icon =
+        side === "left"
+            ? collapsed
+                ? ChevronRight
+                : ChevronLeft
+            : collapsed
+              ? ChevronLeft
+              : ChevronRight;
+
+    return (
+        <div className="ff:relative ff:shrink-0">
+            {collapsed ? (
+                <div
+                    className={cn(
+                        "ff:h-full ff:w-7 ff:bg-white",
+                        side === "left" ? "ff:border-r" : "ff:border-l",
+                        "ff:border-slate-200",
+                    )}
+                />
+            ) : (
+                children
+            )}
+            <button
+                type="button"
+                onClick={onToggle}
+                aria-label={collapsed ? __("Expand panel") : __("Collapse panel")}
+                aria-expanded={!collapsed}
+                className={cn(
+                    "ff:absolute ff:top-1/2 ff:z-10 ff:flex ff:h-10 ff:w-5 ff:-translate-y-1/2 ff:cursor-pointer ff:items-center ff:justify-center ff:rounded-full ff:border ff:border-slate-200 ff:bg-white ff:text-slate-500 ff:shadow-sm ff:transition-colors ff:hover:text-slate-800",
+                    pillOnRight ? "ff:right-0 ff:translate-x-1/2" : "ff:left-0 ff:-translate-x-1/2",
+                )}
+            >
+                <Icon aria-hidden className="ff:h-4 ff:w-4" />
+            </button>
+        </div>
+    );
+}
+
+function LeftTab({
+    icon: Icon,
+    label,
+    active,
+    onClick,
+}: {
+    icon: typeof Blocks;
+    label: string;
+    active: boolean;
+    onClick: () => void;
+}) {
+    return (
+        <button
+            type="button"
+            onClick={onClick}
+            aria-pressed={active}
+            className={cn(
+                "ff:flex ff:flex-1 ff:items-center ff:justify-center ff:gap-1.5 ff:rounded-md ff:px-2 ff:py-1.5 ff:text-xs ff:font-medium ff:transition-colors",
+                active
+                    ? "ff:bg-brand-50 ff:text-brand-700"
+                    : "ff:text-slate-600 ff:hover:bg-slate-50 ff:hover:text-slate-900",
+            )}
+        >
+            <Icon aria-hidden className="ff:h-3.5 ff:w-3.5" />
+            {label}
+        </button>
     );
 }
 

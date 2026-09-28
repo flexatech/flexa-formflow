@@ -99,6 +99,34 @@ final class EntryRepository {
 		return (int) $wpdb->insert_id;
 	}
 
+	/**
+	 * Append an event to the entry's activity log (kept in the meta column, last
+	 * 50 events). Powers the delivery timeline on the entry detail screen.
+	 *
+	 * @param array<string, mixed> $event
+	 */
+	public function append_activity( int $id, array $event ): void {
+		global $wpdb;
+
+		$entry = $this->find( $id );
+		if ( null === $entry ) {
+			return;
+		}
+
+		$meta             = $entry->meta;
+		$activity         = isset( $meta['activity'] ) && is_array( $meta['activity'] ) ? $meta['activity'] : [];
+		$activity[]       = $event;
+		$meta['activity'] = array_slice( $activity, -50 );
+
+		$wpdb->update(
+			Schema::entries_table(),
+			[ 'meta' => (string) wp_json_encode( $meta ) ],
+			[ 'id' => $id ],
+			[ '%s' ],
+			[ '%d' ]
+		);
+	}
+
 	public function set_status( int $id, string $status ): bool {
 		global $wpdb;
 

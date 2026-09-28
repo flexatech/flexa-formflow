@@ -15,6 +15,71 @@ export interface OnboardingState {
     dismissed_at: number | null;
 }
 
+/**
+ * One field in an extension node's config form. The Free app owns the control
+ * vocabulary; an extension (the Pro plugin) only names which control to render
+ * and its options. See src/Extensions/Registry.php for the PHP-side contract.
+ */
+export interface ExtensionField {
+    key: string;
+    control:
+        | "text"
+        | "textarea"
+        | "email"
+        | "url"
+        | "number"
+        | "select"
+        | "switch"
+        | "token-text"
+        | "field-map"
+        | "conditions"
+        | "connection";
+    label?: string;
+    placeholder?: string;
+    help?: string;
+    default?: unknown;
+    options?: { value: string; label: string }[];
+    /** Destination rows for a `field-map` control (e.g. CRM fields). */
+    mapKeys?: { value: string; label: string }[];
+    /** Show this field only when another field equals a value. */
+    showIf?: { key: string; equals: string | number | boolean };
+    /** A secret (API key): masked input, never returned by the server once set. */
+    secret?: boolean;
+    /** For a `connection` control: which integration connect form this references. */
+    connectionId?: string;
+}
+
+/** An extension-registered workflow action node type. */
+export interface ExtensionWorkflowAction {
+    type: string;
+    label: string;
+    icon: string;
+    group: string;
+    summary?: string;
+    /** True when the add-on is installed but not licensed: render read-only. */
+    locked?: boolean;
+    lockedNote?: string;
+    fields: ExtensionField[];
+}
+
+/** An extension-registered integration connect form, keyed to a catalog card id. */
+export interface ExtensionIntegration {
+    id: string;
+    label: string;
+    summary?: string;
+    /** True when the add-on is installed but not licensed: render read-only. */
+    locked?: boolean;
+    lockedNote?: string;
+    fields: ExtensionField[];
+    /** Whether values are currently stored for this connection (status snapshot). */
+    connected?: boolean;
+}
+
+export interface Extensions {
+    workflowActions: ExtensionWorkflowAction[];
+    integrations: ExtensionIntegration[];
+}
+
 export interface PluginGlobal {
     restUrl: string;
     restNonce: string;
@@ -30,6 +95,8 @@ export interface PluginGlobal {
     hasWooCommerce: boolean;
     /** First-run guide state, localized so the guide renders on first paint. */
     onboarding?: OnboardingState;
+    /** Declarative UI registered by add-ons (Pro). Empty when none is active. */
+    extensions?: Extensions;
 }
 
 declare global {

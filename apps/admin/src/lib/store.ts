@@ -17,6 +17,9 @@ interface UiState {
     /** Email editor UI state: the selected element id in the layer list. */
     selectedElementId: string | null;
     setSelectedElement: (id: string | null) => void;
+    /** Forces the onboarding wizard open again (dashboard "Setup guide"). */
+    guideOpen: boolean;
+    setGuideOpen: (open: boolean) => void;
 }
 
 export const useUiStore = create<UiState>()((set) => ({
@@ -28,4 +31,6 @@ export const useUiStore = create<UiState>()((set) => ({
     setSelectedField: (id) => set({ selectedFieldId: id }),
     selectedElementId: null,
     setSelectedElement: (id) => set({ selectedElementId: id }),
+    guideOpen: false,
+    setGuideOpen: (open) => set({ guideOpen: open }),
 }));

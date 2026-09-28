@@ -2,6 +2,7 @@ import { Copy, Mail, Pencil, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/custom/EmptyState";
+import { TableSkeleton } from "@/components/custom/Skeletons";
 import {
     Dialog,
     DialogContent,
@@ -22,7 +23,12 @@ import {
 } from "./useEmailTemplates";
 import type { EmailTemplate } from "./types";
 
-export function TemplatesListPage() {
+/**
+ * The "Form Emails" tab body of the Emails screen. The page title and the
+ * primary "New template" action live on the parent EmailsPage; this owns the
+ * list, its row actions, and the empty state.
+ */
+export function FormEmailsTab() {
     const { data, isLoading } = useEmailTemplatesList();
     const createTemplate = useCreateEmailTemplate();
     const duplicateTemplate = useDuplicateEmailTemplate();
@@ -58,22 +64,9 @@ export function TemplatesListPage() {
     const items = data ?? [];
 
     return (
-        <div className="ff:flex ff:flex-col ff:gap-6 ff:p-6">
-            <div className="ff:flex ff:items-center ff:justify-between ff:gap-4">
-                <div>
-                    <h1 className="ff:text-2xl ff:font-semibold ff:text-slate-900">{__("Emails")}</h1>
-                    <p className="ff:mt-1 ff:text-sm ff:text-slate-500">
-                        {__("Design the notification and confirmation emails your forms send.")}
-                    </p>
-                </div>
-                <Button onClick={onCreate} disabled={createTemplate.isPending}>
-                    <Plus aria-hidden className="ff:h-4 ff:w-4" />
-                    {__("New template")}
-                </Button>
-            </div>
-
+        <>
             {isLoading ? (
-                <div className="ff:h-64 ff:animate-pulse ff:rounded-xl ff:border ff:border-slate-200 ff:bg-white" />
+                <TableSkeleton columns={3} />
             ) : items.length === 0 ? (
                 <EmptyState
                     icon={Mail}
@@ -172,6 +165,6 @@ export function TemplatesListPage() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
-        </div>
+        </>
     );
 }

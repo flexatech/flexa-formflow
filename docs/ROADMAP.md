@@ -26,6 +26,12 @@ consideration in Phase 7.
 Each milestone maps to phases in `IMPLEMENTATION_PLAN.md` and ends in a
 tagged, releasable state.
 
+Build status (see `IMPLEMENTATION_PLAN.md` for detail): M1 and M2 shipped;
+M3 hardening done bar the directory art and the manual smoke test; **M4, M5,
+M6, and M7 are now built and pass static checks** (phpstan L6, phpcs, `pnpm
+build` all green). The version tag and per-milestone release sequencing are a
+separate decision from the code being ready.
+
 ### M1 · "A form plugin that works" (0.5.0) — Phases 1 + 2 + email slice
 
 The minimum version that is honestly useful and passes WP.org review.
@@ -84,8 +90,22 @@ The identity feature. FORM → EMAIL becomes visual.
 
 ### Later — Phase 7
 
-- Onboarding wizard, AI form generation and writing assistant (needs
-  `Support\Encryption` port), CRM/marketing integrations move to Pro
+- AI form generation and writing assistant (needs `Support\Encryption`
+  port): built. Onboarding wizard: built (multi-step first-run tour over
+  the existing onboarding state/endpoint). CRM/marketing integrations move
+  to Pro: built. Free keeps the `crm` catalog card as a "soon" placeholder
+  and owns the extension seams (`flexa_formflow.integrations.catalog`,
+  `.connect_fields`, `flexa_formflow.workflows.action_types` / `.run_action`)
+  plus connection storage (`Integrations\Connections`, secrets never leave
+  the server). The real connector ships in the sibling plugin
+  `flexa-formflow-pro` (own repo, absent from the Free zip, `Requires
+  Plugins: flexa-formflow`): a `crm_push` workflow node with a connect-once
+  drawer, provider select (webhook does a live `wp_remote_post`; hosted
+  providers log a demo), field mapping, conditions, and a license gate.
+  Static checks green (php -l, `pnpm type-check`, `pnpm build`) and a PHP
+  harness covers the descriptor/sanitize/runtime branches. Still pending:
+  live wp-admin click-through with Pro active, and confirming the
+  production license API host + product slug before the Pro release.
 
 ## When can it go on WP.org?
 

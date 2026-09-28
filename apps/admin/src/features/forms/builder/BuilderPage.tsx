@@ -1,14 +1,18 @@
-import { ArrowLeft, Share2 } from "lucide-react";
+import { ArrowLeft, Eye, Share2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { __ } from "@/lib/i18n";
 import { cn } from "@/lib/cn";
 import { navigate } from "@/lib/router";
+import { SHOW_UPCOMING } from "@/lib/flags";
 import { useUiStore } from "@/lib/store";
+import { SaveToLibraryButton } from "@/features/library/SaveToLibrary";
+import { EditorSkeleton } from "@/components/custom/Skeletons";
 import { useForm, useSaveForm } from "../useForms";
 import type { FormConfig, FormStatus } from "../types";
 import { BuildTab } from "./BuildTab";
+import { FormPreviewDialog } from "./FormPreviewDialog";
 import { NotificationsTab } from "./NotificationsTab";
 import { ShareTab } from "./ShareTab";
 
@@ -32,6 +36,8 @@ export function BuilderPage({ id }: { id: number }) {
     const setSelectedField = useUiStore((s) => s.setSelectedField);
     const [draft, setDraft] = useState<Draft | null>(null);
     const [tab, setTab] = useState<TabName>("build");
+    const [previewOpen, setPreviewOpen] = useState(false);
+    const [previewViewport, setPreviewViewport] = useState<"desktop" | "mobile">("desktop");
     const lastSaved = useRef("");
 
     useEffect(() => {
@@ -63,11 +69,7 @@ export function BuilderPage({ id }: { id: number }) {
     }, [draft]);
 
     if (isLoading || !form || !draft) {
-        return (
-            <div className="ff:p-6">
-                <div className="ff:h-screen ff:animate-pulse ff:rounded-xl ff:border ff:border-slate-200 ff:bg-white" />
-            </div>
-        );
+        return <EditorSkeleton />;
     }
 
     const dirty = JSON.stringify(draft) !== lastSaved.current;
@@ -104,6 +106,18 @@ export function BuilderPage({ id }: { id: number }) {
                     />
                     {draft.status === "published" ? __("Published") : __("Draft")}
                 </label>
+                {SHOW_UPCOMING && (
+                    <SaveToLibraryButton
+                        type="template"
+                        kind="form"
+                        defaultName={draft.title}
+                        getPayload={() => draft.config as unknown as Record<string, unknown>}
+                    />
+                )}
+                <Button variant="outline" size="sm" onClick={() => setPreviewOpen(true)}>
+                    <Eye aria-hidden className="ff:h-4 ff:w-4" />
+                    {__("Preview")}
+                </Button>
                 <Button variant="outline" size="sm" onClick={() => setTab("share")}>
                     <Share2 aria-hidden className="ff:h-4 ff:w-4" />
                     {__("Share")}
@@ -129,6 +143,15 @@ export function BuilderPage({ id }: { id: number }) {
                 )}
                 {tab === "share" && <ShareTab form={form} status={draft.status} />}
             </div>
+
+            <FormPreviewDialog
+                open={previewOpen}
+                onOpenChange={setPreviewOpen}
+                config={draft.config}
+                title={draft.title}
+                viewport={previewViewport}
+                onViewportChange={setPreviewViewport}
+            />
         </div>
     );
 }

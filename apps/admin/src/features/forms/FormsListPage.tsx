@@ -1,7 +1,9 @@
-import { Copy, FileText, Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { Copy, FileText, Pencil, Plus, Search, Sparkles, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/custom/EmptyState";
+import { TableSkeleton } from "@/components/custom/Skeletons";
+import { AiFormDialog } from "@/features/ai/AiFormDialog";
 import { Input } from "@/components/ui/input";
 import {
     Dialog,
@@ -26,6 +28,7 @@ export function FormsListPage() {
     const deleteForm = useDeleteForm();
     const showToast = useUiStore((s) => s.showToast);
     const [confirmDelete, setConfirmDelete] = useState<FormSummary | null>(null);
+    const [aiOpen, setAiOpen] = useState(false);
 
     const onCreate = () => {
         createForm.mutate(__("Untitled form"), {
@@ -69,10 +72,18 @@ export function FormsListPage() {
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
                             placeholder={__("Search forms…")}
-                            className="ff:w-56 ff:pl-8"
+                            className="ff:w-56"
+                            // Inline left padding: WP-admin's unlayered `input { padding }`
+                            // beats the layered `ff:pl-8` utility, so the icon and text
+                            // would overlap. An inline style outranks WP's rule.
+                            style={{ paddingLeft: "2rem" }}
                             spellCheck={false}
                         />
                     </div>
+                    <Button variant="outline" onClick={() => setAiOpen(true)}>
+                        <Sparkles aria-hidden className="ff:h-4 ff:w-4" />
+                        {__("Generate with AI")}
+                    </Button>
                     <Button onClick={onCreate} disabled={createForm.isPending}>
                         <Plus aria-hidden className="ff:h-4 ff:w-4" />
                         {__("Create Form")}
@@ -81,7 +92,7 @@ export function FormsListPage() {
             </div>
 
             {isLoading ? (
-                <div className="ff:h-64 ff:animate-pulse ff:rounded-xl ff:border ff:border-slate-200 ff:bg-white" />
+                <TableSkeleton columns={5} />
             ) : !hasAnything ? (
                 <EmptyState
                     icon={FileText}
@@ -197,6 +208,8 @@ export function FormsListPage() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            <AiFormDialog open={aiOpen} onClose={() => setAiOpen(false)} />
         </div>
     );
 }

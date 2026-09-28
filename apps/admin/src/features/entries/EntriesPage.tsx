@@ -2,6 +2,7 @@ import { Inbox } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/custom/EmptyState";
+import { TableSkeleton } from "@/components/custom/Skeletons";
 import { Select } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { __ } from "@/lib/i18n";
@@ -58,7 +59,7 @@ export function EntriesPage() {
             </div>
 
             {isLoading ? (
-                <div className="ff:h-64 ff:animate-pulse ff:rounded-xl ff:border ff:border-slate-200 ff:bg-white" />
+                <TableSkeleton columns={3} />
             ) : items.length === 0 ? (
                 filtered ? (
                     <EmptyState

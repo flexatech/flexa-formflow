@@ -35,13 +35,15 @@ final class Social extends BaseElement {
 
 	public function render( array $props, RenderContext $ctx, array $design ): string {
 		$align = esc_attr( $this->str( $props, 'align', 'center' ) );
-		$brand = esc_attr( (string) $design['brandColor'] );
+		// Social labels are links, so they follow the template's link color
+		// (which itself falls back to the brand color).
+		$link = esc_attr( (string) ( $design['linkColor'] ?? $design['brandColor'] ) );
 
 		$links = [];
 		foreach ( self::NETWORKS as $network => $label ) {
 			$url = esc_url( $this->str( $props, $network ) );
 			if ( '' !== $url ) {
-				$links[] = '<a href="' . $url . '" style="display:inline-block;margin:0 8px;font-size:13px;font-weight:600;color:' . $brand . ';text-decoration:none;">' . esc_html( $label ) . '</a>';
+				$links[] = '<a href="' . $url . '" style="display:inline-block;margin:0 8px;font-size:13px;font-weight:600;color:' . $link . ';text-decoration:none;">' . esc_html( $label ) . '</a>';
 			}
 		}
 

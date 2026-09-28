@@ -4,34 +4,34 @@ import {
     FileText,
     Inbox,
     LayoutDashboard,
+    Library,
     Mail,
     Plug,
     Settings,
     Workflow,
-    Zap,
 } from "lucide-react";
 import { AppProviders } from "@/app/providers";
 import { Toaster } from "@/components/Toaster";
 import { DashboardPage } from "@/features/dashboard/DashboardPage";
-import { IntegrationsPage, WorkflowsPage } from "@/features/placeholders/pages";
+import { LibraryPage } from "@/features/library/LibraryPage";
+import { PackDetailPage } from "@/features/library/PackDetailPage";
+import { IntegrationsPage } from "@/features/integrations/IntegrationsPage";
+import { WorkflowsListPage } from "@/features/workflows/WorkflowsListPage";
+import { WorkflowBuilderPage } from "@/features/workflows/builder/WorkflowBuilderPage";
+import { OnboardingWizard } from "@/features/onboarding/OnboardingWizard";
 import { FormsListPage } from "@/features/forms/FormsListPage";
 import { BuilderPage } from "@/features/forms/builder/BuilderPage";
 import { EntriesPage } from "@/features/entries/EntriesPage";
 import { EntryDetailPage } from "@/features/entries/EntryDetailPage";
-import { TemplatesListPage } from "@/features/emails/TemplatesListPage";
+import { EmailsPage } from "@/features/emails/EmailsPage";
 import { EmailEditorPage } from "@/features/emails/editor/EmailEditorPage";
 import { SettingsPage } from "@/features/settings/SettingsPage";
 import { __ } from "@/lib/i18n";
 import { cn } from "@/lib/cn";
 import { currentRoute, type Route } from "@/lib/router";
+import { SHOW_UPCOMING } from "@/lib/flags";
+import logoUrl from "@/assets/logo.webp";
 import "./styles/index.css";
-
-/**
- * WP.org gate (docs/ROADMAP.md): sections that are designed but not built
- * stay invisible until their milestone ships. Flip to true during development
- * of M2+ to see the placeholder screens again.
- */
-const SHOW_UPCOMING = false;
 
 interface NavItem {
     route: string;
@@ -39,6 +39,10 @@ interface NavItem {
     icon: typeof LayoutDashboard;
     label: () => string;
     upcoming?: boolean;
+    /** Shown only when WooCommerce is active. */
+    wooOnly?: boolean;
+    /** Shown only to users who can manage settings. */
+    settingsOnly?: boolean;
 }
 
 const NAV: NavItem[] = [
@@ -46,8 +50,9 @@ const NAV: NavItem[] = [
     { route: "forms", href: "#/forms", icon: FileText, label: () => __("Forms") },
     { route: "entries", href: "#/entries", icon: Inbox, label: () => __("Entries") },
     { route: "emails", href: "#/emails", icon: Mail, label: () => __("Emails") },
-    { route: "workflows", href: "#/workflows", icon: Workflow, label: () => __("Workflows"), upcoming: true },
-    { route: "integrations", href: "#/integrations", icon: Plug, label: () => __("Integrations"), upcoming: true },
+    { route: "workflows", href: "#/workflows", icon: Workflow, label: () => __("Workflows") },
+    { route: "library", href: "#/library", icon: Library, label: () => __("Library"), upcoming: true },
+    { route: "integrations", href: "#/integrations", icon: Plug, label: () => __("Integrations") },
     { route: "settings", href: "#/settings", icon: Settings, label: () => __("Settings") },
 ];
 
@@ -72,6 +77,12 @@ function navSection(route: Route): string {
             return "entries";
         case "emailEditor":
             return "emails";
+        case "woocommerce":
+            return "emails";
+        case "workflowEditor":
+            return "workflows";
+        case "pack":
+            return "library";
         default:
             return route.name;
     }
@@ -88,13 +99,21 @@ function screenFor(route: Route): ReactNode {
         case "entry":
             return <EntryDetailPage key={route.id} id={route.id} />;
         case "emails":
-            return <TemplatesListPage />;
+            return <EmailsPage tab="form" />;
         case "emailEditor":
             return <EmailEditorPage key={route.id} id={route.id} />;
+        case "woocommerce":
+            return <EmailsPage tab="woocommerce" />;
         case "workflows":
-            return SHOW_UPCOMING ? <WorkflowsPage /> : <DashboardPage />;
+            return <WorkflowsListPage />;
+        case "workflowEditor":
+            return <WorkflowBuilderPage key={route.id} id={route.id} />;
         case "integrations":
-            return SHOW_UPCOMING ? <IntegrationsPage /> : <DashboardPage />;
+            return <IntegrationsPage />;
+        case "library":
+            return <LibraryPage />;
+        case "pack":
+            return <PackDetailPage key={route.id} id={route.id} />;
         case "settings":
             return <SettingsPage />;
         case "dashboard":
@@ -106,10 +125,17 @@ function screenFor(route: Route): ReactNode {
 function App() {
     const route = useRoute();
     const section = navSection(route);
-    const items = NAV.filter((item) => SHOW_UPCOMING || !item.upcoming);
+    const hasWoo = window.flexaFormFlow?.hasWooCommerce ?? false;
+    const canSettings = window.flexaFormFlow?.canManageSettings ?? false;
+    const items = NAV.filter(
+        (item) =>
+            (SHOW_UPCOMING || !item.upcoming) &&
+            (!item.wooOnly || hasWoo) &&
+            (!item.settingsOnly || canSettings),
+    );
 
-    // The builder and email editor are full-area takeovers: no sidebar.
-    if (route.name === "builder" || route.name === "emailEditor") {
+    // The builder and editors are full-area takeovers: no sidebar.
+    if (route.name === "builder" || route.name === "emailEditor" || route.name === "workflowEditor") {
         return (
             <div className="ff:flex ff:min-h-screen ff:bg-slate-50">
                 {screenFor(route)}
@@ -122,9 +148,12 @@ function App() {
         <div className="ff:flex ff:min-h-screen ff:bg-slate-50">
             <aside className="ff:sticky ff:top-8 ff:flex ff:h-[calc(100vh-2rem)] ff:w-56 ff:shrink-0 ff:flex-col ff:border-r ff:border-slate-200 ff:bg-white">
                 <div className="ff:flex ff:items-center ff:gap-3 ff:px-4 ff:py-4">
-                    <div className="ff:flex ff:h-9 ff:w-9 ff:items-center ff:justify-center ff:rounded-xl ff:bg-gradient-to-br ff:from-brand-500 ff:to-brand-700 ff:text-white ff:shadow-sm">
-                        <Zap aria-hidden className="ff:h-4.5 ff:w-4.5" />
-                    </div>
+                    <img
+                        src={logoUrl}
+                        alt=""
+                        aria-hidden
+                        className="ff:h-9 ff:w-9 ff:shrink-0 ff:rounded-xl ff:object-contain"
+                    />
                     <div className="ff:flex ff:flex-col">
                         <span className="ff:text-sm ff:font-semibold ff:leading-tight ff:text-slate-900">
                             FormFlow
@@ -144,6 +173,7 @@ function App() {
                 </nav>
             </aside>
             <main className="ff:min-w-0 ff:flex-1">{screenFor(route)}</main>
+            <OnboardingWizard />
             <Toaster />
         </div>
     );

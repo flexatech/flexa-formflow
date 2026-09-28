@@ -11,21 +11,75 @@ import {
 } from "@dnd-kit/core";
 import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { GripVertical, MousePointerClick, Trash2 } from "lucide-react";
-import { useState } from "react";
-import { __ } from "@/lib/i18n";
-import { cn } from "@/lib/cn";
-import { useUiStore } from "@/lib/store";
 import {
+    Bookmark,
+    Check,
+    GripVertical,
+    MapPin,
+    MousePointerClick,
+    Phone,
+    ShoppingCart,
+    Sparkles,
+    Star,
+    Trash2,
+    Upload,
+    type LucideIcon,
+} from "lucide-react";
+import { useState } from "react";
+import { __, sprintf } from "@/lib/i18n";
+import { cn } from "@/lib/cn";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
+import { LockedExplainer } from "@/components/custom/LockedExplainer";
+import { PRO_UPGRADE_URL } from "@/lib/links";
+import { getPluginGlobal } from "@/lib/wp";
+import { useUiStore } from "@/lib/store";
+import { useMyLibrary, useSaveToLibrary } from "@/features/library/useLibrary";
+import type { SavedAsset } from "@/features/library/types";
+import {
+    FIELD_CATEGORIES,
     FIELD_TYPES,
     fieldTypeMeta,
     newField,
     widthLabel,
+    type FieldLogic,
     type FieldType,
     type FormConfig,
     type FormField,
 } from "../types";
 import { Inspector } from "./Inspector";
+
+/**
+ * Pro advanced fields shown as explorable locked palette items (lock type 1).
+ * Free has no engine backing for these, so the item opens the explainer rather
+ * than inserting, matching the workflow builder's Pro timing nodes.
+ */
+const PRO_FIELDS: { key: string; label: string; summary: string; icon: LucideIcon }[] = [
+    { key: "file", label: __("File upload"), summary: __("Let people attach files to a submission."), icon: Upload },
+    { key: "phone", label: __("Phone"), summary: __("A phone field with format validation."), icon: Phone },
+    { key: "rating", label: __("Rating"), summary: __("Collect a star rating."), icon: Star },
+    { key: "address", label: __("Address"), summary: __("A grouped multi-line address field."), icon: MapPin },
+];
+
+/** Woo-specific Pro fields; only shown when WooCommerce is active. */
+const WOO_FIELDS: { key: string; label: string; summary: string; icon: LucideIcon }[] = [
+    {
+        key: "product",
+        label: __("Product picker"),
+        summary: __("Let customers choose a product on the form."),
+        icon: ShoppingCart,
+    },
+];
 
 interface BuildTabProps {
     config: FormConfig;
@@ -40,6 +94,9 @@ export function BuildTab({ config, onChange }: BuildTabProps) {
     const selectedFieldId = useUiStore((s) => s.selectedFieldId);
     const setSelectedField = useUiStore((s) => s.setSelectedField);
     const [paletteDrag, setPaletteDrag] = useState<FieldType | null>(null);
+    // Multi-select for "Save as pattern"; independent of the single inspector
+    // selection (selectedFieldId). Holds the checked field ids.
+    const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set());
     const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
 
     const fields = config.fields;
@@ -52,6 +109,41 @@ export function BuildTab({ config, onChange }: BuildTabProps) {
         setFields(next);
         setSelectedField(field.id);
     };
+
+    // Drop a saved pattern's fields into the canvas. Ids are regenerated so a
+    // pattern can be inserted more than once; intra-pattern logic references are
+    // remapped to the new ids so a rule inside the pattern keeps working.
+    const insertPattern = (raw: SavedAsset) => {
+        const payload = raw.payload as { fields?: unknown };
+        const rawFields = Array.isArray(payload.fields) ? (payload.fields as FormField[]) : [];
+        if (rawFields.length === 0) {
+            return;
+        }
+        const idMap = new Map<string, string>();
+        rawFields.forEach((f) => idMap.set(f.id, "f_" + Math.random().toString(36).slice(2, 8)));
+        const remapped: FormField[] = rawFields.map((f) => ({
+            ...f,
+            id: idMap.get(f.id) as string,
+            logic: remapLogic(f.logic, idMap),
+        }));
+        setFields([...fields, ...remapped]);
+    };
+
+    const toggleChecked = (id: string) =>
+        setCheckedIds((prev) => {
+            const next = new Set(prev);
+            if (next.has(id)) {
+                next.delete(id);
+            } else {
+                next.add(id);
+            }
+            return next;
+        });
+
+    const clearChecked = () => setCheckedIds(new Set());
+
+    // Selected fields in canvas order, so a saved pattern preserves layout.
+    const checkedFields = fields.filter((f) => checkedIds.has(f.id));
 
     const onDragStart = (event: DragStartEvent) => {
         const data = event.active.data.current;
@@ -88,24 +180,58 @@ export function BuildTab({ config, onChange }: BuildTabProps) {
     return (
         <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd}>
             <div className="ff:grid ff:h-full ff:grid-cols-[13rem_1fr_17rem] ff:gap-0">
-                <aside className="ff:overflow-y-auto ff:border-r ff:border-slate-200 ff:bg-white ff:p-3">
-                    <p className="ff:mb-2 ff:px-1 ff:text-xs ff:font-semibold ff:uppercase ff:tracking-wide ff:text-slate-400">
-                        {__("Fields")}
-                    </p>
-                    <div className="ff:flex ff:flex-col ff:gap-1">
-                        {FIELD_TYPES.map((meta) => (
-                            <PaletteItem key={meta.type} type={meta.type} onAdd={() => addField(meta.type)} />
+                <aside className="ff:flex ff:flex-col ff:gap-4 ff:overflow-y-auto ff:border-r ff:border-slate-200 ff:bg-white ff:p-3">
+                    {FIELD_CATEGORIES.map((cat) => {
+                        const items = FIELD_TYPES.filter((m) => m.category === cat.value);
+                        if (items.length === 0) {
+                            return null;
+                        }
+                        return (
+                            <PaletteSection key={cat.value} label={cat.label()}>
+                                {items.map((meta) => (
+                                    <PaletteItem key={meta.type} type={meta.type} onAdd={() => addField(meta.type)} />
+                                ))}
+                            </PaletteSection>
+                        );
+                    })}
+
+                    <PaletteSection label={__("Advanced")}>
+                        {PRO_FIELDS.map((field) => (
+                            <ProPaletteItem key={field.key} label={field.label} summary={field.summary} icon={field.icon} />
                         ))}
-                    </div>
+                    </PaletteSection>
+
+                    {getPluginGlobal().hasWooCommerce && (
+                        <PaletteSection label={__("WooCommerce")}>
+                            {WOO_FIELDS.map((field) => (
+                                <ProPaletteItem
+                                    key={field.key}
+                                    label={field.label}
+                                    summary={field.summary}
+                                    icon={field.icon}
+                                />
+                            ))}
+                        </PaletteSection>
+                    )}
+
+                    <PatternsSection onInsert={insertPattern} />
                 </aside>
 
                 <Canvas
                     fields={fields}
                     selectedId={selectedFieldId}
+                    checkedIds={checkedIds}
                     onSelect={setSelectedField}
+                    onToggleChecked={toggleChecked}
                     onRemove={(id) => {
                         setFields(fields.filter((f) => f.id !== id));
                         if (selectedFieldId === id) setSelectedField(null);
+                        setCheckedIds((prev) => {
+                            if (!prev.has(id)) return prev;
+                            const next = new Set(prev);
+                            next.delete(id);
+                            return next;
+                        });
                     }}
                 />
 
@@ -122,10 +248,184 @@ export function BuildTab({ config, onChange }: BuildTabProps) {
                 </aside>
             </div>
 
+            <SelectionBar fields={checkedFields} onClear={clearChecked} />
+
             <DragOverlay>
                 {paletteDrag ? <PaletteGhost type={paletteDrag} /> : null}
             </DragOverlay>
         </DndContext>
+    );
+}
+
+/**
+ * Floating bar shown while one or more canvas fields are checked. Saves the
+ * checked fields (in canvas order) as a form pattern in My Library, so a group
+ * of fields can be reused without saving the whole form.
+ */
+function SelectionBar({ fields, onClear }: { fields: FormField[]; onClear: () => void }) {
+    const [open, setOpen] = useState(false);
+    const [name, setName] = useState("");
+    const save = useSaveToLibrary();
+    const showToast = useUiStore((s) => s.showToast);
+    const count = fields.length;
+
+    if (count === 0) {
+        return null;
+    }
+
+    const start = () => {
+        setName("");
+        setOpen(true);
+    };
+
+    const onSave = () => {
+        const trimmed = name.trim();
+        if (trimmed === "") {
+            return;
+        }
+        save.mutate(
+            { type: "pattern", kind: "form", name: trimmed, payload: { fields } },
+            {
+                onSuccess: () => {
+                    showToast(__("Saved to your library"));
+                    setOpen(false);
+                    onClear();
+                },
+                onError: () => showToast(__("Could not save to the library."), "error"),
+            },
+        );
+    };
+
+    return (
+        <>
+            <div className="ff:fixed ff:bottom-6 ff:left-1/2 ff:z-[120] ff:flex ff:-translate-x-1/2 ff:items-center ff:gap-3 ff:rounded-full ff:border ff:border-slate-200 ff:bg-white ff:py-2 ff:pe-2 ff:ps-4 ff:shadow-lg">
+                <span className="ff:text-sm ff:font-medium ff:text-slate-700">
+                    {sprintf(__("%d selected"), count)}
+                </span>
+                <button
+                    type="button"
+                    onClick={onClear}
+                    className="ff:cursor-pointer ff:rounded ff:bg-transparent ff:px-2 ff:py-1 ff:text-sm ff:text-slate-500 ff:transition-colors ff:hover:text-slate-800"
+                >
+                    {__("Clear")}
+                </button>
+                <Button size="sm" onClick={start}>
+                    <Bookmark aria-hidden className="ff:h-4 ff:w-4" />
+                    {__("Save as pattern")}
+                </Button>
+            </div>
+
+            <Dialog open={open} onOpenChange={(next) => !next && setOpen(false)}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>{__("Save selection as a pattern")}</DialogTitle>
+                        <DialogDescription>
+                            {sprintf(
+                                __("These %d fields become a reusable pattern you can drop into any form later."),
+                                count,
+                            )}
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="ff:py-2">
+                        <Label htmlFor="ff-save-pattern-name" className="ff:mb-1.5 ff:block">
+                            {__("Name")}
+                        </Label>
+                        <Input
+                            id="ff-save-pattern-name"
+                            value={name}
+                            onChange={(e) => setName(e.target.value)}
+                            placeholder={__("Name this pattern")}
+                            autoFocus
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                    onSave();
+                                }
+                            }}
+                        />
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setOpen(false)}>
+                            {__("Cancel")}
+                        </Button>
+                        <Button onClick={onSave} disabled={save.isPending || name.trim() === ""}>
+                            {save.isPending ? __("Saving…") : __("Save pattern")}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        </>
+    );
+}
+
+/** Repoint a field's logic rule (if any) at the pattern's new field ids. */
+function remapLogic(logic: FormField["logic"], idMap: Map<string, string>): FieldLogic | undefined {
+    if (!logic || typeof (logic as FieldLogic).field !== "string" || !("operator" in logic)) {
+        return undefined;
+    }
+    const rule = logic as FieldLogic;
+    return { ...rule, field: idMap.get(rule.field) ?? rule.field };
+}
+
+function PaletteSection({ label, children }: { label: string; children: React.ReactNode }) {
+    return (
+        <div>
+            <p className="ff:mb-1.5 ff:px-1 ff:text-xs ff:font-semibold ff:uppercase ff:tracking-wide ff:text-slate-400">
+                {label}
+            </p>
+            <div className="ff:flex ff:flex-col ff:gap-1">{children}</div>
+        </div>
+    );
+}
+
+/** A locked advanced-field row: clicking opens the Pro explainer, never inserts. */
+function ProPaletteItem({ label, summary, icon: Icon }: { label: string; summary: string; icon: LucideIcon }) {
+    return (
+        <LockedExplainer
+            title={summary}
+            unlocks={__("Included in FormFlow Pro.")}
+            upgradeUrl={PRO_UPGRADE_URL}
+            className="ff:w-full"
+        >
+            <span className="ff:flex ff:w-full ff:items-center ff:gap-2.5 ff:rounded-lg ff:border ff:border-dashed ff:border-slate-200 ff:px-2.5 ff:py-2 ff:text-sm ff:font-medium ff:text-slate-500">
+                <Icon aria-hidden className="ff:h-4 ff:w-4 ff:text-slate-400" />
+                <span className="ff:flex-1 ff:text-left">{label}</span>
+                <Badge variant="pro">{__("Pro")}</Badge>
+            </span>
+        </LockedExplainer>
+    );
+}
+
+/**
+ * Patterns are a first-class insert category. Only saved form assets carry real
+ * field payloads (catalog entries are marketing metadata), so this lists My
+ * Library form patterns; pack patterns land here once imported.
+ */
+function PatternsSection({ onInsert }: { onInsert: (raw: SavedAsset) => void }) {
+    const { data: mine } = useMyLibrary();
+    const patterns = (mine ?? []).filter((r) => r.raw.kind === "form");
+    if (patterns.length === 0) {
+        return null;
+    }
+    return (
+        <PaletteSection label={__("Patterns")}>
+            {patterns.map(({ raw }) => {
+                const count = Array.isArray((raw.payload as { fields?: unknown }).fields)
+                    ? (raw.payload as { fields: unknown[] }).fields.length
+                    : 0;
+                return (
+                    <button
+                        key={raw.id}
+                        type="button"
+                        onClick={() => onInsert(raw)}
+                        className="ff:flex ff:cursor-pointer ff:items-center ff:gap-2.5 ff:rounded-lg ff:border ff:border-transparent ff:bg-transparent ff:px-2.5 ff:py-2 ff:text-left ff:text-sm ff:font-medium ff:text-slate-700 ff:transition-colors ff:hover:border-slate-200 ff:hover:bg-slate-50"
+                    >
+                        <Sparkles aria-hidden className="ff:h-4 ff:w-4 ff:text-slate-400" />
+                        <span className="ff:min-w-0 ff:flex-1 ff:truncate">{raw.name}</span>
+                        <span className="ff:text-xs ff:text-slate-400 ff:tabular-nums">{count}</span>
+                    </button>
+                );
+            })}
+        </PaletteSection>
     );
 }
 
@@ -166,12 +466,16 @@ function PaletteGhost({ type }: { type: FieldType }) {
 function Canvas({
     fields,
     selectedId,
+    checkedIds,
     onSelect,
+    onToggleChecked,
     onRemove,
 }: {
     fields: FormField[];
     selectedId: string | null;
+    checkedIds: Set<string>;
     onSelect: (id: string | null) => void;
+    onToggleChecked: (id: string) => void;
     onRemove: (id: string) => void;
 }) {
     const { setNodeRef, isOver } = useDroppable({ id: "canvas" });
@@ -199,7 +503,9 @@ function Canvas({
                                 key={field.id}
                                 field={field}
                                 selected={field.id === selectedId}
+                                checked={checkedIds.has(field.id)}
                                 onSelect={() => onSelect(field.id)}
+                                onToggleChecked={() => onToggleChecked(field.id)}
                                 onRemove={() => onRemove(field.id)}
                             />
                         ))}
@@ -213,12 +519,16 @@ function Canvas({
 function FieldCard({
     field,
     selected,
+    checked,
     onSelect,
+    onToggleChecked,
     onRemove,
 }: {
     field: FormField;
     selected: boolean;
+    checked: boolean;
     onSelect: () => void;
+    onToggleChecked: () => void;
     onRemove: () => void;
 }) {
     const { attributes, listeners, setNodeRef, setActivatorNodeRef, transform, transition, isDragging } =
@@ -234,7 +544,9 @@ function FieldCard({
                 "ff:group ff:flex ff:items-center ff:gap-2 ff:rounded-lg ff:border ff:bg-white ff:px-3 ff:py-2.5 ff:transition-colors",
                 selected
                     ? "ff:border-brand-500 ff:bg-brand-50/40 ff:ring-1 ff:ring-brand-500"
-                    : "ff:border-slate-200 ff:hover:border-slate-300",
+                    : checked
+                      ? "ff:border-brand-300 ff:bg-brand-50/30"
+                      : "ff:border-slate-200 ff:hover:border-slate-300",
                 isDragging && "ff:opacity-40",
             )}
             onClick={(e) => {
@@ -242,6 +554,23 @@ function FieldCard({
                 onSelect();
             }}
         >
+            <button
+                type="button"
+                aria-label={checked ? __("Deselect field") : __("Select field")}
+                aria-pressed={checked}
+                onClick={(e) => {
+                    e.stopPropagation();
+                    onToggleChecked();
+                }}
+                className={cn(
+                    "ff:flex ff:h-4 ff:w-4 ff:shrink-0 ff:cursor-pointer ff:items-center ff:justify-center ff:rounded ff:border ff:transition-all",
+                    checked
+                        ? "ff:border-brand-500 ff:bg-brand-500 ff:text-white ff:opacity-100"
+                        : "ff:border-slate-300 ff:bg-white ff:text-transparent ff:opacity-0 ff:group-hover:opacity-100",
+                )}
+            >
+                <Check aria-hidden className="ff:h-3 ff:w-3" />
+            </button>
             <button
                 ref={setActivatorNodeRef}
                 type="button"
