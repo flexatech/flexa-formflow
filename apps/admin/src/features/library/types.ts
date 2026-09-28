@@ -102,6 +102,32 @@ export interface ImportSummary {
     created: { forms: number; emails: number; workflows: number; patterns: number };
 }
 
+/** Which content group an installed pack item belongs to. */
+export type PackGroup = "forms" | "emails" | "workflows" | "patterns";
+
+/** One installed pack item and whether it is still on the site. */
+export interface PackStatusItem {
+    ref: string;
+    name: string;
+    group: PackGroup;
+    present: boolean;
+}
+
+/** What an installed pack still has, and what the user has deleted. */
+export interface PackStatus {
+    pack: string;
+    name: string;
+    summary: { present: number; missing: number };
+    items: PackStatusItem[];
+}
+
+/** What a restore put back. `repointed` counts the rows rewired to the new ids. */
+export interface RestoreSummary {
+    pack: string;
+    restored: { forms: number; emails: number; workflows: number; patterns: number };
+    repointed: number;
+}
+
 /** The raw My Library row as stored and returned by the server. */
 export interface SavedAsset {
     id: number;

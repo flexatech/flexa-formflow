@@ -9,6 +9,7 @@ use Flexa\FormFlow\Library\Catalog;
 use Flexa\FormFlow\Packs\InstallState;
 use Flexa\FormFlow\Packs\Installer;
 use Flexa\FormFlow\Packs\Registry;
+use Flexa\FormFlow\Packs\Restorer;
 use WP_Error;
 use WP_REST_Request;
 use WP_REST_Response;
@@ -81,6 +82,32 @@ final class LibraryEndpoint extends Endpoint {
 				[
 					'methods'             => 'POST',
 					'callback'            => [ $this, 'update_pack' ],
+					'permission_callback' => [ $this, 'manage_permission' ],
+					'args'                => [ 'id' => [ 'sanitize_callback' => 'sanitize_key' ] ],
+				],
+			]
+		);
+
+		register_rest_route(
+			self::NAMESPACE,
+			'/library/packs/(?P<id>[a-z0-9-]+)/status',
+			[
+				[
+					'methods'             => 'GET',
+					'callback'            => [ $this, 'pack_status' ],
+					'permission_callback' => [ $this, 'manage_permission' ],
+					'args'                => [ 'id' => [ 'sanitize_callback' => 'sanitize_key' ] ],
+				],
+			]
+		);
+
+		register_rest_route(
+			self::NAMESPACE,
+			'/library/packs/(?P<id>[a-z0-9-]+)/restore',
+			[
+				[
+					'methods'             => 'POST',
+					'callback'            => [ $this, 'restore' ],
 					'permission_callback' => [ $this, 'manage_permission' ],
 					'args'                => [ 'id' => [ 'sanitize_callback' => 'sanitize_key' ] ],
 				],
@@ -184,6 +211,38 @@ final class LibraryEndpoint extends Endpoint {
 		$summary = Installer::instance()->import( $manifest );
 
 		return new WP_REST_Response( [ 'summary' => $summary ], 201 );
+	}
+
+	/**
+	 * Which of an installed pack's items are still on the site. Backs the
+	 * "N items missing" line and its Restore action.
+	 */
+	public function pack_status( WP_REST_Request $request ): WP_REST_Response|WP_Error {
+		$manifest = Registry::find( (string) $request->get_param( 'id' ) );
+		if ( null === $manifest ) {
+			return new WP_Error( 'flexa_formflow_pack_not_found', __( 'Pack not found.', 'flexa-formflow' ), [ 'status' => 404 ] );
+		}
+		if ( ! InstallState::is_installed( $manifest->id ) ) {
+			return new WP_Error( 'flexa_formflow_pack_not_installed', __( 'This pack is not installed.', 'flexa-formflow' ), [ 'status' => 409 ] );
+		}
+
+		return new WP_REST_Response( [ 'status' => Restorer::instance()->status( $manifest ) ], 200 );
+	}
+
+	/**
+	 * Recreate the deleted items of an installed pack. Untouched items are left
+	 * alone, so this is safe to run when nothing is missing.
+	 */
+	public function restore( WP_REST_Request $request ): WP_REST_Response|WP_Error {
+		$manifest = Registry::find( (string) $request->get_param( 'id' ) );
+		if ( null === $manifest ) {
+			return new WP_Error( 'flexa_formflow_pack_not_found', __( 'Pack not found.', 'flexa-formflow' ), [ 'status' => 404 ] );
+		}
+		if ( ! InstallState::is_installed( $manifest->id ) ) {
+			return new WP_Error( 'flexa_formflow_pack_not_installed', __( 'This pack is not installed.', 'flexa-formflow' ), [ 'status' => 409 ] );
+		}
+
+		return new WP_REST_Response( [ 'summary' => Restorer::instance()->restore( $manifest ) ], 200 );
 	}
 
 	public function index(): WP_REST_Response {

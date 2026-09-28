@@ -27,5 +27,6 @@ $wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $wpdb->prefix . 'flexa_
 delete_option( 'flexa_formflow_settings' );
 delete_option( 'flexa_formflow_onboarding' );
 delete_option( 'flexa_formflow_woo_emails' );
+delete_option( 'flexa_formflow_installed_packs' );
 delete_option( 'flexa_formflow_db_version' );
 delete_transient( 'flexa_formflow_activation_redirect' );

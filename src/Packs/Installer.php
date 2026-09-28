@@ -41,6 +41,8 @@ final class Installer {
 		$form_ids = [];
 		/** @var array<string, int> $email_ids */
 		$email_ids = [];
+		/** @var array<string, int> $workflow_ids */
+		$workflow_ids = [];
 
 		foreach ( $manifest->forms as $content ) {
 			$form_ids[ $content->ref ] = FormRepository::instance()->create( $content->name, $content->payload );
@@ -53,8 +55,8 @@ final class Installer {
 		}
 
 		foreach ( $manifest->workflows as $content ) {
-			$config = $this->resolve_workflow( $content->payload, $form_ids, $email_ids );
-			WorkflowRepository::instance()->create( $content->name, $config );
+			$config                        = WorkflowRefs::resolve( $content->payload, $form_ids, $email_ids );
+			$workflow_ids[ $content->ref ] = WorkflowRepository::instance()->create( $content->name, $config );
 			++$created['workflows'];
 		}
 
@@ -77,7 +79,17 @@ final class Installer {
 			++$created['patterns'];
 		}
 
-		InstallState::mark( $manifest->id, $manifest->version );
+		// Remember what this install created, so a later delete reads as
+		// "missing" rather than "never installed" (see Restorer).
+		InstallState::mark(
+			$manifest->id,
+			$manifest->version,
+			[
+				'forms'     => $form_ids,
+				'emails'    => $email_ids,
+				'workflows' => $workflow_ids,
+			]
+		);
 
 		return [
 			'pack'    => $manifest->id,
@@ -284,40 +296,4 @@ final class Installer {
 		];
 	}
 
-	/**
-	 * Replace the workflow's symbolic references with the new content ids. Unknown
-	 * refs resolve to 0 (any form / default template), never a foreign id.
-	 *
-	 * @param array<string, mixed>   $payload
-	 * @param array<string, int>     $form_ids
-	 * @param array<string, int>     $email_ids
-	 * @return array<string, mixed>
-	 */
-	private function resolve_workflow( array $payload, array $form_ids, array $email_ids ): array {
-		$trigger  = is_array( $payload['trigger'] ?? null ) ? $payload['trigger'] : [];
-		$form_ref = (string) ( $trigger['form_ref'] ?? '' );
-		unset( $trigger['form_ref'] );
-		$trigger['form_id'] = $form_ids[ $form_ref ] ?? 0;
-
-		$actions_in = is_array( $payload['actions'] ?? null ) ? $payload['actions'] : [];
-		$actions    = [];
-		foreach ( $actions_in as $action ) {
-			if ( ! is_array( $action ) ) {
-				continue;
-			}
-			$config       = is_array( $action['config'] ?? null ) ? $action['config'] : [];
-			$template_ref = (string) ( $config['template_ref'] ?? '' );
-			if ( '' !== $template_ref ) {
-				unset( $config['template_ref'] );
-				$config['template_id'] = $email_ids[ $template_ref ] ?? 0;
-			}
-			$action['config'] = $config;
-			$actions[]        = $action;
-		}
-
-		return [
-			'trigger' => $trigger,
-			'actions' => $actions,
-		];
-	}
 }

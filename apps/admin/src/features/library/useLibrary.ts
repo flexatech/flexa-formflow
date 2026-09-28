@@ -9,6 +9,8 @@ import type {
     Pack,
     PackDetail,
     PackDiff,
+    PackStatus,
+    RestoreSummary,
     SavedAsset,
     UpdateAction,
     UpdateSummary,
@@ -94,6 +96,36 @@ export function useUpdatePack(id: string) {
             (await api.post<{ summary: UpdateSummary }>(`/library/packs/${id}/update`, { decisions })).summary,
         onSuccess: () => {
             void queryClient.invalidateQueries({ queryKey: ["library"] });
+        },
+    });
+}
+
+/**
+ * Which of an installed pack's items are still on the site. Never cached: the
+ * user can delete a form in another tab, and a stale "nothing missing" would
+ * hide the Restore action exactly when it is needed.
+ */
+export function usePackStatus(id: string, enabled: boolean) {
+    return useQuery<PackStatus>({
+        queryKey: ["library", "pack", id, "status"],
+        queryFn: async () => (await api.get<{ status: PackStatus }>(`/library/packs/${id}/status`)).status,
+        enabled: enabled && id !== "",
+        staleTime: 0,
+    });
+}
+
+/** Put back the pack items the user deleted. Leaves surviving content untouched. */
+export function useRestorePack(id: string) {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: async () =>
+            (await api.post<{ summary: RestoreSummary }>(`/library/packs/${id}/restore`, {})).summary,
+        onSuccess: () => {
+            void queryClient.invalidateQueries({ queryKey: ["library"] });
+            void queryClient.invalidateQueries({ queryKey: ["forms"] });
+            void queryClient.invalidateQueries({ queryKey: ["workflows"] });
+            void queryClient.invalidateQueries({ queryKey: ["email-templates"] });
+            void queryClient.invalidateQueries({ queryKey: ["stats"] });
         },
     });
 }
