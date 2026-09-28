@@ -23,7 +23,13 @@ final class Interceptor {
 	public function register(): void {
 		add_filter( 'wc_get_template', [ $this, 'swap_template' ], 99, 3 );
 		add_filter( 'woocommerce_email_styles', [ $this, 'strip_styles' ], 99, 2 );
+		// Catalog::emails() translates its labels, so it must not run before
+		// init (WP 6.7+ warns about early textdomain loading). Emails are
+		// always sent after init, so the subject filters are still in place.
+		add_action( 'init', [ $this, 'register_subject_filters' ] );
+	}
 
+	public function register_subject_filters(): void {
 		foreach ( array_keys( Catalog::emails() ) as $email_id ) {
 			add_filter( 'woocommerce_email_subject_' . $email_id, [ $this, 'filter_subject' ], 99, 3 );
 		}
