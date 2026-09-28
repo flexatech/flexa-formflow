@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Flexa\FormFlow\Emails\Render;
 
 use Flexa\FormFlow\Emails\Tokens;
+use Flexa\FormFlow\Support\Css;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -72,6 +73,15 @@ abstract class BaseElement {
 	 */
 	protected function str( array $props, string $key, string $fallback = '' ): string {
 		return isset( $props[ $key ] ) && is_string( $props[ $key ] ) && '' !== $props[ $key ] ? $props[ $key ] : $fallback;
+	}
+
+	/**
+	 * A color prop for an inline style: a hex value, or $fallback.
+	 *
+	 * @param array<string, mixed> $props
+	 */
+	protected function color( array $props, string $key, string $fallback ): string {
+		return Css::hex_color( $props[ $key ] ?? '', $fallback );
 	}
 
 	/**

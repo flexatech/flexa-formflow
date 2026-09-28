@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Flexa\FormFlow\Emails\Render;
 
 use Flexa\FormFlow\Concerns\HasInstance;
+use Flexa\FormFlow\Support\Css;
 use Flexa\FormFlow\Support\Settings;
 
 defined( 'ABSPATH' ) || exit;
@@ -130,12 +131,14 @@ final class Renderer {
 
 		$width = $settings['width'] ?? null;
 
+		// Every token ends up in an inline style, so re-check the shape here too:
+		// templates saved before the save-time check must not reach the CSS raw.
 		return [
-			'backgroundColor'   => $pick( 'backgroundColor', 'background_color' ),
-			'contentBackground' => $pick( 'contentBackground', 'content_background' ),
-			'textColor'         => $pick( 'textColor', 'text_color' ),
-			'brandColor'        => $pick( 'brandColor', 'brand_color' ),
-			'fontFamily'        => $pick( 'fontFamily', 'font_family' ),
+			'backgroundColor'   => Css::hex_color( $pick( 'backgroundColor', 'background_color' ), (string) $global['background_color'] ),
+			'contentBackground' => Css::hex_color( $pick( 'contentBackground', 'content_background' ), (string) $global['content_background'] ),
+			'textColor'         => Css::hex_color( $pick( 'textColor', 'text_color' ), (string) $global['text_color'] ),
+			'brandColor'        => Css::hex_color( $pick( 'brandColor', 'brand_color' ), (string) $global['brand_color'] ),
+			'fontFamily'        => Css::font_stack( $pick( 'fontFamily', 'font_family' ), (string) $global['font_family'] ),
 			'width'             => is_numeric( $width ) ? max( 320, min( 800, (int) $width ) ) : (int) $global['container_width'],
 		];
 	}

@@ -29,8 +29,8 @@ final class Button extends BaseElement {
 	public function render( array $props, RenderContext $ctx, array $design ): string {
 		$align  = esc_attr( $this->str( $props, 'align', 'center' ) );
 		$url    = esc_url( $this->resolve_text( $this->str( $props, 'url' ), $ctx ) );
-		$bg     = esc_attr( $this->str( $props, 'bgColor', (string) $design['brandColor'] ) );
-		$color  = esc_attr( $this->str( $props, 'textColor', '#ffffff' ) );
+		$bg     = esc_attr( $this->color( $props, 'bgColor', (string) $design['brandColor'] ) );
+		$color  = esc_attr( $this->color( $props, 'textColor', '#ffffff' ) );
 		$radius = max( 0, min( 30, $this->int( $props, 'radius', 6 ) ) );
 		$size   = max( 11, min( 24, $this->int( $props, 'fontSize', 15 ) ) );
 		$text   = esc_html( $this->resolve_text( $this->str( $props, 'text' ), $ctx ) );

@@ -28,6 +28,10 @@ final class SubmitEndpoint extends Endpoint {
 				[
 					'methods'             => 'POST',
 					'callback'            => [ $this, 'submit' ],
+					// Intentionally public: logged-out visitors submit forms here. The
+					// route only creates an entry for a published form, reads nothing
+					// back, and sanitizes every value against the form's field schema.
+					// All admin routes use a capability check instead.
 					'permission_callback' => '__return_true',
 					'args'                => [
 						'uuid' => [ 'sanitize_callback' => 'sanitize_text_field' ],

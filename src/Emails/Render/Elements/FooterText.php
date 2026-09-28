@@ -30,7 +30,7 @@ final class FooterText extends BaseElement {
 	public function render( array $props, RenderContext $ctx, array $design ): string {
 		unset( $design );
 		$align = esc_attr( $this->str( $props, 'align', 'center' ) );
-		$color = esc_attr( $this->str( $props, 'color', '#8a8a8a' ) );
+		$color = esc_attr( $this->color( $props, 'color', '#8a8a8a' ) );
 
 		// Three tiers: an explicit per-template override on the element wins;
 		// otherwise the site-wide setting applies; an empty setting falls back

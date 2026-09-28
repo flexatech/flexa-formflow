@@ -36,6 +36,18 @@ FormFlow does not send mail in any special way; it hands the finished message to
 
 **Does not require WooCommerce.** FormFlow runs on any WordPress site.
 
+**Source code and build tools**
+
+The admin screens are a React app compiled with Vite. The compiled, minified files in `assets/dist/` are built from human-readable source that is not included in this zip. The full source, with the build config (`package.json`, `pnpm-lock.yaml`, `apps/admin/vite.config.ts`, `apps/admin/tsconfig.json`), is public on GitHub: https://github.com/flexatech/flexa-formflow
+
+The admin source lives in `apps/admin/src/`. To rebuild the bundle you need Node.js 20+ and pnpm 9+:
+
+1. Clone the repository.
+2. Run `pnpm install` in the repository root.
+3. Run `pnpm build`. The output goes to `assets/dist/`.
+
+The frontend form script (`assets/frontend/form.js`) and the block editor script (`assets/blocks/form/editor.js`) are plain, unminified JavaScript with no build step. Third-party libraries bundled into `assets/dist/` (React, TanStack Query, dnd-kit, Radix UI, Zustand, Lucide icons, Tailwind CSS) are listed in the repository's `package.json` and their source is available from npm.
+
 == Installation ==
 
 1. Upload the `flexa-formflow` folder to `/wp-content/plugins/`, or install the zip from Plugins > Add New > Upload Plugin.

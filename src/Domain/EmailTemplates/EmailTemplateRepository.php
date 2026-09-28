@@ -10,7 +10,7 @@ use Flexa\FormFlow\Emails\TreeSanitizer;
 
 defined( 'ABSPATH' ) || exit;
 
-// phpcs:disable WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- data-access class for our own tables; table names come from Schema, values go through $wpdb->prepare().
+// phpcs:disable WordPress.DB.DirectDatabaseQuery -- data-access class for our own tables; every query goes through $wpdb->prepare() (table names via %i).
 
 final class EmailTemplateRepository {
 	use HasInstance;
@@ -19,7 +19,7 @@ final class EmailTemplateRepository {
 		global $wpdb;
 
 		$table = Schema::email_templates_table();
-		$row   = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE id = %d", $id ), ARRAY_A );
+		$row   = $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM %i WHERE id = %d', $table, $id ), ARRAY_A );
 
 		return is_array( $row ) ? EmailTemplate::from_row( $row ) : null;
 	}
@@ -33,7 +33,7 @@ final class EmailTemplateRepository {
 		global $wpdb;
 
 		$table = Schema::email_templates_table();
-		$rows  = $wpdb->get_results( "SELECT * FROM {$table} ORDER BY updated_at DESC, id DESC", ARRAY_A );
+		$rows  = $wpdb->get_results( $wpdb->prepare( 'SELECT * FROM %i ORDER BY updated_at DESC, id DESC', $table ), ARRAY_A );
 
 		$items = [];
 		foreach ( is_array( $rows ) ? $rows : [] as $row ) {

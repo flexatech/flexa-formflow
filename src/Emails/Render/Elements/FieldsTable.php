@@ -33,7 +33,7 @@ final class FieldsTable extends BaseElement {
 			return '';
 		}
 
-		$border = esc_attr( $this->str( $props, 'borderColor', '#e6e6e6' ) );
+		$border = esc_attr( $this->color( $props, 'borderColor', '#e6e6e6' ) );
 		$text   = esc_attr( (string) $design['textColor'] );
 		$data   = null !== $ctx->entry ? $ctx->entry->data : [];
 

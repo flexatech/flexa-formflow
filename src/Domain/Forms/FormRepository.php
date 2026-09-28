@@ -9,7 +9,7 @@ use Flexa\FormFlow\Database\Schema;
 
 defined( 'ABSPATH' ) || exit;
 
-// phpcs:disable WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders -- data-access class for our own tables; table names come from Schema, values go through $wpdb->prepare() with dynamically built %d/%s placeholder lists the sniff cannot follow statically.
+// phpcs:disable WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQLPlaceholders -- data-access class for our own tables; every query goes through $wpdb->prepare() (table names via %i), with WHERE clauses and IN() lists built only from literal %d/%s placeholders the sniff cannot follow statically.
 
 final class FormRepository {
 	use HasInstance;
@@ -18,7 +18,7 @@ final class FormRepository {
 		global $wpdb;
 
 		$table = Schema::forms_table();
-		$row   = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE id = %d", $id ), ARRAY_A );
+		$row   = $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM %i WHERE id = %d', $table, $id ), ARRAY_A );
 
 		return is_array( $row ) ? Form::from_row( $row ) : null;
 	}
@@ -27,7 +27,7 @@ final class FormRepository {
 		global $wpdb;
 
 		$table = Schema::forms_table();
-		$row   = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE uuid = %s", $uuid ), ARRAY_A );
+		$row   = $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM %i WHERE uuid = %s', $table, $uuid ), ARRAY_A );
 
 		return is_array( $row ) ? Form::from_row( $row ) : null;
 	}
@@ -45,25 +45,33 @@ final class FormRepository {
 		$page     = max( 1, (int) ( $args['page'] ?? 1 ) );
 		$per_page = max( 1, min( 100, (int) ( $args['per_page'] ?? 20 ) ) );
 
-		$where  = 'WHERE 1=1';
-		$params = [];
-		if ( '' !== $search ) {
-			$where   .= ' AND title LIKE %s';
-			$params[] = '%' . $wpdb->esc_like( $search ) . '%';
-		}
-		if ( in_array( $status, [ 'draft', 'published' ], true ) ) {
-			$where   .= ' AND status = %s';
-			$params[] = $status;
-		}
+		// Filters are fixed SQL that switch themselves off: `'' = %s` is true
+		// when that filter is empty. Nothing is interpolated.
+		$like   = '' !== $search ? '%' . $wpdb->esc_like( $search ) . '%' : '';
+		$status = in_array( $status, [ 'draft', 'published' ], true ) ? $status : '';
 
-		$total_sql = "SELECT COUNT(*) FROM {$table} {$where}";
-		$total     = (int) $wpdb->get_var( [] === $params ? $total_sql : $wpdb->prepare( $total_sql, ...$params ) );
+		$total = (int) $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT COUNT(*) FROM %i WHERE ( '' = %s OR title LIKE %s ) AND ( '' = %s OR status = %s )",
+				$table,
+				$like,
+				$like,
+				$status,
+				$status
+			)
+		);
 
 		$offset = ( $page - 1 ) * $per_page;
 		$rows   = $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT * FROM {$table} {$where} ORDER BY updated_at DESC LIMIT %d OFFSET %d",
-				...array_merge( $params, [ $per_page, $offset ] )
+				"SELECT * FROM %i WHERE ( '' = %s OR title LIKE %s ) AND ( '' = %s OR status = %s ) ORDER BY updated_at DESC LIMIT %d OFFSET %d",
+				$table,
+				$like,
+				$like,
+				$status,
+				$status,
+				$per_page,
+				$offset
 			),
 			ARRAY_A
 		);
@@ -135,7 +143,7 @@ final class FormRepository {
 		global $wpdb;
 
 		$entries = Schema::entries_table();
-		$wpdb->query( $wpdb->prepare( "DELETE FROM {$entries} WHERE form_id = %d", $id ) );
+		$wpdb->query( $wpdb->prepare( 'DELETE FROM %i WHERE form_id = %d', $entries, $id ) );
 
 		return false !== $wpdb->delete( Schema::forms_table(), [ 'id' => $id ], [ '%d' ] );
 	}
@@ -171,7 +179,7 @@ final class FormRepository {
 
 		$table = Schema::forms_table();
 
-		return (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$table}" );
+		return (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', $table ) );
 	}
 
 	/**
@@ -191,7 +199,7 @@ final class FormRepository {
 		$entries      = Schema::entries_table();
 		$placeholders = implode( ',', array_fill( 0, count( $form_ids ), '%d' ) );
 		$rows         = $wpdb->get_results(
-			$wpdb->prepare( "SELECT form_id, COUNT(*) AS total FROM {$entries} WHERE form_id IN ({$placeholders}) GROUP BY form_id", ...$form_ids ),
+			$wpdb->prepare( "SELECT form_id, COUNT(*) AS total FROM %i WHERE form_id IN ({$placeholders}) GROUP BY form_id", $entries, ...$form_ids ),
 			ARRAY_A
 		);
 

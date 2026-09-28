@@ -28,6 +28,14 @@ final class Settings {
 		'font_family',
 	];
 
+	// String keys emitted inside CSS; each is held to a strict shape on save and read.
+	private const COLOR_KEYS = [
+		'brand_color',
+		'background_color',
+		'content_background',
+		'text_color',
+	];
+
 	private const INT_KEYS = [
 		'container_width',
 	];
@@ -104,7 +112,7 @@ final class Settings {
 		}
 		foreach ( self::STRING_KEYS as $key ) {
 			if ( array_key_exists( $key, $incoming ) ) {
-				$clean[ $key ] = is_string( $incoming[ $key ] ) ? sanitize_text_field( $incoming[ $key ] ) : '';
+				$clean[ $key ] = self::clean_string( $key, is_string( $incoming[ $key ] ) ? sanitize_text_field( $incoming[ $key ] ) : '' );
 			}
 		}
 		foreach ( self::INT_KEYS as $key ) {
@@ -130,7 +138,7 @@ final class Settings {
 		}
 		foreach ( self::STRING_KEYS as $key ) {
 			if ( isset( $stored[ $key ] ) && is_string( $stored[ $key ] ) ) {
-				$out[ $key ] = $stored[ $key ];
+				$out[ $key ] = self::clean_string( $key, $stored[ $key ] );
 			}
 		}
 		foreach ( self::INT_KEYS as $key ) {
@@ -140,6 +148,23 @@ final class Settings {
 		}
 
 		return $out;
+	}
+
+	/**
+	 * Colors must be hex and the font stack plain names; an invalid value
+	 * falls back to the default rather than reaching an inline style.
+	 */
+	private static function clean_string( string $key, string $value ): string {
+		$default = (string) self::defaults()[ $key ];
+
+		if ( in_array( $key, self::COLOR_KEYS, true ) ) {
+			return Css::hex_color( $value, $default );
+		}
+		if ( 'font_family' === $key ) {
+			return Css::font_stack( $value, $default );
+		}
+
+		return $value;
 	}
 
 	private static function to_bool( mixed $value ): bool {

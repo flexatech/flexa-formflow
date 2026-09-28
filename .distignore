@@ -10,21 +10,20 @@
 /.DS_Store
 /node_modules
 /vendor
-/apps/admin/node_modules
+# React admin source and its build config stay out of the zip. WP.org
+# guideline 4 is met by the public GitHub link in readme.txt instead.
+/apps
+/package.json
+/pnpm-lock.yaml
 /tests
 /docs
 /release.sh
 /makepot.sh
 /composer.json
 /composer.lock
-/pnpm-lock.yaml
 /package-lock.json
 /yarn.lock
-/package.json
 /pnpm-workspace.yaml
-/tsconfig.json
-/apps/admin/tsconfig.json
-/apps/admin/vite.config.ts
 /phpcs.xml.dist
 /phpstan.neon
 /phpstan-bootstrap.php

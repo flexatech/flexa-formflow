@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Flexa\FormFlow\Emails;
 
+use Flexa\FormFlow\Support\Css;
+
 defined( 'ABSPATH' ) || exit;
 
 /**
@@ -24,9 +26,14 @@ final class TreeSanitizer {
 	public static function sanitize( array $tree ): array {
 		$settings = [];
 		$incoming = isset( $tree['settings'] ) && is_array( $tree['settings'] ) ? $tree['settings'] : [];
+		// These land in inline styles: keep only a valid hex color / font stack.
+		// An invalid value is dropped so the global setting applies instead.
 		foreach ( self::SETTINGS_STRING_KEYS as $key ) {
 			if ( isset( $incoming[ $key ] ) && is_string( $incoming[ $key ] ) ) {
-				$settings[ $key ] = sanitize_text_field( $incoming[ $key ] );
+				$value = 'fontFamily' === $key ? Css::font_stack( $incoming[ $key ] ) : Css::hex_color( $incoming[ $key ] );
+				if ( '' !== $value ) {
+					$settings[ $key ] = $value;
+				}
 			}
 		}
 		if ( isset( $incoming['width'] ) && is_numeric( $incoming['width'] ) ) {

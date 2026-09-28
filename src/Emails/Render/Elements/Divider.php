@@ -24,7 +24,7 @@ final class Divider extends BaseElement {
 
 	public function render( array $props, RenderContext $ctx, array $design ): string {
 		unset( $ctx, $design );
-		$color     = esc_attr( $this->str( $props, 'color', '#e6e6e6' ) );
+		$color     = esc_attr( $this->color( $props, 'color', '#e6e6e6' ) );
 		$thickness = max( 1, min( 8, $this->int( $props, 'thickness', 1 ) ) );
 		$pad       = max( 0, min( 60, $this->int( $props, 'paddingY', 8 ) ) );
 

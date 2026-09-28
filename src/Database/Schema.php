@@ -92,10 +92,10 @@ final class Schema {
 	public static function drop(): void {
 		global $wpdb;
 
-		// phpcs:disable WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- destructive teardown of our own tables; names are not user input.
-		$wpdb->query( 'DROP TABLE IF EXISTS ' . self::email_templates_table() );
-		$wpdb->query( 'DROP TABLE IF EXISTS ' . self::entries_table() );
-		$wpdb->query( 'DROP TABLE IF EXISTS ' . self::forms_table() );
+		// phpcs:disable WordPress.DB.DirectDatabaseQuery, WordPress.DB.DirectDatabaseQuery.SchemaChange -- destructive teardown of our own tables.
+		$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', self::email_templates_table() ) );
+		$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', self::entries_table() ) );
+		$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', self::forms_table() ) );
 		// phpcs:enable
 
 		delete_option( self::VERSION_KEY );

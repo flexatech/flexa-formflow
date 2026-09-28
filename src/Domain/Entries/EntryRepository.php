@@ -9,7 +9,7 @@ use Flexa\FormFlow\Database\Schema;
 
 defined( 'ABSPATH' ) || exit;
 
-// phpcs:disable WordPress.DB.DirectDatabaseQuery, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders -- data-access class for our own tables; table names come from Schema, values go through $wpdb->prepare() with dynamically built %d/%s placeholder lists the sniff cannot follow statically.
+// phpcs:disable WordPress.DB.DirectDatabaseQuery -- data-access class for our own tables; every query goes through $wpdb->prepare() (table names via %i).
 
 final class EntryRepository {
 	use HasInstance;
@@ -18,7 +18,7 @@ final class EntryRepository {
 		global $wpdb;
 
 		$table = Schema::entries_table();
-		$row   = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM {$table} WHERE id = %d", $id ), ARRAY_A );
+		$row   = $wpdb->get_row( $wpdb->prepare( 'SELECT * FROM %i WHERE id = %d', $table, $id ), ARRAY_A );
 
 		return is_array( $row ) ? Entry::from_row( $row ) : null;
 	}
@@ -31,30 +31,37 @@ final class EntryRepository {
 		global $wpdb;
 
 		$table    = Schema::entries_table();
-		$form_id  = (int) ( $args['form_id'] ?? 0 );
+		$form_id  = max( 0, (int) ( $args['form_id'] ?? 0 ) );
 		$status   = (string) ( $args['status'] ?? '' );
 		$page     = max( 1, (int) ( $args['page'] ?? 1 ) );
 		$per_page = max( 1, min( 100, (int) ( $args['per_page'] ?? 20 ) ) );
 
-		$where  = 'WHERE 1=1';
-		$params = [];
-		if ( $form_id > 0 ) {
-			$where   .= ' AND form_id = %d';
-			$params[] = $form_id;
-		}
-		if ( in_array( $status, [ 'unread', 'read' ], true ) ) {
-			$where   .= ' AND status = %s';
-			$params[] = $status;
-		}
+		// Filters are fixed SQL that switch themselves off: `0 = %d` is true when
+		// no form is chosen, `'' = %s` when no status is. Nothing is interpolated.
+		$status = in_array( $status, [ 'unread', 'read' ], true ) ? $status : '';
 
-		$total_sql = "SELECT COUNT(*) FROM {$table} {$where}";
-		$total     = (int) $wpdb->get_var( [] === $params ? $total_sql : $wpdb->prepare( $total_sql, ...$params ) );
+		$total = (int) $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT COUNT(*) FROM %i WHERE ( 0 = %d OR form_id = %d ) AND ( '' = %s OR status = %s )",
+				$table,
+				$form_id,
+				$form_id,
+				$status,
+				$status
+			)
+		);
 
 		$offset = ( $page - 1 ) * $per_page;
 		$rows   = $wpdb->get_results(
 			$wpdb->prepare(
-				"SELECT * FROM {$table} {$where} ORDER BY created_at DESC, id DESC LIMIT %d OFFSET %d",
-				...array_merge( $params, [ $per_page, $offset ] )
+				"SELECT * FROM %i WHERE ( 0 = %d OR form_id = %d ) AND ( '' = %s OR status = %s ) ORDER BY created_at DESC, id DESC LIMIT %d OFFSET %d",
+				$table,
+				$form_id,
+				$form_id,
+				$status,
+				$status,
+				$per_page,
+				$offset
 			),
 			ARRAY_A
 		);
@@ -125,10 +132,10 @@ final class EntryRepository {
 		$table = Schema::entries_table();
 
 		return [
-			'total'       => (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$table}" ),
-			'unread'      => (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$table} WHERE status = 'unread'" ),
+			'total'       => (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i', $table ) ),
+			'unread'      => (int) $wpdb->get_var( $wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE status = %s', $table, 'unread' ) ),
 			'last_7_days' => (int) $wpdb->get_var(
-				$wpdb->prepare( "SELECT COUNT(*) FROM {$table} WHERE created_at >= %s", gmdate( 'Y-m-d H:i:s', time() - 7 * DAY_IN_SECONDS ) )
+				$wpdb->prepare( 'SELECT COUNT(*) FROM %i WHERE created_at >= %s', $table, gmdate( 'Y-m-d H:i:s', time() - 7 * DAY_IN_SECONDS ) )
 			),
 		];
 	}
