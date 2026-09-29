@@ -6,6 +6,8 @@ import {
     LayoutDashboard,
     Library,
     Mail,
+    Maximize2,
+    Minimize2,
     Plug,
     Settings,
     Workflow,
@@ -55,6 +57,55 @@ const NAV: NavItem[] = [
     { route: "integrations", href: "#/integrations", icon: Plug, label: () => __("Integrations") },
     { route: "settings", href: "#/settings", icon: Settings, label: () => __("Settings") },
 ];
+
+/**
+ * Toggle the whole plugin root between its normal in-page flow and a fixed,
+ * full-viewport overlay (above wp-admin's own bars/menu). Lives here, above
+ * the router, so it applies on every screen - including the full-area
+ * builder/editor takeovers - instead of being wired into each page.
+ */
+function useFullscreen(): [boolean, () => void] {
+    const [fullscreen, setFullscreen] = useState(false);
+
+    useEffect(() => {
+        document.body.classList.toggle("flexa-formflow-fs-lock", fullscreen);
+        return () => document.body.classList.remove("flexa-formflow-fs-lock");
+    }, [fullscreen]);
+
+    useEffect(() => {
+        if (!fullscreen) return;
+        const onKeyDown = (e: KeyboardEvent) => {
+            if (e.key === "Escape") setFullscreen(false);
+        };
+        window.addEventListener("keydown", onKeyDown);
+        return () => window.removeEventListener("keydown", onKeyDown);
+    }, [fullscreen]);
+
+    return [fullscreen, () => setFullscreen((v) => !v)];
+}
+
+/**
+ * A bottom-right floating action button, not a top-right one: every screen
+ * that takes over the full area (the email/form/workflow editors) already
+ * puts its own buttons - Save, Send test, Preview - flush against the top
+ * edge, and a fixed top-right control would sit on top of them (and, outside
+ * fullscreen, on top of wp-admin's own admin bar). Nothing in this app
+ * anchors anything to the bottom-right corner, so it is always clear.
+ */
+function FullscreenToggle({ active, onToggle }: { active: boolean; onToggle: () => void }) {
+    const Icon = active ? Minimize2 : Maximize2;
+    return (
+        <button
+            type="button"
+            onClick={onToggle}
+            title={active ? __("Exit fullscreen (Esc)") : __("Fullscreen")}
+            aria-label={active ? __("Exit fullscreen") : __("Fullscreen")}
+            className="ff:fixed ff:bottom-5 ff:right-5 ff:z-[100000] ff:flex ff:h-11 ff:w-11 ff:items-center ff:justify-center ff:rounded-full ff:border ff:border-slate-200 ff:bg-white ff:text-slate-600 ff:shadow-lg ff:transition-all ff:hover:-translate-y-0.5 ff:hover:text-brand-700 ff:hover:shadow-xl ff:focus-visible:outline-none ff:focus-visible:ring-2 ff:focus-visible:ring-brand-500 ff:focus-visible:ring-offset-2"
+        >
+            <Icon aria-hidden className="ff:h-[18px] ff:w-[18px]" />
+        </button>
+    );
+}
 
 function useRoute(): Route {
     const [route, setRoute] = useState<Route>(currentRoute);
@@ -133,20 +184,36 @@ function App() {
             (!item.wooOnly || hasWoo) &&
             (!item.settingsOnly || canSettings),
     );
+    const [fullscreen, toggleFullscreen] = useFullscreen();
+
+    // Fullscreen lifts the whole root out of wp-admin's flow into a fixed
+    // overlay above its admin bar/menu, so the sticky sidebar below has to
+    // stop reserving room for that 32px bar (top-8 / h-[calc(100vh-2rem)]).
+    const rootClass = cn(
+        "ff:flex ff:bg-slate-50",
+        fullscreen ? "ff:fixed ff:inset-0 ff:z-[100000] ff:h-screen ff:overflow-auto" : "ff:min-h-screen",
+    );
+    const sidebarTopClass = fullscreen ? "ff:top-0 ff:h-screen" : "ff:top-8 ff:h-[calc(100vh-2rem)]";
 
     // The builder and editors are full-area takeovers: no sidebar.
     if (route.name === "builder" || route.name === "emailEditor" || route.name === "workflowEditor") {
         return (
-            <div className="ff:flex ff:min-h-screen ff:bg-slate-50">
+            <div className={rootClass}>
                 {screenFor(route)}
+                <FullscreenToggle active={fullscreen} onToggle={toggleFullscreen} />
                 <Toaster />
             </div>
         );
     }
 
     return (
-        <div className="ff:flex ff:min-h-screen ff:bg-slate-50">
-            <aside className="ff:sticky ff:top-8 ff:flex ff:h-[calc(100vh-2rem)] ff:w-56 ff:shrink-0 ff:flex-col ff:border-r ff:border-slate-200 ff:bg-white">
+        <div className={rootClass}>
+            <aside
+                className={cn(
+                    "ff:sticky ff:flex ff:w-56 ff:shrink-0 ff:flex-col ff:border-r ff:border-slate-200 ff:bg-white",
+                    sidebarTopClass,
+                )}
+            >
                 <div className="ff:flex ff:items-center ff:gap-3 ff:px-4 ff:py-4">
                     <img
                         src={logoUrl}
@@ -173,6 +240,7 @@ function App() {
                 </nav>
             </aside>
             <main className="ff:min-w-0 ff:flex-1">{screenFor(route)}</main>
+            <FullscreenToggle active={fullscreen} onToggle={toggleFullscreen} />
             <OnboardingWizard />
             <Toaster />
         </div>
