@@ -74,6 +74,59 @@ Found while testing, not addressed here:
 
 First release, prepared for the WordPress.org directory.
 
+### Added
+
+- Pack uninstall. A pack's detail page can now remove exactly the form, email
+  template and workflow its install (or a later restore) is recorded to have
+  created, then clears the install stamp so the catalog offers "Install pack"
+  again instead of a permanently stuck "Installed" badge
+  (`DELETE /library/packs/{id}`, `Packs\Uninstaller`, `InstallState::forget()`).
+  Patterns are left alone: they are shared by content id across every pack
+  that ships them, and already behave as the user's own My Library copies
+  once installed. The confirm dialog lists the named items about to go.
+- Default WooCommerce email content is now written per event instead of one
+  generic "thanks for your order" copy shared by all 11 (`WooTemplates::copy_for()`).
+  The two account emails (Reset password, New account) also get a real
+  call-to-action button wired to the two new order tokens below.
+- Two new order tokens, `{reset_password_url}` and `{set_password_url}`,
+  built from the `reset_key` / `user_id` / `set_password_url` WooCommerce
+  hands the email template (`OrderTokens`, `templates/woo-email.php`).
+- A fullscreen toggle for the admin app: a floating button, rendered once
+  above the router so it covers every screen including the full-area
+  builder/editor takeovers, expands the plugin root into a fixed
+  full-viewport overlay above wp-admin's own bars.
+
+### Fixed
+
+- `WooEmailsEndpoint::recent_orders()` crashed with a 500 when a refund was
+  among the store's latest orders: `OrderRefund` does not have
+  `get_formatted_billing_full_name()`. `wc_get_orders()` is now scoped to
+  `type: shop_order`, with a defensive `method_exists()` check kept as a
+  second line of defense.
+- `{customer_first_name}`, `{my_account_url}` and `{shop_url}` silently stayed
+  as literal, unresolved text on any real WooCommerce send with no
+  `WC_Order` in context (Reset password, New account) — those tokens were
+  gated behind an order that account emails never have.
+- The WooCommerce email preview cached by `(email id, order id)` only, so a
+  saved subject/template change never appeared in an already-open preview
+  until a manual refresh.
+- `FieldTypes::sanitize_config()` saved a field's `width` as an empty string
+  instead of the intended `"full"` default whenever the field omitted it: the
+  validity check read `$field['width'] ?? 'full'`, but the branch that used
+  the value read `$field['width']` directly, without the same fallback.
+- `Tokens::field_values()` and `FieldsTable::render()` both used
+  `array_key_exists()` to decide an entry had answered a field, but that is
+  true even for an empty string or array. An entry that left a field blank
+  (it was not required) permanently suppressed the sample-value fallback in
+  preview, rendering the Dynamic Data panel and the email's Submission table
+  blank instead of showing `Jane Doe` / `jane@example.com` / `42`.
+- After uninstalling a pack, the "N items missing / Put missing items back"
+  banner on its detail page kept showing stale data indefinitely:
+  `usePackStatus` disables itself once `pack.installed` flips to `false`, and
+  a disabled React Query entry keeps serving its last cached result —
+  `invalidateQueries` does not refetch a disabled query. The uninstall
+  mutation now calls `removeQueries` on that cache entry instead.
+
 - Form builder: drag-and-drop canvas, nine field types, per-field responsive
   column widths, required and placeholder options.
 - Frontend rendering via shortcode and block, with honeypot and submit-time
