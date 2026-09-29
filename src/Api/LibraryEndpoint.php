@@ -229,7 +229,10 @@ final class LibraryEndpoint extends Endpoint {
 
 	/**
 	 * Which of an installed pack's items are still on the site. Backs the
-	 * "N items missing" line and its Restore action.
+	 * "N items missing" line and its Restore action, and (for patterns) the
+	 * uninstall confirm dialog: a present pattern is flagged `willBeDeleted`
+	 * when this is the last currently-installed pack that still declares it,
+	 * mirroring exactly what {@see Uninstaller::uninstall()} would do.
 	 */
 	public function pack_status( WP_REST_Request $request ): WP_REST_Response|WP_Error {
 		$manifest = Registry::find( (string) $request->get_param( 'id' ) );
@@ -240,7 +243,14 @@ final class LibraryEndpoint extends Endpoint {
 			return new WP_Error( 'flexa_formflow_pack_not_installed', __( 'This pack is not installed.', 'flexa-formflow' ), [ 'status' => 409 ] );
 		}
 
-		return new WP_REST_Response( [ 'status' => Restorer::instance()->status( $manifest ) ], 200 );
+		$status = Restorer::instance()->status( $manifest );
+		foreach ( $status['items'] as &$item ) {
+			$item['willBeDeleted'] = 'patterns' === $item['group'] && $item['present']
+				&& ! Uninstaller::still_needed_elsewhere( $item['ref'], $manifest->id );
+		}
+		unset( $item );
+
+		return new WP_REST_Response( [ 'status' => $status ], 200 );
 	}
 
 	/**

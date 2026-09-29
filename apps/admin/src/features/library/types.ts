@@ -111,6 +111,9 @@ export interface PackStatusItem {
     name: string;
     group: PackGroup;
     present: boolean;
+    /** Patterns only: true when uninstalling would delete this one too, because
+     *  no other currently-installed pack still declares it. */
+    willBeDeleted: boolean;
 }
 
 /** What an installed pack still has, and what the user has deleted. */
@@ -128,10 +131,13 @@ export interface RestoreSummary {
     repointed: number;
 }
 
-/** What an uninstall removed. Patterns are never touched (see Uninstaller). */
+/**
+ * What an uninstall removed. `patterns` counts only the ones with no other
+ * currently-installed pack still declaring them (see Uninstaller).
+ */
 export interface UninstallSummary {
     pack: string;
-    deleted: { forms: number; emails: number; workflows: number };
+    deleted: { forms: number; emails: number; workflows: number; patterns: number };
 }
 
 /** The raw My Library row as stored and returned by the server. */

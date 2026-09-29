@@ -7,6 +7,7 @@ namespace Flexa\FormFlow\Packs;
 use Flexa\FormFlow\Concerns\HasInstance;
 use Flexa\FormFlow\Domain\EmailTemplates\EmailTemplateRepository;
 use Flexa\FormFlow\Domain\Forms\FormRepository;
+use Flexa\FormFlow\Domain\Library\LibraryRepository;
 use Flexa\FormFlow\Domain\Packs\PackManifest;
 use Flexa\FormFlow\Domain\Workflows\WorkflowRepository;
 
@@ -23,19 +24,21 @@ defined( 'ABSPATH' ) || exit;
  * what this exact install created. A row already missing (the same situation
  * {@see Restorer} exists to fix) is simply skipped, not an error.
  *
- * Patterns are left alone on purpose: they are shared by content id across
- * every pack that ships them, they already live as ordinary My Library
- * assets once installed, and Installer/Restorer both treat them as the
- * user's own copies. Removing them here would either delete a pattern
- * another installed pack still depends on, or take back something the user
- * has since edited and now relies on - the existing "Remove" action on a
- * My Library card is the right place to drop a pattern deliberately.
+ * A pattern this pack ships is deleted too, but only when no *other*
+ * currently-installed pack still declares the same content id ({@see
+ * still_needed_elsewhere()}) - patterns are shared by content id across every
+ * pack that ships them, so dropping one on the say-so of a single pack could
+ * pull it out from under a sibling pack that is still installed. A pattern
+ * the user has since edited is still removed: once shared, a pattern behaves
+ * like the rest of a pack's content (the user's own copy), not a protected
+ * asset - use the "Remove" action on its My Library card beforehand to keep
+ * an edited copy that would otherwise go.
  */
 final class Uninstaller {
 	use HasInstance;
 
 	/**
-	 * @return array{pack: string, deleted: array{forms: int, emails: int, workflows: int}}
+	 * @return array{pack: string, deleted: array{forms: int, emails: int, workflows: int, patterns: int}}
 	 */
 	public function uninstall( PackManifest $manifest ): array {
 		$ids     = InstallState::items_of( $manifest->id );
@@ -43,6 +46,7 @@ final class Uninstaller {
 			'forms'     => 0,
 			'emails'    => 0,
 			'workflows' => 0,
+			'patterns'  => 0,
 		];
 
 		foreach ( $ids['forms'] ?? [] as $id ) {
@@ -66,11 +70,44 @@ final class Uninstaller {
 			}
 		}
 
+		foreach ( $manifest->patterns as $content ) {
+			if ( self::still_needed_elsewhere( $content->ref, $manifest->id ) ) {
+				continue;
+			}
+			$asset = LibraryRepository::instance()->find_by_content_id( $content->ref );
+			if ( null !== $asset ) {
+				LibraryRepository::instance()->delete( $asset->id );
+				++$deleted['patterns'];
+			}
+		}
+
 		InstallState::forget( $manifest->id );
 
 		return [
 			'pack'    => $manifest->id,
 			'deleted' => $deleted,
 		];
+	}
+
+	/**
+	 * Whether a pattern content id is still declared by some other pack that
+	 * is currently installed - checked against the full registry, not just
+	 * the pack being uninstalled, since a pattern's `source_content_id` only
+	 * remembers the one pack that happened to create it first (see
+	 * Installer::import()), which is not necessarily every pack that ships it.
+	 */
+	public static function still_needed_elsewhere( string $content_ref, string $excluding_pack_id ): bool {
+		foreach ( Registry::all() as $pack ) {
+			if ( $pack->id === $excluding_pack_id || ! InstallState::is_installed( $pack->id ) ) {
+				continue;
+			}
+			foreach ( $pack->patterns as $content ) {
+				if ( $content->ref === $content_ref ) {
+					return true;
+				}
+			}
+		}
+
+		return false;
 	}
 }

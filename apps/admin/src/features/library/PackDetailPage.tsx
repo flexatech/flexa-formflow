@@ -107,10 +107,18 @@ export function PackDetailPage({ id }: { id: string }) {
     const missingRefs = new Set(
         (status?.items ?? []).filter((i) => !i.present).map((i) => `${i.group}:${i.ref}`),
     );
-    // What an uninstall would actually remove: the present forms/emails/workflows
-    // only - patterns are never touched (see Uninstaller), and an already-missing
-    // item has nothing left to delete.
-    const toDelete = (status?.items ?? []).filter((i) => i.group !== "patterns" && i.present);
+    // What an uninstall would actually remove: every present form/email/workflow,
+    // plus a present pattern only when this is the last installed pack still
+    // declaring it (server-computed `willBeDeleted`, mirrors Uninstaller exactly).
+    const toDelete = (status?.items ?? []).filter(
+        (i) => i.present && (i.group !== "patterns" || i.willBeDeleted),
+    );
+    // A present pattern kept out of toDelete because another installed pack
+    // still shares it - worth a line in the dialog so "why isn't X listed" is
+    // never a surprise.
+    const keptPatterns = (status?.items ?? []).filter(
+        (i) => i.group === "patterns" && i.present && !i.willBeDeleted,
+    );
 
     return (
         <div className="ff:flex ff:flex-col ff:gap-6 ff:p-6">
@@ -229,16 +237,38 @@ export function PackDetailPage({ id }: { id: string }) {
                         <DialogTitle>{sprintf(__('Uninstall "%s"?'), pack.name)}</DialogTitle>
                         <DialogDescription>
                             {toDelete.length > 0
-                                ? __("This deletes the items below. Patterns from this pack stay in My Library, since other packs may share them.")
+                                ? __("This deletes the items below, including any pattern no longer used by another installed pack.")
                                 : __("Nothing this pack created is still on your site, so this only clears its Installed status.")}
                         </DialogDescription>
                     </DialogHeader>
                     {toDelete.length > 0 && (
-                        <ul className="ff:m-0 ff:flex ff:flex-col ff:gap-1 ff:rounded-lg ff:bg-red-50 ff:p-3 ff:text-sm ff:text-red-900">
-                            {toDelete.map((item) => (
-                                <li key={`${item.group}:${item.ref}`}>{item.name}</li>
-                            ))}
-                        </ul>
+                        <div className="ff:flex ff:flex-col ff:gap-3 ff:rounded-lg ff:bg-red-50 ff:p-3">
+                            {groups
+                                .map((g) => ({ ...g, items: toDelete.filter((i) => i.group === g.key) }))
+                                .filter((g) => g.items.length > 0)
+                                .map(({ key, icon: Icon, label, items }) => (
+                                    <div key={key} className="ff:flex ff:flex-col ff:gap-1">
+                                        <div className="ff:flex ff:items-center ff:gap-2 ff:text-xs ff:font-semibold ff:uppercase ff:tracking-wide ff:text-red-400">
+                                            <Icon aria-hidden className="ff:h-3.5 ff:w-3.5" />
+                                            {label}
+                                        </div>
+                                        <ul className="ff:m-0 ff:flex ff:flex-col ff:gap-0.5 ff:p-0 ff:text-sm ff:text-red-900">
+                                            {items.map((item) => (
+                                                <li key={item.ref}>{item.name}</li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                ))}
+                        </div>
+                    )}
+                    {keptPatterns.length > 0 && (
+                        <p className="ff:m-0 ff:text-xs ff:text-slate-500">
+                            {sprintf(
+                                /* translators: %s: comma-separated pattern names. */
+                                __("Kept: %s (another installed pack still uses it)."),
+                                keptPatterns.map((i) => i.name).join(", "),
+                            )}
+                        </p>
                     )}
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setUninstallOpen(false)}>
