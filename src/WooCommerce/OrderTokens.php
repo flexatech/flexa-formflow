@@ -29,6 +29,11 @@ final class OrderTokens {
 	public function add_tokens( array $values, RenderContext $ctx ): array {
 		$order = $ctx->order;
 
+		// Independent of any order: every WooCommerce email (account emails
+		// included) can link back to the shop or the customer's account.
+		$values['shop_url']       = wc_get_page_permalink( 'shop' );
+		$values['my_account_url'] = wc_get_page_permalink( 'myaccount' );
+
 		if ( $order instanceof \WC_Order ) {
 			$values['order_number']        = (string) $order->get_order_number();
 			$values['order_date']          = $order->get_date_created() ? wc_format_datetime( $order->get_date_created() ) : '';
@@ -41,9 +46,16 @@ final class OrderTokens {
 			$values['customer_last_name']  = $order->get_billing_last_name();
 			$values['customer_full_name']  = trim( $order->get_formatted_billing_full_name() );
 			$values['customer_email']      = $order->get_billing_email();
-			$values['shop_url']            = wc_get_page_permalink( 'shop' );
-			$values['my_account_url']      = wc_get_page_permalink( 'myaccount' );
+		} else {
+			// Account emails (reset password, new account) have no order, but
+			// WooCommerce still hands us the account holder's display name.
+			$display_name                  = (string) $ctx->extra( 'user_display_name' );
+			$values['customer_first_name'] = $display_name;
+			$values['customer_full_name']  = $display_name;
 		}
+
+		$values['reset_password_url'] = self::reset_password_url( $ctx );
+		$values['set_password_url']   = (string) $ctx->extra( 'set_password_url' );
 
 		$note = $ctx->extra( 'customer_note' );
 		if ( is_string( $note ) && '' !== $note ) {
@@ -51,7 +63,15 @@ final class OrderTokens {
 		}
 
 		if ( $ctx->is_preview ) {
-			$values += self::sample_values();
+			// `+=` alone would not do: customer_first_name/full_name are now
+			// always set (possibly to '' when there is no order or account
+			// context), so an empty string already "fills" the key and blocks
+			// the sample from ever showing. Only truly-empty values fall back.
+			foreach ( self::sample_values() as $key => $sample ) {
+				if ( ! isset( $values[ $key ] ) || '' === $values[ $key ] ) {
+					$values[ $key ] = $sample;
+				}
+			}
 		}
 
 		return $values;
@@ -108,7 +128,38 @@ final class OrderTokens {
 				'token' => '{customer_email}',
 				'label' => __( 'Customer email', 'flexa-formflow' ),
 			],
+			[
+				'token' => '{reset_password_url}',
+				'label' => __( 'Reset password link (Reset password email only)', 'flexa-formflow' ),
+			],
+			[
+				'token' => '{set_password_url}',
+				'label' => __( 'Set password link (New account email only)', 'flexa-formflow' ),
+			],
 		];
+	}
+
+	/**
+	 * The exact link WooCommerce's own reset-password email builds, from the
+	 * reset key/user id the core email class hands the template
+	 * (see WC_Email_Customer_Reset_Password::get_content_html()). Empty when
+	 * those extras are absent (any email other than customer_reset_password).
+	 */
+	private static function reset_password_url( RenderContext $ctx ): string {
+		$reset_key  = (string) $ctx->extra( 'reset_key' );
+		$user_login = (string) $ctx->extra( 'user_login' );
+		if ( '' === $reset_key || '' === $user_login || ! function_exists( 'wc_get_endpoint_url' ) ) {
+			return '';
+		}
+
+		return add_query_arg(
+			[
+				'key'   => $reset_key,
+				'id'    => (string) $ctx->extra( 'user_id' ),
+				'login' => rawurlencode( $user_login ),
+			],
+			wc_get_endpoint_url( 'lost-password', '', wc_get_page_permalink( 'myaccount' ) )
+		);
 	}
 
 	/**
@@ -130,6 +181,8 @@ final class OrderTokens {
 			'shop_url'            => home_url( '/shop/' ),
 			'my_account_url'      => home_url( '/my-account/' ),
 			'customer_note'       => __( 'Thanks, please leave the parcel at the door.', 'flexa-formflow' ),
+			'reset_password_url'  => home_url( '/my-account/lost-password/?key=sample&id=1&login=alex' ),
+			'set_password_url'    => home_url( '/my-account/lost-password/?action=newaccount&key=sample&login=alex' ),
 		];
 	}
 }

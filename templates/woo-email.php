@@ -2,8 +2,9 @@
 /**
  * WooCommerce email body. WooCommerce includes this file (via a swapped
  * wc_get_template) with the email's arguments extracted into scope: $order,
- * $email, $sent_to_admin, $additional_content, and so on. We build a render
- * context from them and echo the block tree assigned to this email.
+ * $email, $sent_to_admin, $additional_content, $user_login, $user_display_name,
+ * $reset_key, $set_password_url, and so on. We build a render context from
+ * them and echo the block tree assigned to this email.
  *
  * @see \Flexa\FormFlow\WooCommerce\Interceptor::swap_template()
  */
@@ -27,6 +28,10 @@ $ff_extras = [
 	'customer_note'      => isset( $customer_note ) ? (string) $customer_note : '',
 	'additional_content' => isset( $additional_content ) ? (string) $additional_content : '',
 	'user_login'         => isset( $user_login ) ? (string) $user_login : '',
+	'user_display_name'  => isset( $user_display_name ) ? (string) $user_display_name : '',
+	'user_id'            => isset( $user_id ) ? (string) $user_id : '',
+	'reset_key'          => isset( $reset_key ) ? (string) $reset_key : '',
+	'set_password_url'   => isset( $set_password_url ) ? (string) $set_password_url : '',
 	'sent_to_admin'      => ! empty( $sent_to_admin ),
 ];
 
