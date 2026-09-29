@@ -128,6 +128,12 @@ export interface RestoreSummary {
     repointed: number;
 }
 
+/** What an uninstall removed. Patterns are never touched (see Uninstaller). */
+export interface UninstallSummary {
+    pack: string;
+    deleted: { forms: number; emails: number; workflows: number };
+}
+
 /** The raw My Library row as stored and returned by the server. */
 export interface SavedAsset {
     id: number;

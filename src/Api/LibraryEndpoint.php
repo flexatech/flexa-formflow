@@ -10,6 +10,7 @@ use Flexa\FormFlow\Packs\InstallState;
 use Flexa\FormFlow\Packs\Installer;
 use Flexa\FormFlow\Packs\Registry;
 use Flexa\FormFlow\Packs\Restorer;
+use Flexa\FormFlow\Packs\Uninstaller;
 use WP_Error;
 use WP_REST_Request;
 use WP_REST_Response;
@@ -95,6 +96,19 @@ final class LibraryEndpoint extends Endpoint {
 				[
 					'methods'             => 'GET',
 					'callback'            => [ $this, 'pack_status' ],
+					'permission_callback' => [ $this, 'manage_permission' ],
+					'args'                => [ 'id' => [ 'sanitize_callback' => 'sanitize_key' ] ],
+				],
+			]
+		);
+
+		register_rest_route(
+			self::NAMESPACE,
+			'/library/packs/(?P<id>[a-z0-9-]+)',
+			[
+				[
+					'methods'             => 'DELETE',
+					'callback'            => [ $this, 'uninstall' ],
 					'permission_callback' => [ $this, 'manage_permission' ],
 					'args'                => [ 'id' => [ 'sanitize_callback' => 'sanitize_key' ] ],
 				],
@@ -243,6 +257,24 @@ final class LibraryEndpoint extends Endpoint {
 		}
 
 		return new WP_REST_Response( [ 'summary' => Restorer::instance()->restore( $manifest ) ], 200 );
+	}
+
+	/**
+	 * Delete exactly the rows this pack's install (and any later restore) is
+	 * recorded to have created, then clear the install stamp. A row already
+	 * missing is skipped, not an error, so this also cleans up a pack stuck in
+	 * the same "installed, partly deleted" state {@see restore()} exists to fix.
+	 */
+	public function uninstall( WP_REST_Request $request ): WP_REST_Response|WP_Error {
+		$manifest = Registry::find( (string) $request->get_param( 'id' ) );
+		if ( null === $manifest ) {
+			return new WP_Error( 'flexa_formflow_pack_not_found', __( 'Pack not found.', 'flexa-formflow' ), [ 'status' => 404 ] );
+		}
+		if ( ! InstallState::is_installed( $manifest->id ) ) {
+			return new WP_Error( 'flexa_formflow_pack_not_installed', __( 'This pack is not installed.', 'flexa-formflow' ), [ 'status' => 409 ] );
+		}
+
+		return new WP_REST_Response( [ 'summary' => Uninstaller::instance()->uninstall( $manifest ) ], 200 );
 	}
 
 	public function index(): WP_REST_Response {

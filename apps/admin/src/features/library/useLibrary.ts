@@ -12,6 +12,7 @@ import type {
     PackStatus,
     RestoreSummary,
     SavedAsset,
+    UninstallSummary,
     UpdateAction,
     UpdateSummary,
 } from "./types";
@@ -121,6 +122,31 @@ export function useRestorePack(id: string) {
         mutationFn: async () =>
             (await api.post<{ summary: RestoreSummary }>(`/library/packs/${id}/restore`, {})).summary,
         onSuccess: () => {
+            void queryClient.invalidateQueries({ queryKey: ["library"] });
+            void queryClient.invalidateQueries({ queryKey: ["forms"] });
+            void queryClient.invalidateQueries({ queryKey: ["workflows"] });
+            void queryClient.invalidateQueries({ queryKey: ["email-templates"] });
+            void queryClient.invalidateQueries({ queryKey: ["stats"] });
+        },
+    });
+}
+
+/**
+ * Remove exactly what this pack's install (and any later restore) created -
+ * never the patterns it shares with My Library. Clears the install stamp, so
+ * the catalog offers "Install pack" again instead of a stuck "Installed" chip.
+ */
+export function useUninstallPack(id: string) {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: async () => (await api.delete<{ summary: UninstallSummary }>(`/library/packs/${id}`)).summary,
+        onSuccess: () => {
+            // usePackStatus disables itself once pack.installed flips to false, and
+            // a disabled query keeps serving its last cached result instead of
+            // clearing it - invalidating alone leaves the "N items missing / Put
+            // back" banner stuck showing stale data forever. Drop the cache entry
+            // outright so there is nothing stale left to render.
+            queryClient.removeQueries({ queryKey: ["library", "pack", id, "status"] });
             void queryClient.invalidateQueries({ queryKey: ["library"] });
             void queryClient.invalidateQueries({ queryKey: ["forms"] });
             void queryClient.invalidateQueries({ queryKey: ["workflows"] });

@@ -84,6 +84,22 @@ final class InstallState {
 	}
 
 	/**
+	 * Drop the install stamp entirely, so the pack reads as never-installed
+	 * (the catalog offers "Install pack" again, and a later re-import does not
+	 * refuse itself). Used after {@see \Flexa\FormFlow\Packs\Uninstaller} has
+	 * removed (or found already gone) every row it created.
+	 */
+	public static function forget( string $pack_id ): void {
+		$state = self::all();
+		if ( ! array_key_exists( $pack_id, $state ) ) {
+			return;
+		}
+
+		unset( $state[ $pack_id ] );
+		update_option( self::OPTION_KEY, $state );
+	}
+
+	/**
 	 * Add or correct recorded ids without touching the version stamp. Used by
 	 * the back-fill and after a restore creates replacements.
 	 *

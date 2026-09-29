@@ -8,16 +8,25 @@ import {
     Mail,
     Package,
     RotateCcw,
+    Trash2,
     Workflow,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
 import { EmptyState } from "@/components/custom/EmptyState";
 import { ownershipChip } from "@/components/custom/AssetCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { __, sprintf } from "@/lib/i18n";
 import { useUiStore } from "@/lib/store";
-import { usePackDetail, usePackStatus, useRestorePack } from "./useLibrary";
+import { usePackDetail, usePackStatus, useRestorePack, useUninstallPack } from "./useLibrary";
 import { ImportPackDialog } from "./ImportPackDialog";
 import { UpdatePackDialog } from "./UpdatePackDialog";
 import type { PackGroup, PackItem } from "./types";
@@ -31,9 +40,11 @@ export function PackDetailPage({ id }: { id: string }) {
     const { data: pack, isLoading } = usePackDetail(id);
     const { data: status } = usePackStatus(id, Boolean(pack?.installed));
     const restore = useRestorePack(id);
+    const uninstall = useUninstallPack(id);
     const showToast = useUiStore((s) => s.showToast);
     const [importOpen, setImportOpen] = useState(false);
     const [updateOpen, setUpdateOpen] = useState(false);
+    const [uninstallOpen, setUninstallOpen] = useState(false);
 
     const onRestore = () => {
         restore.mutate(undefined, {
@@ -42,6 +53,16 @@ export function PackDetailPage({ id }: { id: string }) {
                 showToast(sprintf(__("Put back %d items."), count));
             },
             onError: () => showToast(__("Could not restore this pack."), "error"),
+        });
+    };
+
+    const onUninstall = () => {
+        uninstall.mutate(undefined, {
+            onSuccess: () => {
+                setUninstallOpen(false);
+                showToast(__("Pack uninstalled."));
+            },
+            onError: () => showToast(__("Could not uninstall this pack."), "error"),
         });
     };
 
@@ -86,6 +107,10 @@ export function PackDetailPage({ id }: { id: string }) {
     const missingRefs = new Set(
         (status?.items ?? []).filter((i) => !i.present).map((i) => `${i.group}:${i.ref}`),
     );
+    // What an uninstall would actually remove: the present forms/emails/workflows
+    // only - patterns are never touched (see Uninstaller), and an already-missing
+    // item has nothing left to delete.
+    const toDelete = (status?.items ?? []).filter((i) => i.group !== "patterns" && i.present);
 
     return (
         <div className="ff:flex ff:flex-col ff:gap-6 ff:p-6">
@@ -110,6 +135,17 @@ export function PackDetailPage({ id }: { id: string }) {
                         <Button variant="outline" size="sm" onClick={() => setUpdateOpen(true)}>
                             <ArrowUpCircle aria-hidden className="ff:h-4 ff:w-4" />
                             {__("Update available")}
+                        </Button>
+                    )}
+                    {pack.installed && (
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="ff:text-red-600 ff:hover:bg-red-50"
+                            onClick={() => setUninstallOpen(true)}
+                        >
+                            <Trash2 aria-hidden className="ff:h-4 ff:w-4" />
+                            {__("Uninstall pack")}
                         </Button>
                     )}
                 </div>
@@ -187,6 +223,33 @@ export function PackDetailPage({ id }: { id: string }) {
 
             <ImportPackDialog pack={pack} open={importOpen} onClose={() => setImportOpen(false)} />
             <UpdatePackDialog pack={pack} open={updateOpen} onClose={() => setUpdateOpen(false)} />
+            <Dialog open={uninstallOpen} onOpenChange={(open) => !open && setUninstallOpen(false)}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>{sprintf(__('Uninstall "%s"?'), pack.name)}</DialogTitle>
+                        <DialogDescription>
+                            {toDelete.length > 0
+                                ? __("This deletes the items below. Patterns from this pack stay in My Library, since other packs may share them.")
+                                : __("Nothing this pack created is still on your site, so this only clears its Installed status.")}
+                        </DialogDescription>
+                    </DialogHeader>
+                    {toDelete.length > 0 && (
+                        <ul className="ff:m-0 ff:flex ff:flex-col ff:gap-1 ff:rounded-lg ff:bg-red-50 ff:p-3 ff:text-sm ff:text-red-900">
+                            {toDelete.map((item) => (
+                                <li key={`${item.group}:${item.ref}`}>{item.name}</li>
+                            ))}
+                        </ul>
+                    )}
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setUninstallOpen(false)}>
+                            {__("Cancel")}
+                        </Button>
+                        <Button variant="destructive" onClick={onUninstall} disabled={uninstall.isPending}>
+                            {uninstall.isPending ? __("Uninstalling…") : __("Uninstall pack")}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }
