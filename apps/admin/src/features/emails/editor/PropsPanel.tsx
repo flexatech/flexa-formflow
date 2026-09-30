@@ -5,11 +5,11 @@ import { ConditionsBuilder, toConditionSet, type ConditionSet, type SchemaContex
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { __, sprintf } from "@/lib/i18n";
-import { elementDef, isLayout, type EmailElement, type FieldSpec, type TreeSettings } from "../types";
+import { elementDef, isLayout, type EmailElement, type TreeSettings } from "../types";
 import { GlobalLayoutToggles } from "../layout/GlobalLayoutToggles";
 import { DynamicDataBrowser } from "./DynamicDataBrowser";
+import { FieldEditor } from "./FieldEditor";
 
 /** A text-bearing input the Dynamic Data browser can insert a token into. */
 type ActiveField = { el: HTMLInputElement | HTMLTextAreaElement; onChange: (value: string) => void };
@@ -201,15 +201,17 @@ export function PropsPanel({
                     </div>
                 </div>
             )}
-            {def.fields.map((field) => (
-                <FieldEditor
-                    key={field.key}
-                    field={field}
-                    value={element.props[field.key]}
-                    onChange={(v) => setProp(field.key, v)}
-                    onFocusField={registerActive}
-                />
-            ))}
+            {def.fields
+                .filter((field) => !field.showIf || (element.props[field.showIf.key] ?? def.defaults[field.showIf.key]) === field.showIf.equals)
+                .map((field) => (
+                    <FieldEditor
+                        key={field.key}
+                        field={field}
+                        value={element.props[field.key] ?? def.defaults[field.key]}
+                        onChange={(v) => setProp(field.key, v)}
+                        onFocusField={registerActive}
+                    />
+                ))}
             <VisibilitySection
                 element={element}
                 fields={conditionFields}
@@ -261,58 +263,6 @@ function VisibilitySection({
             )}
             <ConditionsBuilder value={value} disabled={false} fields={fields} onChange={onChange} />
         </section>
-    );
-}
-
-function FieldEditor({
-    field,
-    value,
-    onChange,
-    onFocusField,
-}: {
-    field: FieldSpec;
-    value: unknown;
-    onChange: (value: unknown) => void;
-    onFocusField: (el: HTMLInputElement | HTMLTextAreaElement, onChange: (value: string) => void) => void;
-}) {
-    const str = typeof value === "string" ? value : value == null ? "" : String(value);
-
-    return (
-        <div className="ff:flex ff:flex-col ff:gap-1.5">
-            <Label className="ff:block">{field.label}</Label>
-            {field.type === "textarea" && (
-                <Textarea
-                    value={str}
-                    rows={4}
-                    placeholder={field.placeholder}
-                    onFocus={(e) => onFocusField(e.currentTarget, onChange)}
-                    onChange={(e) => onChange(e.target.value)}
-                />
-            )}
-            {(field.type === "text" || field.type === "url") && (
-                <Input
-                    value={str}
-                    placeholder={field.placeholder}
-                    onFocus={(e) => onFocusField(e.currentTarget, onChange)}
-                    onChange={(e) => onChange(e.target.value)}
-                />
-            )}
-            {field.type === "number" && (
-                <Input
-                    type="number"
-                    min={field.min}
-                    max={field.max}
-                    value={typeof value === "number" ? value : str}
-                    onChange={(e) => onChange(Number(e.target.value))}
-                />
-            )}
-            {field.type === "color" && (
-                <ColorField value={str} placeholder={__("inherit")} onChange={onChange} />
-            )}
-            {field.type === "select" && (
-                <Select value={str} options={field.options ?? []} onChange={(e) => onChange(e.target.value)} />
-            )}
-        </div>
     );
 }
 

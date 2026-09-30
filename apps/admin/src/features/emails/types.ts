@@ -98,11 +98,15 @@ export interface DynamicDataCategory {
 export interface FieldSpec {
     key: string;
     label: string;
-    type: "text" | "textarea" | "number" | "color" | "select" | "url";
+    type: "text" | "textarea" | "number" | "color" | "select" | "url" | "switch";
     options?: Array<{ value: string; label: string }>;
     min?: number;
     max?: number;
     placeholder?: string;
+    /** Small hint under the label. */
+    help?: string;
+    /** Show this field only while another prop of the block has this value. */
+    showIf?: { key: string; equals: unknown };
 }
 
 export interface ElementDef {
@@ -275,10 +279,67 @@ export const ELEMENT_TYPES: ElementDef[] = [
         label: __("Order details"),
         description: __("WooCommerce line items and totals"),
         icon: Receipt,
-        defaults: { title: __("Order summary"), borderColor: "#e6e6e6" },
+        defaults: {
+            title: __("Order summary"),
+            borderColor: "#e6e6e6",
+            fontSize: 14,
+            headingSize: 14,
+            titleColor: "",
+            textColor: "",
+            backgroundColor: "",
+            paddingY: 12,
+            paddingX: 40,
+            showHeader: false,
+            labelProduct: __("Product"),
+            labelTotal: __("Price"),
+            showImage: false,
+            imageSize: "small",
+            showLink: false,
+            showSku: false,
+            showMeta: false,
+            showDescription: false,
+            showItemPrice: false,
+            showRegularPrice: false,
+            showNote: false,
+            labelNote: __("Note"),
+        },
         fields: [
             { key: "title", label: __("Title"), type: "text" },
             { key: "borderColor", label: __("Border color"), type: "color" },
+            { key: "titleColor", label: __("Title color"), type: "color" },
+            { key: "textColor", label: __("Text color"), type: "color" },
+            { key: "backgroundColor", label: __("Background color"), type: "color" },
+            { key: "fontSize", label: __("Text size (px)"), type: "number", min: 11, max: 22 },
+            { key: "paddingY", label: __("Space above and below (px)"), type: "number", min: 0, max: 80 },
+            { key: "paddingX", label: __("Space left and right (px)"), type: "number", min: 0, max: 80 },
+            { key: "showImage", label: __("Product image"), type: "switch" },
+            {
+                key: "imageSize",
+                label: __("Image size"),
+                type: "select",
+                options: [
+                    { value: "small", label: __("Small (48px)") },
+                    { value: "medium", label: __("Medium (72px)") },
+                ],
+                showIf: { key: "showImage", equals: true },
+            },
+            { key: "showLink", label: __("Link product names"), type: "switch" },
+            { key: "showSku", label: __("SKU"), type: "switch" },
+            { key: "showMeta", label: __("Variations and options"), type: "switch", help: __("Size, color and other choices") },
+            { key: "showDescription", label: __("Short description"), type: "switch" },
+            { key: "showItemPrice", label: __("Price of one item"), type: "switch" },
+            {
+                key: "showRegularPrice",
+                label: __("Show the regular price when on sale"),
+                type: "switch",
+                showIf: { key: "showItemPrice", equals: true },
+            },
+            { key: "showHeader", label: __("Table header row"), type: "switch" },
+            { key: "headingSize", label: __("Header text size (px)"), type: "number", min: 11, max: 22, showIf: { key: "showHeader", equals: true } },
+            { key: "labelProduct", label: __("Product column title"), type: "text", showIf: { key: "showHeader", equals: true } },
+            { key: "labelTotal", label: __("Price column title"), type: "text", showIf: { key: "showHeader", equals: true } },
+            { key: "showNote", label: __("Customer note"), type: "switch", help: __("Shown when the customer left one") },
+            { key: "labelNote", label: __("Note label"), type: "text", showIf: { key: "showNote", equals: true } },
         ],
     },
     {
