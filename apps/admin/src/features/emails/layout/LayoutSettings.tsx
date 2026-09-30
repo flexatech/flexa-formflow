@@ -1,4 +1,4 @@
-import { Info } from "lucide-react";
+import { AlertTriangle, Info } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,14 +42,20 @@ export function LayoutSettings({
                 )}
             </p>
 
-            <label className="ff:flex ff:items-center ff:justify-between ff:gap-3 ff:rounded-lg ff:border ff:border-slate-200 ff:px-3 ff:py-2.5">
-                <span className="ff:text-sm ff:font-medium ff:text-slate-800">{__("Show on emails")}</span>
-                <Switch
-                    checked={layout.enabled}
-                    onCheckedChange={(enabled) => save.mutate({ enabled })}
-                    aria-label={__("Show the global header and footer")}
-                />
-            </label>
+            {!layout.enabled && (
+                <div
+                    role="alert"
+                    className="ff:flex ff:flex-col ff:gap-2 ff:rounded-lg ff:border ff:border-amber-200 ff:bg-amber-50 ff:px-3 ff:py-2.5 ff:text-xs ff:text-amber-800"
+                >
+                    <p className="ff:m-0 ff:flex ff:items-start ff:gap-2">
+                        <AlertTriangle aria-hidden className="ff:mt-0.5 ff:h-4 ff:w-4 ff:shrink-0 ff:text-amber-500" />
+                        <span>{__("The global header and footer are off, so no email uses them yet.")}</span>
+                    </p>
+                    <Button size="sm" onClick={() => save.mutate({ enabled: true })} disabled={save.isPending}>
+                        {__("Turn on")}
+                    </Button>
+                </div>
+            )}
 
             {hasWoo && (
                 <div className="ff:flex ff:flex-col ff:gap-1.5">
