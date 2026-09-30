@@ -9,6 +9,8 @@ use Flexa\FormFlow\Library\Catalog;
 use Flexa\FormFlow\Packs\InstallState;
 use Flexa\FormFlow\Packs\Installer;
 use Flexa\FormFlow\Packs\Registry;
+use Flexa\FormFlow\Packs\Restorer;
+use Flexa\FormFlow\Packs\Uninstaller;
 use WP_Error;
 use WP_REST_Request;
 use WP_REST_Response;
@@ -81,6 +83,45 @@ final class LibraryEndpoint extends Endpoint {
 				[
 					'methods'             => 'POST',
 					'callback'            => [ $this, 'update_pack' ],
+					'permission_callback' => [ $this, 'manage_permission' ],
+					'args'                => [ 'id' => [ 'sanitize_callback' => 'sanitize_key' ] ],
+				],
+			]
+		);
+
+		register_rest_route(
+			self::NAMESPACE,
+			'/library/packs/(?P<id>[a-z0-9-]+)/status',
+			[
+				[
+					'methods'             => 'GET',
+					'callback'            => [ $this, 'pack_status' ],
+					'permission_callback' => [ $this, 'manage_permission' ],
+					'args'                => [ 'id' => [ 'sanitize_callback' => 'sanitize_key' ] ],
+				],
+			]
+		);
+
+		register_rest_route(
+			self::NAMESPACE,
+			'/library/packs/(?P<id>[a-z0-9-]+)',
+			[
+				[
+					'methods'             => 'DELETE',
+					'callback'            => [ $this, 'uninstall' ],
+					'permission_callback' => [ $this, 'manage_permission' ],
+					'args'                => [ 'id' => [ 'sanitize_callback' => 'sanitize_key' ] ],
+				],
+			]
+		);
+
+		register_rest_route(
+			self::NAMESPACE,
+			'/library/packs/(?P<id>[a-z0-9-]+)/restore',
+			[
+				[
+					'methods'             => 'POST',
+					'callback'            => [ $this, 'restore' ],
 					'permission_callback' => [ $this, 'manage_permission' ],
 					'args'                => [ 'id' => [ 'sanitize_callback' => 'sanitize_key' ] ],
 				],
@@ -184,6 +225,66 @@ final class LibraryEndpoint extends Endpoint {
 		$summary = Installer::instance()->import( $manifest );
 
 		return new WP_REST_Response( [ 'summary' => $summary ], 201 );
+	}
+
+	/**
+	 * Which of an installed pack's items are still on the site. Backs the
+	 * "N items missing" line and its Restore action, and (for patterns) the
+	 * uninstall confirm dialog: a present pattern is flagged `willBeDeleted`
+	 * when this is the last currently-installed pack that still declares it,
+	 * mirroring exactly what {@see Uninstaller::uninstall()} would do.
+	 */
+	public function pack_status( WP_REST_Request $request ): WP_REST_Response|WP_Error {
+		$manifest = Registry::find( (string) $request->get_param( 'id' ) );
+		if ( null === $manifest ) {
+			return new WP_Error( 'flexa_formflow_pack_not_found', __( 'Pack not found.', 'flexa-formflow' ), [ 'status' => 404 ] );
+		}
+		if ( ! InstallState::is_installed( $manifest->id ) ) {
+			return new WP_Error( 'flexa_formflow_pack_not_installed', __( 'This pack is not installed.', 'flexa-formflow' ), [ 'status' => 409 ] );
+		}
+
+		$status = Restorer::instance()->status( $manifest );
+		foreach ( $status['items'] as &$item ) {
+			$item['willBeDeleted'] = 'patterns' === $item['group'] && $item['present']
+				&& ! Uninstaller::still_needed_elsewhere( $item['ref'], $manifest->id );
+		}
+		unset( $item );
+
+		return new WP_REST_Response( [ 'status' => $status ], 200 );
+	}
+
+	/**
+	 * Recreate the deleted items of an installed pack. Untouched items are left
+	 * alone, so this is safe to run when nothing is missing.
+	 */
+	public function restore( WP_REST_Request $request ): WP_REST_Response|WP_Error {
+		$manifest = Registry::find( (string) $request->get_param( 'id' ) );
+		if ( null === $manifest ) {
+			return new WP_Error( 'flexa_formflow_pack_not_found', __( 'Pack not found.', 'flexa-formflow' ), [ 'status' => 404 ] );
+		}
+		if ( ! InstallState::is_installed( $manifest->id ) ) {
+			return new WP_Error( 'flexa_formflow_pack_not_installed', __( 'This pack is not installed.', 'flexa-formflow' ), [ 'status' => 409 ] );
+		}
+
+		return new WP_REST_Response( [ 'summary' => Restorer::instance()->restore( $manifest ) ], 200 );
+	}
+
+	/**
+	 * Delete exactly the rows this pack's install (and any later restore) is
+	 * recorded to have created, then clear the install stamp. A row already
+	 * missing is skipped, not an error, so this also cleans up a pack stuck in
+	 * the same "installed, partly deleted" state {@see restore()} exists to fix.
+	 */
+	public function uninstall( WP_REST_Request $request ): WP_REST_Response|WP_Error {
+		$manifest = Registry::find( (string) $request->get_param( 'id' ) );
+		if ( null === $manifest ) {
+			return new WP_Error( 'flexa_formflow_pack_not_found', __( 'Pack not found.', 'flexa-formflow' ), [ 'status' => 404 ] );
+		}
+		if ( ! InstallState::is_installed( $manifest->id ) ) {
+			return new WP_Error( 'flexa_formflow_pack_not_installed', __( 'This pack is not installed.', 'flexa-formflow' ), [ 'status' => 409 ] );
+		}
+
+		return new WP_REST_Response( [ 'summary' => Uninstaller::instance()->uninstall( $manifest ) ], 200 );
 	}
 
 	public function index(): WP_REST_Response {

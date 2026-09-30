@@ -44,13 +44,15 @@ final class FieldsTable extends BaseElement {
 				continue;
 			}
 
-			if ( array_key_exists( $field_id, $data ) ) {
-				$value = $data[ $field_id ];
-				$value = is_array( $value ) ? implode( ', ', array_map( 'strval', $value ) ) : (string) $value;
-			} elseif ( $ctx->is_preview ) {
-				$value = FieldTypes::sample_value( $field );
-			} else {
-				$value = '';
+			// An entry that answered this field, even blank (array_key_exists is
+			// true for '' and []), still counts as "no real value" here: preview
+			// falls back to a sample the same as when the entry has no answer at
+			// all, so the design never renders blank (see Tokens::field_values()).
+			$raw   = array_key_exists( $field_id, $data ) ? $data[ $field_id ] : null;
+			$value = is_array( $raw ) ? implode( ', ', array_map( 'strval', $raw ) ) : (string) ( $raw ?? '' );
+
+			if ( '' === $value ) {
+				$value = $ctx->is_preview ? FieldTypes::sample_value( $field ) : '';
 			}
 
 			// Hidden fields with no value are noise in a summary; skip them.

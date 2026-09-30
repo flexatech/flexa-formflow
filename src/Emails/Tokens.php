@@ -132,9 +132,15 @@ final class Tokens {
 				continue;
 			}
 
-			if ( array_key_exists( $field_id, $data ) ) {
-				$value               = $data[ $field_id ];
-				$values[ $field_id ] = is_array( $value ) ? implode( ', ', array_map( 'strval', $value ) ) : (string) $value;
+			// An entry that answered this field, even blank (array_key_exists is
+			// true for '' and []), still counts as "no real value" here: preview
+			// falls back to a sample the same as when the entry has no answer at
+			// all, so the design never renders blank (see OrderTokens::sample_values()).
+			$value    = array_key_exists( $field_id, $data ) ? $data[ $field_id ] : null;
+			$resolved = is_array( $value ) ? implode( ', ', array_map( 'strval', $value ) ) : (string) ( $value ?? '' );
+
+			if ( '' !== $resolved ) {
+				$values[ $field_id ] = $resolved;
 			} elseif ( $ctx->is_preview ) {
 				$values[ $field_id ] = FieldTypes::sample_value( $field );
 			} else {

@@ -226,6 +226,7 @@ final class WooEmailsEndpoint extends Endpoint {
 
 		$orders = wc_get_orders(
 			[
+				'type'    => 'shop_order',
 				'limit'   => 20,
 				'orderby' => 'date',
 				'order'   => 'DESC',
@@ -237,7 +238,13 @@ final class WooEmailsEndpoint extends Endpoint {
 
 		$out = [];
 		foreach ( $orders as $order ) {
-			// wc_get_orders (no 'return' => 'ids') yields WC_Order objects.
+			// Refunds share the order tables/hierarchy but lack billing methods;
+			// 'type' => 'shop_order' should exclude them, but skip defensively
+			// in case a payment gateway registers another non-order order type.
+			if ( ! method_exists( $order, 'get_formatted_billing_full_name' ) ) {
+				continue;
+			}
+
 			$name  = trim( $order->get_formatted_billing_full_name() );
 			$out[] = [
 				'id'    => $order->get_id(),

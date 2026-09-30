@@ -60,6 +60,11 @@ export function useSaveWooEmail(id: string) {
             )).email,
         onSuccess: () => {
             void queryClient.invalidateQueries({ queryKey: ["woo-emails"] });
+            // The preview is cached by (email id, order id) only, so a saved
+            // subject/template change never appears in the key: without this,
+            // an open preview keeps rendering whatever was cached before the
+            // save, even though the row above now shows the new template.
+            void queryClient.invalidateQueries({ queryKey: ["woo-email-preview", id] });
         },
     });
 }

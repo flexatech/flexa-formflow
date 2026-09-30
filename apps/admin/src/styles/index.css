@@ -27,6 +27,13 @@
     color-scheme: light dark;
 }
 
+/* Set on <body> while the fullscreen toggle is active (see main.tsx
+ * useFullscreen): the plugin root becomes a fixed, full-viewport overlay
+ * above wp-admin's own bars, so the page behind it must stop scrolling too. */
+body.flexa-formflow-fs-lock {
+    overflow: hidden;
+}
+
 /* WP admin's #wpcontent has 20px side padding - this margin trick bleeds the
  * brand strip to the viewport edge. Keep margin-inline-end at 0 so we don't
  * trigger a horizontal scrollbar. */
