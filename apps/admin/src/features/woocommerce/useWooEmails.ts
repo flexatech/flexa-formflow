@@ -10,6 +10,9 @@ export interface WooEmailRow {
     enabled: boolean;
     subject: string;
     templateId: number;
+    /** WooCommerce's own Enable/Disable for this email; takeover cannot send a disabled one. */
+    wcEnabled: boolean;
+    wcSettingsUrl: string;
 }
 
 export interface WooTemplateOption {
@@ -47,6 +50,9 @@ export function useWooEmails() {
     return useQuery({
         queryKey: ["woo-emails"],
         queryFn: async () => api.get<WooEmailsResponse>("/woo-emails"),
+        // The "disabled in WooCommerce" warning links out to WooCommerce's
+        // settings; refetch on return so it clears once the email is enabled.
+        refetchOnWindowFocus: true,
     });
 }
 

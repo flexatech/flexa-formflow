@@ -79,19 +79,22 @@ final class WooEmailsEndpoint extends Endpoint {
 	}
 
 	public function index(): WP_REST_Response {
-		$repo  = WooEmailRepository::instance();
-		$items = [];
+		$repo      = WooEmailRepository::instance();
+		$wc_states = $this->wc_email_states();
+		$items     = [];
 		foreach ( Catalog::emails() as $id => $meta ) {
 			$settings = $repo->find( $id );
 			$items[]  = [
-				'id'          => $id,
-				'title'       => $meta['title'],
-				'description' => $meta['description'],
-				'recipient'   => $meta['recipient'],
-				'hasOrder'    => $meta['has_order'],
-				'enabled'     => $settings['enabled'],
-				'subject'     => $settings['subject'],
-				'templateId'  => $settings['template_id'],
+				'id'            => $id,
+				'title'         => $meta['title'],
+				'description'   => $meta['description'],
+				'recipient'     => $meta['recipient'],
+				'hasOrder'      => $meta['has_order'],
+				'enabled'       => $settings['enabled'],
+				'subject'       => $settings['subject'],
+				'templateId'    => $settings['template_id'],
+				'wcEnabled'     => $wc_states[ $id ]['enabled'] ?? true,
+				'wcSettingsUrl' => $wc_states[ $id ]['url'] ?? admin_url( 'admin.php?page=wc-settings&tab=email' ),
 			];
 		}
 
@@ -211,6 +214,35 @@ final class WooEmailsEndpoint extends Endpoint {
 		$order = wc_get_order( $order_id );
 
 		return $order instanceof \WC_Order ? $order : null;
+	}
+
+	/**
+	 * WooCommerce's own on/off switch for each email. Takeover only restyles an
+	 * email WooCommerce actually sends, and some (the customer cancelled/failed
+	 * copies) ship disabled, so the screen warns instead of silently sending
+	 * nothing.
+	 *
+	 * @return array<string, array{enabled: bool, url: string}>
+	 */
+	private function wc_email_states(): array {
+		if ( ! function_exists( 'WC' ) ) {
+			return [];
+		}
+
+		$states = [];
+		foreach ( WC()->mailer()->get_emails() as $email ) {
+			if ( ! $email instanceof \WC_Email ) {
+				continue;
+			}
+			// Manual emails (customer invoice) skip the enabled check when sent
+			// from an order action, so they are never "off" in practice.
+			$states[ (string) $email->id ] = [
+				'enabled' => $email->is_manual() || $email->is_enabled(),
+				'url'     => admin_url( 'admin.php?page=wc-settings&tab=email&section=' . strtolower( get_class( $email ) ) ),
+			];
+		}
+
+		return $states;
 	}
 
 	/**

@@ -1,4 +1,4 @@
-import { Eye, Monitor, Send, ShoppingCart, Smartphone } from "lucide-react";
+import { AlertTriangle, ExternalLink, Eye, Monitor, Send, ShoppingCart, Smartphone } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -276,6 +276,28 @@ function EmailCard({
 
             {email.enabled ? (
                 <div className="ff:flex ff:flex-col ff:gap-3 ff:border-t ff:border-slate-100 ff:bg-slate-50/60 ff:px-5 ff:py-4">
+                    {!email.wcEnabled && (
+                        <div
+                            role="alert"
+                            className="ff:flex ff:items-start ff:gap-2.5 ff:rounded-lg ff:border ff:border-amber-200 ff:bg-amber-50 ff:px-3.5 ff:py-2.5 ff:text-xs ff:text-amber-800"
+                        >
+                            <AlertTriangle aria-hidden className="ff:mt-0.5 ff:h-4 ff:w-4 ff:shrink-0 ff:text-amber-500" />
+                            <p className="ff:flex-1">
+                                {__(
+                                    "This email is turned off in WooCommerce, so it will not be sent. Enable it in WooCommerce's email settings.",
+                                )}{" "}
+                                <a
+                                    href={email.wcSettingsUrl}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="ff:inline-flex ff:items-center ff:gap-1 ff:font-medium ff:text-amber-900 ff:underline ff:underline-offset-2"
+                                >
+                                    {__("Open WooCommerce settings")}
+                                    <ExternalLink aria-hidden className="ff:h-3 ff:w-3" />
+                                </a>
+                            </p>
+                        </div>
+                    )}
                     <div className="ff:flex ff:flex-col ff:gap-1.5">
                         <label className="ff:text-xs ff:font-medium ff:text-slate-600">
                             {__("Subject line")}
