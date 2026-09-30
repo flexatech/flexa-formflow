@@ -57,6 +57,7 @@ final class OrderTokens {
 
 		$values['reset_password_url'] = self::reset_password_url( $ctx );
 		$values['set_password_url']   = (string) $ctx->extra( 'set_password_url' );
+		$values                       = array_merge( $values, self::pos_store_values( $ctx ) );
 
 		$note = $ctx->extra( 'customer_note' );
 		if ( is_string( $note ) && '' !== $note ) {
@@ -141,6 +142,54 @@ final class OrderTokens {
 				'token' => '{set_password_url}',
 				'label' => __( 'Set password link (New account email only)', 'flexa-formflow' ),
 			],
+			[
+				'token' => '{pos_store_name}',
+				'label' => __( 'POS store name', 'flexa-formflow' ),
+			],
+			[
+				'token' => '{pos_store_email}',
+				'label' => __( 'POS store email', 'flexa-formflow' ),
+			],
+			[
+				'token' => '{pos_store_phone}',
+				'label' => __( 'POS store phone', 'flexa-formflow' ),
+			],
+			[
+				'token' => '{pos_store_address}',
+				'label' => __( 'POS store address', 'flexa-formflow' ),
+			],
+			[
+				'token' => '{pos_refund_policy}',
+				'label' => __( 'POS refund & returns policy', 'flexa-formflow' ),
+			],
+		];
+	}
+
+	/**
+	 * The store details set under WooCommerce > Settings > Point of Sale. The
+	 * POS emails hand them to the template already resolved (with WooCommerce's
+	 * own fallbacks); any other email reads the saved options directly, so the
+	 * tokens still work outside a POS receipt.
+	 *
+	 * @return array<string, string>
+	 */
+	private static function pos_store_values( RenderContext $ctx ): array {
+		$pick = static function ( string $extra, string $option, string $fallback = '' ) use ( $ctx ): string {
+			$given = (string) $ctx->extra( $extra );
+			if ( '' !== $given ) {
+				return $given;
+			}
+			$saved = (string) get_option( $option, '' );
+
+			return '' !== $saved ? $saved : $fallback;
+		};
+
+		return [
+			'pos_store_name'    => $pick( 'pos_store_name', 'woocommerce_pos_store_name', (string) get_bloginfo( 'name' ) ),
+			'pos_store_email'   => $pick( 'pos_store_email', 'woocommerce_pos_store_email', (string) get_option( 'admin_email' ) ),
+			'pos_store_phone'   => $pick( 'pos_store_phone', 'woocommerce_pos_store_phone' ),
+			'pos_store_address' => $pick( 'pos_store_address', 'woocommerce_pos_store_address' ),
+			'pos_refund_policy' => $pick( 'pos_refund_policy', 'woocommerce_pos_refund_returns_policy' ),
 		];
 	}
 
@@ -189,6 +238,9 @@ final class OrderTokens {
 			'customer_note'       => __( 'Thanks, please leave the parcel at the door.', 'flexa-formflow' ),
 			'reset_password_url'  => home_url( '/my-account/lost-password/?key=sample&id=1&login=alex' ),
 			'set_password_url'    => home_url( '/my-account/lost-password/?action=newaccount&key=sample&login=alex' ),
+			'pos_store_phone'     => '(555) 010-0199',
+			'pos_store_address'   => '123 Main Street, Springfield',
+			'pos_refund_policy'   => __( 'Returns accepted within 30 days with receipt.', 'flexa-formflow' ),
 		];
 	}
 }

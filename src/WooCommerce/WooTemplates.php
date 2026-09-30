@@ -51,6 +51,11 @@ final class WooTemplates {
 			$elements[] = self::el( 'button', $button );
 		}
 
+		$closing = self::closing_for( $email_id );
+		if ( null !== $closing ) {
+			$elements[] = self::el( 'text', [ 'html' => $closing ] );
+		}
+
 		$elements[] = self::el( 'divider' );
 		$elements[] = self::el( 'footer_text' );
 
@@ -111,6 +116,10 @@ final class WooTemplates {
 				'heading' => __( 'Order {order_number} is complete', 'flexa-formflow' ),
 				'text'    => __( 'Hi {customer_first_name}, your order has been delivered successfully. Thank you for shopping with us!', 'flexa-formflow' ),
 			],
+			'customer_pos_completed_order' => [
+				'heading' => __( 'Thank you for your in-store purchase', 'flexa-formflow' ),
+				'text'    => __( "Hi {customer_first_name}, here's a reminder of what you've bought at {pos_store_name}.", 'flexa-formflow' ),
+			],
 			'customer_refunded_order'   => [
 				'heading' => __( 'Order {order_number} has been refunded', 'flexa-formflow' ),
 				'text'    => __( "Hi {customer_first_name}, we've refunded your order. The funds should appear in your account within a few business days.", 'flexa-formflow' ),
@@ -160,6 +169,20 @@ final class WooTemplates {
 				'url'  => '{set_password_url}',
 			],
 			default                   => null,
+		};
+	}
+
+	/**
+	 * A closing line under the order summary. POS receipts point the customer
+	 * at the store they bought from; name and email are used because both
+	 * always resolve (WooCommerce falls back to the site name and admin email),
+	 * whereas phone, address and refund policy may be blank and are left as
+	 * tokens for the user to place.
+	 */
+	private static function closing_for( string $email_id ): ?string {
+		return match ( $email_id ) {
+			'customer_pos_completed_order' => __( 'Questions about your purchase? Contact {pos_store_name} at {pos_store_email}.', 'flexa-formflow' ),
+			default                        => null,
 		};
 	}
 

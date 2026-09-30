@@ -32,6 +32,11 @@ $ff_extras = [
 	'user_id'            => isset( $user_id ) ? (string) $user_id : '',
 	'reset_key'          => isset( $reset_key ) ? (string) $reset_key : '',
 	'set_password_url'   => isset( $set_password_url ) ? (string) $set_password_url : '',
+	'pos_store_name'     => isset( $pos_store_name ) ? (string) $pos_store_name : '',
+	'pos_store_email'    => isset( $pos_store_email ) ? (string) $pos_store_email : '',
+	'pos_store_phone'    => isset( $pos_store_phone_number ) ? (string) $pos_store_phone_number : '',
+	'pos_store_address'  => isset( $pos_store_address ) ? (string) $pos_store_address : '',
+	'pos_refund_policy'  => isset( $pos_refund_returns_policy ) ? (string) $pos_refund_returns_policy : '',
 	'sent_to_admin'      => ! empty( $sent_to_admin ),
 ];
 
