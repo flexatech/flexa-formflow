@@ -18,109 +18,116 @@ final class Catalog {
 	 */
 	public static function emails(): array {
 		$emails = [
-			'new_order'                    => [
+			'new_order'                     => [
 				'template'    => 'emails/admin-new-order.php',
 				'title'       => __( 'New order', 'flexa-formflow' ),
 				'description' => __( 'Sent to the store admin when a new order arrives.', 'flexa-formflow' ),
 				'recipient'   => 'admin',
 				'has_order'   => true,
 			],
-			'cancelled_order'              => [
+			'cancelled_order'               => [
 				'template'    => 'emails/admin-cancelled-order.php',
 				'title'       => __( 'Cancelled order', 'flexa-formflow' ),
 				'description' => __( 'Sent to the store admin when an order is cancelled.', 'flexa-formflow' ),
 				'recipient'   => 'admin',
 				'has_order'   => true,
 			],
-			'customer_cancelled_order'     => [
+			'customer_cancelled_order'      => [
 				'template'    => 'emails/customer-cancelled-order.php',
 				'title'       => __( 'Cancelled order', 'flexa-formflow' ),
 				'description' => __( 'Sent to the customer when their order is cancelled.', 'flexa-formflow' ),
 				'recipient'   => 'customer',
 				'has_order'   => true,
 			],
-			'failed_order'                 => [
+			'failed_order'                  => [
 				'template'    => 'emails/admin-failed-order.php',
 				'title'       => __( 'Failed order', 'flexa-formflow' ),
 				'description' => __( 'Sent to the store admin when payment fails.', 'flexa-formflow' ),
 				'recipient'   => 'admin',
 				'has_order'   => true,
 			],
-			'customer_failed_order'        => [
+			'customer_failed_order'         => [
 				'template'    => 'emails/customer-failed-order.php',
 				'title'       => __( 'Failed order', 'flexa-formflow' ),
 				'description' => __( 'Sent to the customer when their order fails, usually because payment did not go through.', 'flexa-formflow' ),
 				'recipient'   => 'customer',
 				'has_order'   => true,
 			],
-			'customer_on_hold_order'       => [
+			'customer_on_hold_order'        => [
 				'template'    => 'emails/customer-on-hold-order.php',
 				'title'       => __( 'Order on hold', 'flexa-formflow' ),
 				'description' => __( 'Sent to the customer when an order is set on hold.', 'flexa-formflow' ),
 				'recipient'   => 'customer',
 				'has_order'   => true,
 			],
-			'customer_processing_order'    => [
+			'customer_processing_order'     => [
 				'template'    => 'emails/customer-processing-order.php',
 				'title'       => __( 'Processing order', 'flexa-formflow' ),
 				'description' => __( 'Sent to the customer after payment, while the order is processed.', 'flexa-formflow' ),
 				'recipient'   => 'customer',
 				'has_order'   => true,
 			],
-			'customer_completed_order'     => [
+			'customer_completed_order'      => [
 				'template'    => 'emails/customer-completed-order.php',
 				'title'       => __( 'Completed order', 'flexa-formflow' ),
 				'description' => __( 'Sent to the customer when the order is complete.', 'flexa-formflow' ),
 				'recipient'   => 'customer',
 				'has_order'   => true,
 			],
-			'customer_pos_completed_order' => [
+			'customer_pos_completed_order'  => [
 				'template'    => 'emails/customer-pos-completed-order.php',
 				'title'       => __( 'POS completed order', 'flexa-formflow' ),
 				'description' => __( 'Receipt sent to the customer when an in-store (Point of Sale) order is completed.', 'flexa-formflow' ),
 				'recipient'   => 'customer',
 				'has_order'   => true,
 			],
-			'customer_refunded_order'      => [
+			'customer_refunded_order'       => [
 				'template'    => 'emails/customer-refunded-order.php',
 				'title'       => __( 'Refunded order', 'flexa-formflow' ),
 				'description' => __( 'Sent to the customer when an order is refunded.', 'flexa-formflow' ),
 				'recipient'   => 'customer',
 				'has_order'   => true,
 			],
-			'customer_pos_refunded_order'  => [
+			'customer_pos_refunded_order'   => [
 				'template'    => 'emails/customer-pos-refunded-order.php',
 				'title'       => __( 'POS refunded order', 'flexa-formflow' ),
 				'description' => __( 'Sent to the customer when an in-store (Point of Sale) order is fully or partially refunded.', 'flexa-formflow' ),
 				'recipient'   => 'customer',
 				'has_order'   => true,
 			],
-			'customer_invoice'             => [
+			'customer_invoice'              => [
 				'template'    => 'emails/customer-invoice.php',
 				'title'       => __( 'Invoice / order details', 'flexa-formflow' ),
 				'description' => __( 'Order details sent to the customer on request or for unpaid orders.', 'flexa-formflow' ),
 				'recipient'   => 'customer',
 				'has_order'   => true,
 			],
-			'customer_note'                => [
+			'customer_note'                 => [
 				'template'    => 'emails/customer-note.php',
 				'title'       => __( 'Customer note', 'flexa-formflow' ),
 				'description' => __( 'Sent to the customer when a note is added to their order.', 'flexa-formflow' ),
 				'recipient'   => 'customer',
 				'has_order'   => true,
 			],
-			'customer_reset_password'      => [
+			'customer_reset_password'       => [
 				'template'    => 'emails/customer-reset-password.php',
 				'title'       => __( 'Reset password', 'flexa-formflow' ),
 				'description' => __( 'Sent to the customer when they request a password reset.', 'flexa-formflow' ),
 				'recipient'   => 'customer',
 				'has_order'   => false,
 			],
-			'customer_new_account'         => [
+			'customer_new_account'          => [
 				'template'    => 'emails/customer-new-account.php',
 				'title'       => __( 'New account', 'flexa-formflow' ),
 				'description' => __( 'Sent to the customer when their account is created.', 'flexa-formflow' ),
 				'recipient'   => 'customer',
+				'has_order'   => false,
+			],
+			'admin_payment_gateway_enabled' => [
+				'template'    => 'emails/admin-payment-gateway-enabled.php',
+				'title'       => __( 'Payment gateway enabled', 'flexa-formflow' ),
+				'description' => __( 'Security alert sent to the store admin when a payment gateway is switched on.', 'flexa-formflow' ),
+				'recipient'   => 'admin',
 				'has_order'   => false,
 			],
 		];

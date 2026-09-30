@@ -58,7 +58,7 @@ final class OrderTokens {
 
 		$values['reset_password_url'] = self::reset_password_url( $ctx );
 		$values['set_password_url']   = (string) $ctx->extra( 'set_password_url' );
-		$values                       = array_merge( $values, self::pos_store_values( $ctx ) );
+		$values                       = array_merge( $values, self::pos_store_values( $ctx ), self::gateway_values( $ctx ) );
 
 		$note = $ctx->extra( 'customer_note' );
 		if ( is_string( $note ) && '' !== $note ) {
@@ -167,6 +167,39 @@ final class OrderTokens {
 				'token' => '{pos_refund_policy}',
 				'label' => __( 'POS refund & returns policy', 'flexa-formflow' ),
 			],
+			[
+				'token' => '{gateway_title}',
+				'label' => __( 'Payment gateway name (Payment gateway enabled email only)', 'flexa-formflow' ),
+			],
+			[
+				'token' => '{gateway_settings_url}',
+				'label' => __( 'Payment gateway settings link (Payment gateway enabled email only)', 'flexa-formflow' ),
+			],
+		];
+	}
+
+	/**
+	 * The gateway a "payment gateway enabled" alert is about. The body gets it
+	 * from the template args; the subject has none, so it is read off the
+	 * email object, which WooCommerce fills in before rendering either.
+	 *
+	 * @return array<string, string>
+	 */
+	private static function gateway_values( RenderContext $ctx ): array {
+		$email = $ctx->email;
+		$title = (string) $ctx->extra( 'gateway_title' );
+		$url   = (string) $ctx->extra( 'gateway_url' );
+
+		if ( '' === $title && null !== $email && isset( $email->gateway_title ) ) {
+			$title = (string) $email->gateway_title;
+		}
+		if ( '' === $url && null !== $email && isset( $email->gateway_settings_url ) ) {
+			$url = (string) $email->gateway_settings_url;
+		}
+
+		return [
+			'gateway_title'        => $title,
+			'gateway_settings_url' => $url,
 		];
 	}
 
@@ -253,27 +286,29 @@ final class OrderTokens {
 	 */
 	private static function sample_values(): array {
 		return [
-			'order_number'        => '1234',
-			'order_date'          => date_i18n( get_option( 'date_format' ) ),
-			'order_total'         => self::plain_price( wc_price( 128.5 ) ),
-			'order_status'        => __( 'Processing', 'flexa-formflow' ),
-			'order_url'           => home_url( '/my-account/view-order/1234/' ),
-			'payment_url'         => home_url( '/checkout/order-pay/1234/?pay_for_order=true&key=wc_order_sample' ),
-			'refund_amount'       => self::plain_price( wc_price( 32.5 ) ),
-			'payment_method'      => __( 'Credit card', 'flexa-formflow' ),
-			'shipping_method'     => __( 'Flat rate', 'flexa-formflow' ),
-			'customer_first_name' => 'Alex',
-			'customer_last_name'  => 'Nguyen',
-			'customer_full_name'  => 'Alex Nguyen',
-			'customer_email'      => 'alex@example.com',
-			'shop_url'            => home_url( '/shop/' ),
-			'my_account_url'      => home_url( '/my-account/' ),
-			'customer_note'       => __( 'Thanks, please leave the parcel at the door.', 'flexa-formflow' ),
-			'reset_password_url'  => home_url( '/my-account/lost-password/?key=sample&id=1&login=alex' ),
-			'set_password_url'    => home_url( '/my-account/lost-password/?action=newaccount&key=sample&login=alex' ),
-			'pos_store_phone'     => '(555) 010-0199',
-			'pos_store_address'   => '123 Main Street, Springfield',
-			'pos_refund_policy'   => __( 'Returns accepted within 30 days with receipt.', 'flexa-formflow' ),
+			'order_number'         => '1234',
+			'order_date'           => date_i18n( get_option( 'date_format' ) ),
+			'order_total'          => self::plain_price( wc_price( 128.5 ) ),
+			'order_status'         => __( 'Processing', 'flexa-formflow' ),
+			'order_url'            => home_url( '/my-account/view-order/1234/' ),
+			'payment_url'          => home_url( '/checkout/order-pay/1234/?pay_for_order=true&key=wc_order_sample' ),
+			'refund_amount'        => self::plain_price( wc_price( 32.5 ) ),
+			'payment_method'       => __( 'Credit card', 'flexa-formflow' ),
+			'shipping_method'      => __( 'Flat rate', 'flexa-formflow' ),
+			'customer_first_name'  => 'Alex',
+			'customer_last_name'   => 'Nguyen',
+			'customer_full_name'   => 'Alex Nguyen',
+			'customer_email'       => 'alex@example.com',
+			'shop_url'             => home_url( '/shop/' ),
+			'my_account_url'       => home_url( '/my-account/' ),
+			'customer_note'        => __( 'Thanks, please leave the parcel at the door.', 'flexa-formflow' ),
+			'reset_password_url'   => home_url( '/my-account/lost-password/?key=sample&id=1&login=alex' ),
+			'set_password_url'     => home_url( '/my-account/lost-password/?action=newaccount&key=sample&login=alex' ),
+			'pos_store_phone'      => '(555) 010-0199',
+			'pos_store_address'    => '123 Main Street, Springfield',
+			'pos_refund_policy'    => __( 'Returns accepted within 30 days with receipt.', 'flexa-formflow' ),
+			'gateway_title'        => __( 'Check payments', 'flexa-formflow' ),
+			'gateway_settings_url' => admin_url( 'admin.php?page=wc-settings&tab=checkout&section=cheque' ),
 		];
 	}
 }

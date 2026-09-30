@@ -38,6 +38,8 @@ $ff_extras = [
 	'pos_store_address'  => isset( $pos_store_address ) ? (string) $pos_store_address : '',
 	'pos_refund_policy'  => isset( $pos_refund_returns_policy ) ? (string) $pos_refund_returns_policy : '',
 	'refund_id'          => ( isset( $refund ) && $refund instanceof \WC_Order_Refund ) ? (string) $refund->get_id() : '',
+	'gateway_title'      => isset( $gateway_title ) ? (string) $gateway_title : '',
+	'gateway_url'        => isset( $gateway_settings_url ) ? (string) $gateway_settings_url : '',
 	'sent_to_admin'      => ! empty( $sent_to_admin ),
 ];
 

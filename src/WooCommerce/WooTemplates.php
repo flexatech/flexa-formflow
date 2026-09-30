@@ -144,6 +144,10 @@ final class WooTemplates {
 				'heading' => __( 'Welcome to {site_title}', 'flexa-formflow' ),
 				'text'    => __( 'Hi {customer_first_name}, your account has been created successfully at {site_title}. Use the button below to set your password and sign in.', 'flexa-formflow' ),
 			],
+			'admin_payment_gateway_enabled' => [
+				'heading' => __( 'Payment gateway "{gateway_title}" enabled', 'flexa-formflow' ),
+				'text'    => __( "The payment gateway \"{gateway_title}\" was just enabled on {site_title}. If you didn't enable it, log in and disable it right away.", 'flexa-formflow' ),
+			],
 			default                     => [
 				'heading' => __( 'Order {order_number}', 'flexa-formflow' ),
 				'text'    => __( 'Hi {customer_first_name}, thanks for your order. Here are the details.', 'flexa-formflow' ),
@@ -163,6 +167,10 @@ final class WooTemplates {
 			'customer_failed_order'   => [
 				'text' => __( 'Try again', 'flexa-formflow' ),
 				'url'  => '{payment_url}',
+			],
+			'admin_payment_gateway_enabled' => [
+				'text' => __( 'Review gateway settings', 'flexa-formflow' ),
+				'url'  => '{gateway_settings_url}',
 			],
 			'customer_reset_password' => [
 				'text' => __( 'Reset password', 'flexa-formflow' ),
