@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Flexa\FormFlow\WooCommerce;
 
 use Flexa\FormFlow\Domain\EmailTemplates\EmailTemplateRepository;
+use Flexa\FormFlow\Emails\GlobalLayout;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -37,8 +38,13 @@ final class WooTemplates {
 	public static function default_tree( string $email_id ): array {
 		$copy = self::copy_for( $email_id );
 
-		$elements   = [];
-		$elements[] = self::el( 'logo' );
+		// A logo or footer the global layout already supplies is left out, so a
+		// starter email does not show it twice.
+		$layout   = GlobalLayout::instance();
+		$elements = [];
+		if ( ! $layout->owns( 'header', 'logo', 'woo' ) ) {
+			$elements[] = self::el( 'logo' );
+		}
 		$elements[] = self::el( 'heading', [ 'text' => $copy['heading'] ] );
 		$elements[] = self::el( 'text', [ 'html' => $copy['text'] ] );
 
@@ -56,8 +62,10 @@ final class WooTemplates {
 			$elements[] = self::el( 'text', [ 'html' => $closing ] );
 		}
 
-		$elements[] = self::el( 'divider' );
-		$elements[] = self::el( 'footer_text' );
+		if ( ! $layout->owns( 'footer', 'footer_text', 'woo' ) ) {
+			$elements[] = self::el( 'divider' );
+			$elements[] = self::el( 'footer_text' );
+		}
 
 		$tree = [
 			'version'  => 1,

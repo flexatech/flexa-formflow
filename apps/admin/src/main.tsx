@@ -27,6 +27,7 @@ import { EntriesPage } from "@/features/entries/EntriesPage";
 import { EntryDetailPage } from "@/features/entries/EntryDetailPage";
 import { EmailsPage } from "@/features/emails/EmailsPage";
 import { EmailEditorPage } from "@/features/emails/editor/EmailEditorPage";
+import { GlobalLayoutPage } from "@/features/emails/layout/GlobalLayoutPage";
 import { SettingsPage } from "@/features/settings/SettingsPage";
 import { __ } from "@/lib/i18n";
 import { cn } from "@/lib/cn";
@@ -127,6 +128,7 @@ function navSection(route: Route): string {
         case "entry":
             return "entries";
         case "emailEditor":
+        case "emailLayout":
             return "emails";
         case "woocommerce":
             return "emails";
@@ -153,6 +155,8 @@ function screenFor(route: Route): ReactNode {
             return <EmailsPage tab="form" />;
         case "emailEditor":
             return <EmailEditorPage key={route.id} id={route.id} />;
+        case "emailLayout":
+            return <GlobalLayoutPage />;
         case "woocommerce":
             return <EmailsPage tab="woocommerce" />;
         case "workflows":
@@ -196,7 +200,12 @@ function App() {
     const sidebarTopClass = fullscreen ? "ff:top-0 ff:h-screen" : "ff:top-8 ff:h-[calc(100vh-2rem)]";
 
     // The builder and editors are full-area takeovers: no sidebar.
-    if (route.name === "builder" || route.name === "emailEditor" || route.name === "workflowEditor") {
+    if (
+        route.name === "builder" ||
+        route.name === "emailEditor" ||
+        route.name === "emailLayout" ||
+        route.name === "workflowEditor"
+    ) {
         return (
             <div className={rootClass}>
                 {screenFor(route)}

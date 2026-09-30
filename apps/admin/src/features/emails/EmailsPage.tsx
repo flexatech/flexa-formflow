@@ -7,6 +7,7 @@ import { navigate } from "@/lib/router";
 import { useUiStore } from "@/lib/store";
 import { WooEmailsTab } from "@/features/woocommerce/WooCommercePage";
 import { useCreateEmailTemplate } from "./useEmailTemplates";
+import { LayoutCard } from "./layout/LayoutCard";
 import { FormEmailsTab } from "./TemplatesListPage";
 
 export type EmailsTab = "form" | "woocommerce";
@@ -47,6 +48,8 @@ export function EmailsPage({ tab }: { tab: EmailsTab }) {
                     </Button>
                 )}
             </div>
+
+            <LayoutCard />
 
             {hasWoo && (
                 <div className="ff:flex ff:gap-1 ff:border-b ff:border-slate-200">

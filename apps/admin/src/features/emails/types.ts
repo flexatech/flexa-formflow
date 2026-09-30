@@ -36,6 +36,9 @@ export interface TreeSettings {
     width?: number;
     /** Text direction of the whole email; defaults to ltr. */
     direction?: "ltr" | "rtl";
+    /** Opt this template out of the global header / footer. */
+    hideGlobalHeader?: boolean;
+    hideGlobalFooter?: boolean;
 }
 
 export interface EmailElement {

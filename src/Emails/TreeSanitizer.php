@@ -42,6 +42,12 @@ final class TreeSanitizer {
 		if ( isset( $incoming['direction'] ) && 'rtl' === $incoming['direction'] ) {
 			$settings['direction'] = 'rtl';
 		}
+		// Per-template opt-out of the global header/footer; stored only when set.
+		foreach ( [ 'hideGlobalHeader', 'hideGlobalFooter' ] as $flag ) {
+			if ( ! empty( $incoming[ $flag ] ) ) {
+				$settings[ $flag ] = true;
+			}
+		}
 
 		$nodes = isset( $tree['elements'] ) && is_array( $tree['elements'] ) ? $tree['elements'] : [];
 

@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
-import type { DynamicDataCategory, EmailPattern, EmailTemplate, EmailTree } from "./types";
+import type { DynamicDataCategory, EmailElement, EmailPattern, EmailTemplate, EmailTree } from "./types";
 
 interface TemplatesListResponse {
     items: EmailTemplate[];
@@ -103,6 +103,9 @@ export interface PreviewParams {
     tree: EmailTree;
     form_id?: number;
     type?: "admin" | "confirmation";
+    /** Global layout editor only: render this part as editable, from these drafts. */
+    layout?: { header: EmailElement[]; footer: EmailElement[] };
+    layout_part?: "header" | "footer";
 }
 
 export function useEmailPreview() {

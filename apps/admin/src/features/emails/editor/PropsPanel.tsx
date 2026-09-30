@@ -8,6 +8,7 @@ import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { __, sprintf } from "@/lib/i18n";
 import { elementDef, isLayout, type EmailElement, type FieldSpec, type TreeSettings } from "../types";
+import { GlobalLayoutToggles } from "../layout/GlobalLayoutToggles";
 import { DynamicDataBrowser } from "./DynamicDataBrowser";
 
 /** A text-bearing input the Dynamic Data browser can insert a token into. */
@@ -118,6 +119,7 @@ export function PropsPanel({
                 <p className="ff:m-0 ff:text-xs ff:text-slate-500">
                     {__("Empty fields inherit the global design tokens from Settings.")}
                 </p>
+                <GlobalLayoutToggles settings={settings} onChange={onChangeSettings} />
                 {browser}
             </div>
         );

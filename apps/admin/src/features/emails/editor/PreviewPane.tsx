@@ -12,11 +12,18 @@ import {
     findInTree,
     isLayout,
     type DropTarget,
+    type EmailElement,
     type EmailTree,
 } from "../types";
 
 interface PreviewPaneProps {
     tree: EmailTree;
+    /**
+     * Set by the global layout editor: `tree` is then the part being edited and
+     * this is both parts' drafts, so the canvas can show the other one too.
+     */
+    layout?: { header: EmailElement[]; footer: EmailElement[] };
+    layoutPart?: "header" | "footer";
     formId: number;
     forms: FormSummary[];
     onFormChange: (id: number) => void;
@@ -37,11 +44,15 @@ interface DropLine {
 const EDITOR_STYLE =
     PREVIEW_RESET_CSS +
     "[data-ff-el]{cursor:pointer}" +
+    "[data-ff-global]{opacity:.7;cursor:not-allowed}" +
+    "[data-ff-shadowed]{opacity:.35}" +
     "[data-ff-el]:hover>tr>td{box-shadow:inset 0 0 0 1px #badeff}" +
     "tbody.ff-selected>tr>td{box-shadow:inset 0 0 0 2px #0f92f7!important}";
 
 export function PreviewPane({
     tree,
+    layout,
+    layoutPart,
     formId,
     forms,
     onFormChange,
@@ -258,18 +269,28 @@ export function PreviewPane({
         });
     };
 
+    // The layout drafts are compared by content: a fresh object each render
+    // must not retrigger the preview.
+    const layoutKey = layout ? JSON.stringify(layout) : "";
+    const layoutRef = useRef(layout);
+    layoutRef.current = layout;
+
     useEffect(() => {
         window.clearTimeout(timer.current);
         timer.current = window.setTimeout(() => {
             runPreview(
-                { tree, form_id: formId || undefined },
+                {
+                    tree,
+                    form_id: formId || undefined,
+                    ...(layoutPart ? { layout: layoutRef.current, layout_part: layoutPart } : {}),
+                },
                 { onSuccess: (result) => setHtml(result) },
             );
         }, 500);
         return () => window.clearTimeout(timer.current);
         // runPreview is referentially stable.
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [tree, formId]);
+    }, [tree, formId, layoutPart, layoutKey]);
 
     // Switching viewport reflows the iframe to a new height; re-measure.
     useEffect(() => {

@@ -33,6 +33,8 @@ final class RenderContext {
 		public readonly ?\WC_Order $order = null,
 		public readonly ?\WC_Email $email = null,
 		public readonly array $extras = [],
+		/** The editor canvas: adds selection markup and keeps blocks the global layout replaces. */
+		public readonly bool $editor = false,
 	) {}
 
 	public function extra( string $key ): mixed {

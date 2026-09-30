@@ -1,14 +1,4 @@
-import {
-    ArrowLeft,
-    Blocks,
-    ChevronLeft,
-    ChevronRight,
-    LayoutTemplate,
-    Monitor,
-    Send,
-    Smartphone,
-    Sparkles,
-} from "lucide-react";
+import { ArrowLeft, Blocks, LayoutTemplate, Monitor, Send, Smartphone, Sparkles } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { EditorSkeleton } from "@/components/custom/Skeletons";
@@ -34,40 +24,14 @@ import { UndoRedoButtons } from "@/components/custom/UndoRedoButtons";
 import { SaveStatus } from "@/components/custom/SaveStatus";
 import { SaveToLibraryButton } from "@/features/library/SaveToLibrary";
 import { useFormsList } from "@/features/forms/useForms";
+import { LeftTab, SidePanel } from "./EditorPanels";
 import { LayerList } from "./LayerList";
 import { PatternPalette } from "./PatternPalette";
 import { PreviewPane } from "./PreviewPane";
 import { PropsPanel } from "./PropsPanel";
-import type { ConditionSet } from "@/components/custom/SchemaFields";
+import { createTreeHandlers } from "./treeHandlers";
 import { useEmailPatterns, useEmailTemplate, useSaveEmailTemplate, useTestSend } from "../useEmailTemplates";
-import {
-    emptyTree,
-    findInTree,
-    insertInTree,
-    insertManyInTree,
-    materializePattern,
-    moveInTree,
-    newElement,
-    removeFromTree,
-    resizeColumns,
-    updateInTree,
-    type DropTarget,
-    type EmailElement,
-    type EmailTree,
-    type TreeSettings,
-} from "../types";
-
-/** Deep-copy an element (and any column children) with fresh ids. */
-function cloneWithIds(source: EmailElement): EmailElement {
-    const copy: EmailElement = { ...newElement(source.type), props: { ...source.props } };
-    if (source.columns) {
-        copy.columns = source.columns.map((col) => col.map(cloneWithIds));
-    }
-    if (source.visibility) {
-        copy.visibility = { match: source.visibility.match, rules: source.visibility.rules.map((r) => ({ ...r })) };
-    }
-    return copy;
-}
+import { emptyTree, findInTree, type EmailElement, type EmailTree, type TreeSettings } from "../types";
 
 interface Draft {
     title: string;
@@ -167,62 +131,20 @@ export function EmailEditorPage({ id }: { id: number }) {
     };
     const setElements = (next: EmailElement[], key?: string) => setTree({ ...draft.tree, elements: next }, key);
 
-    const onAdd = (type: string) => {
-        const element = newElement(type);
-        setElements([...elements, element]);
-        setSelectedElement(element.id);
-    };
-    const onInsertAt = (type: string, target: DropTarget) => {
-        const element = newElement(type);
-        setElements(insertInTree(elements, target, element));
-        setSelectedElement(element.id);
-    };
-    const onInsertPatternAt = (patternId: string, target: DropTarget) => {
-        const pattern = patterns.find((p) => p.id === patternId);
-        if (!pattern) return;
-        const blocks = materializePattern(pattern.blocks);
-        setElements(insertManyInTree(elements, target, blocks));
-        setSelectedElement(blocks[0]?.id ?? null);
-    };
-    const onAddPattern = (patternId: string) => {
-        const pattern = patterns.find((p) => p.id === patternId);
-        if (!pattern) return;
-        const blocks = materializePattern(pattern.blocks);
-        setElements([...elements, ...blocks]);
-        setSelectedElement(blocks[0]?.id ?? null);
-    };
-    const onMove = (id: string, target: DropTarget) => {
-        setElements(moveInTree(elements, id, target));
-    };
-    const onDuplicate = (elId: string) => {
-        const source = findInTree(elements, elId);
-        const { from } = removeFromTree(elements, elId);
-        if (!source || !from) return;
-        const clone = cloneWithIds(source);
-        setElements(insertInTree(elements, { ...from, index: from.index + 1 }, clone));
-        setSelectedElement(clone.id);
-    };
-    const onDelete = (elId: string) => {
-        setElements(removeFromTree(elements, elId).elements);
-        if (selectedId === elId) setSelectedElement(null);
-    };
-    const onChangeProps = (elId: string, props: Record<string, unknown>) =>
-        setElements(updateInTree(elements, elId, (el) => ({ ...el, props })), `props:${elId}`);
-    const onChangeVisibility = (elId: string, visibility: ConditionSet) =>
-        setElements(
-            updateInTree(elements, elId, (el) => {
-                if (visibility.rules.length === 0) {
-                    const { visibility: _drop, ...rest } = el;
-                    return rest;
-                }
-                return { ...el, visibility };
-            }),
-            `visibility:${elId}`,
-        );
-    const onChangeColumnCount = (elId: string, count: number) =>
-        setElements(updateInTree(elements, elId, (el) => resizeColumns(el, count)));
+    const {
+        onAdd,
+        onInsertAt,
+        onInsertPatternAt,
+        onAddPattern,
+        onMove,
+        onDuplicate,
+        onDelete,
+        onChangeProps,
+        onChangeVisibility,
+        onChangeColumnCount,
+        onReorder,
+    } = createTreeHandlers({ elements, setElements, patterns, selectedId, setSelectedElement });
     const onChangeSettings = (settings: TreeSettings) => setTree({ ...draft.tree, settings }, "settings");
-    const onReorder = (next: EmailElement[]) => setElements(next);
 
     return (
         <div className="ff:flex ff:h-[calc(100vh-2rem)] ff:min-w-0 ff:flex-1 ff:flex-col ff:bg-slate-50">
@@ -372,92 +294,6 @@ export function EmailEditorPage({ id }: { id: number }) {
 
             <AiWritingDialog open={aiOpen} onClose={() => setAiOpen(false)} />
         </div>
-    );
-}
-
-/**
- * Wraps a builder side panel with a collapse/expand pill on the edge facing the
- * canvas. Collapsed, the panel shrinks to a thin rail so the preview gets the
- * room; the pill flips its arrow to expand it again.
- */
-function SidePanel({
-    side,
-    collapsed,
-    onToggle,
-    children,
-}: {
-    side: "left" | "right";
-    collapsed: boolean;
-    onToggle: () => void;
-    children: React.ReactNode;
-}) {
-    // The pill sits on the border between the panel and the canvas: the right
-    // edge of a left panel, the left edge of a right panel.
-    const pillOnRight = side === "left";
-    const Icon =
-        side === "left"
-            ? collapsed
-                ? ChevronRight
-                : ChevronLeft
-            : collapsed
-              ? ChevronLeft
-              : ChevronRight;
-
-    return (
-        <div className="ff:relative ff:shrink-0">
-            {collapsed ? (
-                <div
-                    className={cn(
-                        "ff:h-full ff:w-7 ff:bg-white",
-                        side === "left" ? "ff:border-r" : "ff:border-l",
-                        "ff:border-slate-200",
-                    )}
-                />
-            ) : (
-                children
-            )}
-            <button
-                type="button"
-                onClick={onToggle}
-                aria-label={collapsed ? __("Expand panel") : __("Collapse panel")}
-                aria-expanded={!collapsed}
-                className={cn(
-                    "ff:absolute ff:top-1/2 ff:z-10 ff:flex ff:h-10 ff:w-5 ff:-translate-y-1/2 ff:cursor-pointer ff:items-center ff:justify-center ff:rounded-full ff:border ff:border-slate-200 ff:bg-white ff:text-slate-500 ff:shadow-sm ff:transition-colors ff:hover:text-slate-800",
-                    pillOnRight ? "ff:right-0 ff:translate-x-1/2" : "ff:left-0 ff:-translate-x-1/2",
-                )}
-            >
-                <Icon aria-hidden className="ff:h-4 ff:w-4" />
-            </button>
-        </div>
-    );
-}
-
-function LeftTab({
-    icon: Icon,
-    label,
-    active,
-    onClick,
-}: {
-    icon: typeof Blocks;
-    label: string;
-    active: boolean;
-    onClick: () => void;
-}) {
-    return (
-        <button
-            type="button"
-            onClick={onClick}
-            aria-pressed={active}
-            className={cn(
-                "ff:flex ff:flex-1 ff:items-center ff:justify-center ff:gap-1.5 ff:rounded-md ff:px-2 ff:py-1.5 ff:text-xs ff:font-medium ff:transition-colors",
-                active
-                    ? "ff:bg-brand-50 ff:text-brand-700"
-                    : "ff:text-slate-600 ff:hover:bg-slate-50 ff:hover:text-slate-900",
-            )}
-        >
-            <Icon aria-hidden className="ff:h-3.5 ff:w-3.5" />
-            {label}
-        </button>
     );
 }
 

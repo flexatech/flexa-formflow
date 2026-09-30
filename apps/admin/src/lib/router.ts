@@ -7,6 +7,7 @@
  *   #/entries/:id    → entry detail
  *   #/emails         → Emails screen, Form Emails tab
  *   #/emails/woocommerce → Emails screen, WooCommerce tab (Woo-only)
+ *   #/emails/layout  → global header & footer editor (full-area takeover)
  *   #/emails/:id/edit → email editor (full-area takeover, no sidebar)
  *   #/settings       → settings
  * Upcoming sections (the Library) stay parseable but are only reachable when
@@ -22,6 +23,7 @@ export type Route =
     | { name: "entry"; id: number }
     | { name: "emails" }
     | { name: "emailEditor"; id: number }
+    | { name: "emailLayout" }
     | { name: "woocommerce" }
     | { name: "workflows" }
     | { name: "workflowEditor"; id: number }
@@ -53,6 +55,9 @@ export function parseHash(hash: string): Route {
             }
             if (second === "woocommerce") {
                 return { name: "woocommerce" };
+            }
+            if (second === "layout") {
+                return { name: "emailLayout" };
             }
             return { name: "emails" };
         case "woocommerce":
