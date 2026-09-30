@@ -37,6 +37,7 @@ $ff_extras = [
 	'pos_store_phone'    => isset( $pos_store_phone_number ) ? (string) $pos_store_phone_number : '',
 	'pos_store_address'  => isset( $pos_store_address ) ? (string) $pos_store_address : '',
 	'pos_refund_policy'  => isset( $pos_refund_returns_policy ) ? (string) $pos_refund_returns_policy : '',
+	'refund_id'          => ( isset( $refund ) && $refund instanceof \WC_Order_Refund ) ? (string) $refund->get_id() : '',
 	'sent_to_admin'      => ! empty( $sent_to_admin ),
 ];
 

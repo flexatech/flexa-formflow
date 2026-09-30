@@ -88,6 +88,13 @@ final class Catalog {
 				'recipient'   => 'customer',
 				'has_order'   => true,
 			],
+			'customer_pos_refunded_order'  => [
+				'template'    => 'emails/customer-pos-refunded-order.php',
+				'title'       => __( 'POS refunded order', 'flexa-formflow' ),
+				'description' => __( 'Sent to the customer when an in-store (Point of Sale) order is fully or partially refunded.', 'flexa-formflow' ),
+				'recipient'   => 'customer',
+				'has_order'   => true,
+			],
 			'customer_invoice'             => [
 				'template'    => 'emails/customer-invoice.php',
 				'title'       => __( 'Invoice / order details', 'flexa-formflow' ),

@@ -122,7 +122,11 @@ final class WooTemplates {
 			],
 			'customer_refunded_order'   => [
 				'heading' => __( 'Order {order_number} has been refunded', 'flexa-formflow' ),
-				'text'    => __( "Hi {customer_first_name}, we've refunded your order. The funds should appear in your account within a few business days.", 'flexa-formflow' ),
+				'text'    => __( "Hi {customer_first_name}, we've refunded {refund_amount} for your order. The funds should appear in your account within a few business days.", 'flexa-formflow' ),
+			],
+			'customer_pos_refunded_order' => [
+				'heading' => __( 'Your in-store order {order_number} has been refunded', 'flexa-formflow' ),
+				'text'    => __( "Hi {customer_first_name}, we've refunded {refund_amount} for your order from {pos_store_name}.", 'flexa-formflow' ),
 			],
 			'customer_invoice'          => [
 				'heading' => __( 'Details for order {order_number}', 'flexa-formflow' ),
@@ -181,8 +185,9 @@ final class WooTemplates {
 	 */
 	private static function closing_for( string $email_id ): ?string {
 		return match ( $email_id ) {
-			'customer_pos_completed_order' => __( 'Questions about your purchase? Contact {pos_store_name} at {pos_store_email}.', 'flexa-formflow' ),
-			default                        => null,
+			'customer_pos_completed_order',
+			'customer_pos_refunded_order' => __( 'Questions about your purchase? Contact {pos_store_name} at {pos_store_email}.', 'flexa-formflow' ),
+			default                       => null,
 		};
 	}
 

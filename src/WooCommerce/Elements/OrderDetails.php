@@ -15,6 +15,21 @@ defined( 'ABSPATH' ) || exit;
  * the design never renders blank. Registered only when WooCommerce is active.
  */
 final class OrderDetails extends BaseElement {
+	/**
+	 * Markup WooCommerce puts in total row values that carries meaning: the
+	 * refund reason under the amount (`<br><small>`), the struck-through
+	 * original total after a refund (`<del>`/`<ins>`), tax and shipping notes
+	 * (`<small>`), and wc_price()'s own wrappers. Anything else is dropped.
+	 */
+	private const TOTAL_TAGS = [
+		'br'    => [],
+		'small' => [],
+		'del'   => [],
+		'ins'   => [],
+		'span'  => [],
+		'bdi'   => [],
+	];
+
 	public function type(): string {
 		return 'order_details';
 	}
@@ -52,6 +67,23 @@ final class OrderDetails extends BaseElement {
 			. '</td></tr>';
 	}
 
+	/**
+	 * A total row value with its meaningful markup kept and styled inline: the
+	 * email ships none of WooCommerce's stylesheet, so without these `<ins>`
+	 * reads as underlined and a long refund reason can't wrap out of the
+	 * no-wrap amount cell.
+	 */
+	private function total_value( string $raw ): string {
+		return strtr(
+			wp_kses( $raw, self::TOTAL_TAGS ),
+			[
+				'<del>'   => '<del style="color:#98a2b3;">',
+				'<ins>'   => '<ins style="text-decoration:none;">',
+				'<small>' => '<small style="display:block;margin-top:2px;font-size:12px;color:#667085;white-space:normal;">',
+			]
+		);
+	}
+
 	private function order_rows( \WC_Order $order, string $cell, string $text ): string {
 		$rows = '';
 		foreach ( $order->get_items() as $item ) {
@@ -73,10 +105,9 @@ final class OrderDetails extends BaseElement {
 				continue;
 			}
 			$label = wp_strip_all_tags( (string) ( $total_row['label'] ?? '' ) );
-			$value = wp_strip_all_tags( (string) ( $total_row['value'] ?? '' ) );
 			$rows .= '<tr>'
 				. '<td align="left" valign="top" style="' . $cell . 'color:#667085;font-weight:600;">' . esc_html( $label ) . '</td>'
-				. '<td align="right" valign="top" style="' . $cell . 'color:' . $text . ';white-space:nowrap;">' . esc_html( $value ) . '</td>'
+				. '<td align="right" valign="top" style="' . $cell . 'color:' . $text . ';white-space:nowrap;">' . $this->total_value( (string) ( $total_row['value'] ?? '' ) ) . '</td>'
 				. '</tr>';
 		}
 

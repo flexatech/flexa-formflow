@@ -37,10 +37,11 @@ final class OrderTokens {
 		if ( $order instanceof \WC_Order ) {
 			$values['order_number']        = (string) $order->get_order_number();
 			$values['order_date']          = $order->get_date_created() ? wc_format_datetime( $order->get_date_created() ) : '';
-			$values['order_total']         = wp_strip_all_tags( $order->get_formatted_order_total() );
+			$values['order_total']         = self::plain_price( $order->get_formatted_order_total() );
 			$values['order_status']        = wc_get_order_status_name( $order->get_status() );
 			$values['order_url']           = $order->get_view_order_url();
 			$values['payment_url']         = $order->get_checkout_payment_url();
+			$values['refund_amount']       = self::refund_amount( $order, $ctx );
 			$values['payment_method']      = $order->get_payment_method_title();
 			$values['shipping_method']     = wp_strip_all_tags( $order->get_shipping_method() );
 			$values['customer_first_name'] = $order->get_billing_first_name();
@@ -111,6 +112,10 @@ final class OrderTokens {
 				'label' => __( 'Pay for order link (retry a failed or pending payment)', 'flexa-formflow' ),
 			],
 			[
+				'token' => '{refund_amount}',
+				'label' => __( 'Refund amount (this refund, or the total refunded so far)', 'flexa-formflow' ),
+			],
+			[
 				'token' => '{payment_method}',
 				'label' => __( 'Payment method', 'flexa-formflow' ),
 			],
@@ -163,6 +168,33 @@ final class OrderTokens {
 				'label' => __( 'POS refund & returns policy', 'flexa-formflow' ),
 			],
 		];
+	}
+
+	/**
+	 * The amount of the refund this email is about. The refunded-order emails
+	 * hand the template the refund just made, which is what a partial refund
+	 * needs; the subject line has no template args, so it reads the same refund
+	 * off the email object. Without one (a manual resend) it falls back to
+	 * everything refunded on the order so far. Entities are decoded because the
+	 * value also lands in the plain-text subject, where `&#36;` would show raw.
+	 */
+	private static function refund_amount( \WC_Order $order, RenderContext $ctx ): string {
+		$refund_id = (int) $ctx->extra( 'refund_id' );
+		$refund    = $refund_id > 0 ? wc_get_order( $refund_id ) : null;
+		if ( ! $refund instanceof \WC_Order_Refund && null !== $ctx->email && isset( $ctx->email->refund ) ) {
+			$refund = $ctx->email->refund;
+		}
+		$amount = $refund instanceof \WC_Order_Refund ? (float) $refund->get_amount() : (float) $order->get_total_refunded();
+
+		return self::plain_price( wc_price( $amount, [ 'currency' => $order->get_currency() ] ) );
+	}
+
+	/**
+	 * A wc_price() string as plain text. Prices also land in the plain-text
+	 * subject line, where the currency entity (`&#36;`) would show raw.
+	 */
+	private static function plain_price( string $html ): string {
+		return html_entity_decode( wp_strip_all_tags( $html ), ENT_QUOTES, 'UTF-8' );
 	}
 
 	/**
@@ -223,10 +255,11 @@ final class OrderTokens {
 		return [
 			'order_number'        => '1234',
 			'order_date'          => date_i18n( get_option( 'date_format' ) ),
-			'order_total'         => wp_strip_all_tags( wc_price( 128.5 ) ),
+			'order_total'         => self::plain_price( wc_price( 128.5 ) ),
 			'order_status'        => __( 'Processing', 'flexa-formflow' ),
 			'order_url'           => home_url( '/my-account/view-order/1234/' ),
 			'payment_url'         => home_url( '/checkout/order-pay/1234/?pay_for_order=true&key=wc_order_sample' ),
+			'refund_amount'       => self::plain_price( wc_price( 32.5 ) ),
 			'payment_method'      => __( 'Credit card', 'flexa-formflow' ),
 			'shipping_method'     => __( 'Flat rate', 'flexa-formflow' ),
 			'customer_first_name' => 'Alex',
