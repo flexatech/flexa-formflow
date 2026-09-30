@@ -73,6 +73,48 @@ export function useUndoHistory<T>(): UndoHistory<T> {
     };
 }
 
+export interface UndoControls {
+    canUndo: boolean;
+    canRedo: boolean;
+    onUndo: () => void;
+    onRedo: () => void;
+}
+
+/**
+ * Everything an editor needs for undo/redo in one call: the history, the
+ * keyboard shortcuts, and the toolbar controls (spread onto UndoRedoButtons).
+ * The editor only says what is undoable (`current`), how to put a value back
+ * (`restore`), and when to hold off (`enabled`); it calls `record(before, key)`
+ * wherever it changes that value.
+ */
+export function useUndoable<T>({
+    current,
+    restore,
+    enabled = true,
+}: {
+    current: T | null;
+    restore: (value: T) => void;
+    enabled?: boolean;
+}): { record: UndoHistory<T>["record"]; controls: UndoControls } {
+    const history = useUndoHistory<T>();
+    const step = (direction: "undo" | "redo") => {
+        if (current === null || !enabled) return;
+        const value = direction === "undo" ? history.undo(current) : history.redo(current);
+        if (value !== null) restore(value);
+    };
+    useUndoShortcuts(step);
+
+    return {
+        record: history.record,
+        controls: {
+            canUndo: history.canUndo,
+            canRedo: history.canRedo,
+            onUndo: () => step("undo"),
+            onRedo: () => step("redo"),
+        },
+    };
+}
+
 /** True when a key event comes from a field that has its own native undo. */
 function isTextEditingTarget(target: EventTarget | null): boolean {
     if (!(target instanceof HTMLElement)) return false;

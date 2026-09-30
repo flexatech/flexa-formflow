@@ -1,21 +1,12 @@
 import { Redo2, Undo2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { __ } from "@/lib/i18n";
+import type { UndoControls } from "@/lib/useUndoHistory";
 
 const IS_MAC = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform);
 
 /** Undo/redo toolbar pair; the tooltips name the platform's shortcut. */
-export function UndoRedoButtons({
-    canUndo,
-    canRedo,
-    onUndo,
-    onRedo,
-}: {
-    canUndo: boolean;
-    canRedo: boolean;
-    onUndo: () => void;
-    onRedo: () => void;
-}) {
+export function UndoRedoButtons({ canUndo, canRedo, onUndo, onRedo }: UndoControls) {
     const undoHint = IS_MAC ? "⌘Z" : "Ctrl+Z";
     const redoHint = IS_MAC ? "⇧⌘Z" : "Ctrl+Y";
 

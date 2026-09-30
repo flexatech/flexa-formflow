@@ -29,8 +29,9 @@ import { cn } from "@/lib/cn";
 import { navigate } from "@/lib/router";
 import { SHOW_UPCOMING } from "@/lib/flags";
 import { useUiStore } from "@/lib/store";
-import { useUndoHistory, useUndoShortcuts } from "@/lib/useUndoHistory";
+import { useUndoable } from "@/lib/useUndoHistory";
 import { UndoRedoButtons } from "@/components/custom/UndoRedoButtons";
+import { SaveStatus } from "@/components/custom/SaveStatus";
 import { SaveToLibraryButton } from "@/features/library/SaveToLibrary";
 import { useFormsList } from "@/features/forms/useForms";
 import { LayerList } from "./LayerList";
@@ -111,16 +112,14 @@ export function EmailEditorPage({ id }: { id: number }) {
 
     // Undo/redo covers the tree (blocks + design settings); the title is a
     // plain field with the browser's own undo.
-    const history = useUndoHistory<EmailTree>();
-    const stepHistory = (direction: "undo" | "redo") => {
-        if (!draft) return;
-        const tree = direction === "undo" ? history.undo(draft.tree) : history.redo(draft.tree);
-        if (!tree) return;
-        setDraft({ ...draft, tree });
-        // Undoing an add (or redoing a delete) can take the selected block away.
-        if (selectedId && !findInTree(tree.elements, selectedId)) setSelectedElement(null);
-    };
-    useUndoShortcuts(stepHistory);
+    const undo = useUndoable<EmailTree>({
+        current: draft?.tree ?? null,
+        restore: (tree) => {
+            setDraft((prev) => (prev ? { ...prev, tree } : prev));
+            // Undoing an add (or redoing a delete) can take the selected block away.
+            if (selectedId && !findInTree(tree.elements, selectedId)) setSelectedElement(null);
+        },
+    });
 
     useEffect(() => {
         if (!draft) return;
@@ -163,7 +162,7 @@ export function EmailEditorPage({ id }: { id: number }) {
     // `key` groups rapid edits to one target (typing in a field) into a single
     // undo step; structural edits pass none and are always their own step.
     const setTree = (next: EmailTree, key?: string) => {
-        history.record(draft.tree, key);
+        undo.record(draft.tree, key);
         setDraft((prev) => (prev ? { ...prev, tree: next } : prev));
     };
     const setElements = (next: EmailElement[], key?: string) => setTree({ ...draft.tree, elements: next }, key);
@@ -247,13 +246,8 @@ export function EmailEditorPage({ id }: { id: number }) {
                     )}
                     spellCheck={false}
                 />
-                <UndoRedoButtons
-                    canUndo={history.canUndo}
-                    canRedo={history.canRedo}
-                    onUndo={() => stepHistory("undo")}
-                    onRedo={() => stepHistory("redo")}
-                />
                 <SaveStatus state={save.isPending ? "saving" : dirty ? "dirty" : "saved"} />
+                <UndoRedoButtons {...undo.controls} />
                 <div className="ff:flex ff:items-center ff:gap-1 ff:rounded-md ff:border ff:border-slate-200 ff:p-0.5">
                     <Button
                         variant={viewport === "desktop" ? "default" : "ghost"}
@@ -547,24 +541,5 @@ function TestDialog({
                 </DialogFooter>
             </DialogContent>
         </Dialog>
-    );
-}
-
-function SaveStatus({ state }: { state: "saving" | "dirty" | "saved" }) {
-    return (
-        <span
-            className={cn(
-                "ff:flex ff:items-center ff:gap-1.5 ff:whitespace-nowrap ff:text-xs ff:font-medium",
-                state === "saved" ? "ff:text-emerald-600" : "ff:text-amber-600",
-            )}
-        >
-            <span
-                className={cn(
-                    "ff:h-1.5 ff:w-1.5 ff:rounded-full",
-                    state === "saved" ? "ff:bg-emerald-500" : "ff:animate-pulse ff:bg-amber-500",
-                )}
-            />
-            {state === "saving" ? __("Saving…") : state === "dirty" ? __("Unsaved changes") : __("Saved")}
-        </span>
     );
 }
