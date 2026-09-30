@@ -48,6 +48,11 @@ final class TreeSanitizer {
 				$settings[ $flag ] = true;
 			}
 		}
+		// Which header/footer set the template uses: `none`, or a set id (kept as an
+		// id-shaped string; an unknown one falls back to the default at render time).
+		if ( isset( $incoming['layoutSet'] ) && is_string( $incoming['layoutSet'] ) && preg_match( '/^[A-Za-z0-9_-]{1,40}$/', $incoming['layoutSet'] ) ) {
+			$settings['layoutSet'] = $incoming['layoutSet'];
+		}
 
 		$nodes = isset( $tree['elements'] ) && is_array( $tree['elements'] ) ? $tree['elements'] : [];
 

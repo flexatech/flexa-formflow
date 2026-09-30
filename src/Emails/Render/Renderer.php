@@ -6,6 +6,7 @@ namespace Flexa\FormFlow\Emails\Render;
 
 use Flexa\FormFlow\Concerns\HasInstance;
 use Flexa\FormFlow\Emails\GlobalLayout;
+use Flexa\FormFlow\Emails\LayoutShadow;
 use Flexa\FormFlow\Support\Css;
 use Flexa\FormFlow\Support\Settings;
 
@@ -34,7 +35,7 @@ final class Renderer {
 		$parts    = $layout ?? GlobalLayout::instance()->parts_for( $tree, $ctx );
 
 		$rows = $this->render_global( 'header', $parts['header'], $ctx, $design )
-			. $this->render_elements( $elements, $ctx, $design, true, GlobalLayout::shadowed( $elements, $parts ) )
+			. $this->render_elements( $elements, $ctx, $design, true, LayoutShadow::ids( $elements, $parts ) )
 			. $this->render_global( 'footer', $parts['footer'], $ctx, $design );
 
 		return $this->document( $rows, $design );

@@ -15,6 +15,9 @@ import {
 } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/custom/EmptyState";
 import { TableSkeleton } from "@/components/custom/Skeletons";
+import { LayoutBadge } from "@/features/emails/layout/LayoutBadge";
+import { useEmailTemplatesList } from "@/features/emails/useEmailTemplates";
+import type { EmailTemplate } from "@/features/emails/types";
 import { withPreviewReset } from "@/features/emails/previewFrame";
 import { __ } from "@/lib/i18n";
 import { useUiStore } from "@/lib/store";
@@ -37,6 +40,7 @@ import {
 export function WooEmailsTab() {
     const { data, isLoading } = useWooEmails();
     const [preview, setPreview] = useState<{ id: string; title: string } | null>(null);
+    const { data: templates = [] } = useEmailTemplatesList();
 
     if (isLoading || !data) {
         return <TableSkeleton columns={3} />;
@@ -54,6 +58,10 @@ export function WooEmailsTab() {
         );
     }
 
+    // A taken-over email uses its template's design, or the built-in default
+    // (no opt-outs, no own blocks to replace) when none is chosen.
+    const templateOf = (email: WooEmailRow): EmailTemplate | undefined =>
+        email.templateId > 0 ? templates.find((t) => t.id === email.templateId) : undefined;
     return (
         <>
             <TokensHint tokens={data.tokens} />
@@ -62,6 +70,7 @@ export function WooEmailsTab() {
                     <EmailCard
                         key={email.id}
                         email={email}
+                        template={templateOf(email)}
                         templates={data.templates}
                         onPreview={(id, title) => setPreview({ id, title })}
                     />
@@ -233,10 +242,12 @@ function TokensHint({ tokens }: { tokens: TokenHint[] }) {
 
 function EmailCard({
     email,
+    template,
     templates,
     onPreview,
 }: {
     email: WooEmailRow;
+    template: EmailTemplate | undefined;
     templates: WooTemplateOption[];
     onPreview: (id: string, title: string) => void;
 }) {
@@ -264,6 +275,13 @@ function EmailCard({
                         <span className="ff:rounded ff:bg-slate-100 ff:px-1.5 ff:py-0.5 ff:text-[11px] ff:text-slate-500">
                             {email.recipient === "admin" ? __("Admin") : __("Customer")}
                         </span>
+                        {email.enabled && (
+                            <LayoutBadge
+                                settings={template?.tree.settings ?? {}}
+                                elements={template?.tree.elements ?? []}
+                                kind="woo"
+                            />
+                        )}
                     </div>
                     <p className="ff:mt-0.5 ff:text-xs ff:text-slate-500">{email.description}</p>
                 </div>

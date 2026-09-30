@@ -1,12 +1,14 @@
 import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { __ } from "@/lib/i18n";
+import { __, sprintf } from "@/lib/i18n";
 import type { TreeSettings } from "../types";
 import { useEmailLayout } from "./useEmailLayout";
 
 /**
- * A template's opt-out of the global header and footer, shown in its design
- * panel only while the layout is on. Each part is hidden independently, so a
+ * A template's choice of global header and footer, shown in its design panel
+ * only while the layout is on: which set it uses (the default, another, or
+ * none) and, independently, whether to hide the header or the footer. A
  * template with its own logo can still keep the global footer.
  */
 export function GlobalLayoutToggles({
@@ -18,6 +20,10 @@ export function GlobalLayoutToggles({
 }) {
     const { data: layout } = useEmailLayout();
     if (!layout?.enabled) return null;
+
+    const known = layout.sets.some((s) => s.id === settings.layoutSet);
+    const pick = settings.layoutSet === "none" ? "none" : known ? (settings.layoutSet as string) : "";
+    const defaultName = layout.sets.find((s) => s.id === layout.default)?.name ?? "";
 
     const row = (label: string, checked: boolean, key: "hideGlobalHeader" | "hideGlobalFooter") => (
         <div className="ff:flex ff:items-center ff:justify-between ff:gap-3">
@@ -40,8 +46,27 @@ export function GlobalLayoutToggles({
                     {__("Edit")}
                 </a>
             </div>
-            {row(__("Hide global header"), Boolean(settings.hideGlobalHeader), "hideGlobalHeader")}
-            {row(__("Hide global footer"), Boolean(settings.hideGlobalFooter), "hideGlobalFooter")}
+            <div className="ff:flex ff:flex-col ff:gap-1.5">
+                <Label>{__("Header and footer set")}</Label>
+                <Select
+                    aria-label={__("Header and footer set")}
+                    value={pick}
+                    options={[
+                        { value: "", label: sprintf(__("Default (%s)"), defaultName) },
+                        ...layout.sets
+                            .filter((s) => s.id !== layout.default)
+                            .map((s) => ({ value: s.id, label: s.name })),
+                        { value: "none", label: __("None") },
+                    ]}
+                    onChange={(e) => onChange({ ...settings, layoutSet: e.target.value === "" ? undefined : e.target.value })}
+                />
+            </div>
+            {pick !== "none" && (
+                <>
+                    {row(__("Hide global header"), Boolean(settings.hideGlobalHeader), "hideGlobalHeader")}
+                    {row(__("Hide global footer"), Boolean(settings.hideGlobalFooter), "hideGlobalFooter")}
+                </>
+            )}
         </div>
     );
 }
