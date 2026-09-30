@@ -40,6 +40,7 @@ final class OrderTokens {
 			$values['order_total']         = wp_strip_all_tags( $order->get_formatted_order_total() );
 			$values['order_status']        = wc_get_order_status_name( $order->get_status() );
 			$values['order_url']           = $order->get_view_order_url();
+			$values['payment_url']         = $order->get_checkout_payment_url();
 			$values['payment_method']      = $order->get_payment_method_title();
 			$values['shipping_method']     = wp_strip_all_tags( $order->get_shipping_method() );
 			$values['customer_first_name'] = $order->get_billing_first_name();
@@ -103,6 +104,10 @@ final class OrderTokens {
 			[
 				'token' => '{order_url}',
 				'label' => __( 'Order URL', 'flexa-formflow' ),
+			],
+			[
+				'token' => '{payment_url}',
+				'label' => __( 'Pay for order link (retry a failed or pending payment)', 'flexa-formflow' ),
 			],
 			[
 				'token' => '{payment_method}',
@@ -172,6 +177,7 @@ final class OrderTokens {
 			'order_total'         => wp_strip_all_tags( wc_price( 128.5 ) ),
 			'order_status'        => __( 'Processing', 'flexa-formflow' ),
 			'order_url'           => home_url( '/my-account/view-order/1234/' ),
+			'payment_url'         => home_url( '/checkout/order-pay/1234/?pay_for_order=true&key=wc_order_sample' ),
 			'payment_method'      => __( 'Credit card', 'flexa-formflow' ),
 			'shipping_method'     => __( 'Flat rate', 'flexa-formflow' ),
 			'customer_first_name' => 'Alex',

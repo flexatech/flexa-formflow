@@ -46,6 +46,13 @@ final class Catalog {
 				'recipient'   => 'admin',
 				'has_order'   => true,
 			],
+			'customer_failed_order'     => [
+				'template'    => 'emails/customer-failed-order.php',
+				'title'       => __( 'Failed order', 'flexa-formflow' ),
+				'description' => __( 'Sent to the customer when their order fails, usually because payment did not go through.', 'flexa-formflow' ),
+				'recipient'   => 'customer',
+				'has_order'   => true,
+			],
 			'customer_on_hold_order'    => [
 				'template'    => 'emails/customer-on-hold-order.php',
 				'title'       => __( 'Order on hold', 'flexa-formflow' ),

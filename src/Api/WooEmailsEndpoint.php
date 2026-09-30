@@ -218,9 +218,8 @@ final class WooEmailsEndpoint extends Endpoint {
 
 	/**
 	 * WooCommerce's own on/off switch for each email. Takeover only restyles an
-	 * email WooCommerce actually sends, and some (the customer cancelled/failed
-	 * copies) ship disabled, so the screen warns instead of silently sending
-	 * nothing.
+	 * email WooCommerce actually sends, and some (the customer cancelled copy)
+	 * ship disabled, so the screen warns instead of silently sending nothing.
 	 *
 	 * @return array<string, array{enabled: bool, url: string}>
 	 */

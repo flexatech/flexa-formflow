@@ -95,6 +95,10 @@ final class WooTemplates {
 				'heading' => __( 'Payment failed – order {order_number}', 'flexa-formflow' ),
 				'text'    => __( 'Payment for the order from {customer_full_name} failed via {payment_method}.', 'flexa-formflow' ),
 			],
+			'customer_failed_order'     => [
+				'heading' => __( 'Your order {order_number} was unsuccessful', 'flexa-formflow' ),
+				'text'    => __( "Hi {customer_first_name}, unfortunately we couldn't complete your order due to an issue with your payment method. If you'd like to continue, use the button below to try again with a different payment method.", 'flexa-formflow' ),
+			],
 			'customer_on_hold_order'    => [
 				'heading' => __( 'Order {order_number} is on hold', 'flexa-formflow' ),
 				'text'    => __( "Hi {customer_first_name}, your order is awaiting payment confirmation. We'll process it as soon as payment is received.", 'flexa-formflow' ),
@@ -135,13 +139,18 @@ final class WooTemplates {
 	}
 
 	/**
-	 * The default call-to-action button for the two account emails that need
-	 * one; every other email has nothing to click through to.
+	 * The default call-to-action button for the emails that need one (retry a
+	 * failed payment, reset or set a password); every other email has nothing
+	 * to click through to.
 	 *
 	 * @return array{text: string, url: string}|null
 	 */
 	private static function button_for( string $email_id ): ?array {
 		return match ( $email_id ) {
+			'customer_failed_order'   => [
+				'text' => __( 'Try again', 'flexa-formflow' ),
+				'url'  => '{payment_url}',
+			],
 			'customer_reset_password' => [
 				'text' => __( 'Reset password', 'flexa-formflow' ),
 				'url'  => '{reset_password_url}',
