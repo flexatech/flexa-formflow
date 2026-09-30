@@ -21,6 +21,7 @@ final class Bootstrap {
 	public function register(): void {
 		Interceptor::instance()->register();
 		OrderTokens::instance()->register();
+		ContextTokens::instance()->register();
 		Conditions::instance()->register();
 
 		add_filter( 'flexa_formflow.emails.elements', [ $this, 'register_elements' ] );

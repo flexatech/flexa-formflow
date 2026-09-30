@@ -123,6 +123,13 @@ final class Catalog {
 				'recipient'   => 'customer',
 				'has_order'   => false,
 			],
+			'customer_verify_email'         => [
+				'template'    => 'emails/customer-verify-email.php',
+				'title'       => __( 'Confirm email address', 'flexa-formflow' ),
+				'description' => __( 'Sent to the customer with a link to confirm they own their account email, so past guest orders can be linked to it.', 'flexa-formflow' ),
+				'recipient'   => 'customer',
+				'has_order'   => false,
+			],
 			'admin_payment_gateway_enabled' => [
 				'template'    => 'emails/admin-payment-gateway-enabled.php',
 				'title'       => __( 'Payment gateway enabled', 'flexa-formflow' ),

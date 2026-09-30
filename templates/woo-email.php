@@ -40,6 +40,8 @@ $ff_extras = [
 	'refund_id'          => ( isset( $refund ) && $refund instanceof \WC_Order_Refund ) ? (string) $refund->get_id() : '',
 	'gateway_title'      => isset( $gateway_title ) ? (string) $gateway_title : '',
 	'gateway_url'        => isset( $gateway_settings_url ) ? (string) $gateway_settings_url : '',
+	'verify_url'         => isset( $verify_url ) ? (string) $verify_url : '',
+	'user_email'         => isset( $user_email ) ? (string) $user_email : '',
 	'sent_to_admin'      => ! empty( $sent_to_admin ),
 ];
 

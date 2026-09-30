@@ -13,7 +13,8 @@ defined( 'ABSPATH' ) || exit;
  * Adds WooCommerce order tokens to the shared token resolver. When a render
  * context carries an order, `{order_number}`, `{customer_first_name}`, etc.
  * resolve against it; in editor preview with no order, they resolve to sample
- * values so the design never renders blank.
+ * values so the design never renders blank. Tokens that come from the email
+ * rather than an order live in {@see ContextTokens}.
  */
 final class OrderTokens {
 	use HasInstance;
@@ -49,16 +50,14 @@ final class OrderTokens {
 			$values['customer_full_name']  = trim( $order->get_formatted_billing_full_name() );
 			$values['customer_email']      = $order->get_billing_email();
 		} else {
-			// Account emails (reset password, new account) have no order, but
-			// WooCommerce still hands us the account holder's display name.
+			// Account emails (reset password, new account, confirm email) have no
+			// order, but WooCommerce still hands us the account holder's name,
+			// and the confirm-email email the address being confirmed.
 			$display_name                  = (string) $ctx->extra( 'user_display_name' );
 			$values['customer_first_name'] = $display_name;
 			$values['customer_full_name']  = $display_name;
+			$values['customer_email']      = (string) $ctx->extra( 'user_email' );
 		}
-
-		$values['reset_password_url'] = self::reset_password_url( $ctx );
-		$values['set_password_url']   = (string) $ctx->extra( 'set_password_url' );
-		$values                       = array_merge( $values, self::pos_store_values( $ctx ), self::gateway_values( $ctx ) );
 
 		$note = $ctx->extra( 'customer_note' );
 		if ( is_string( $note ) && '' !== $note ) {
@@ -81,126 +80,37 @@ final class OrderTokens {
 	}
 
 	/**
-	 * Token metadata for the editor hint list (WooCommerce-only tokens).
+	 * Token metadata for the editor hint list: the order tokens, then the
+	 * email-context ones, so callers get every WooCommerce token in one list.
 	 *
 	 * @return list<array{token: string, label: string}>
 	 */
 	public static function catalog(): array {
-		return [
-			[
-				'token' => '{order_number}',
-				'label' => __( 'Order number', 'flexa-formflow' ),
-			],
-			[
-				'token' => '{order_date}',
-				'label' => __( 'Order date', 'flexa-formflow' ),
-			],
-			[
-				'token' => '{order_total}',
-				'label' => __( 'Order total', 'flexa-formflow' ),
-			],
-			[
-				'token' => '{order_status}',
-				'label' => __( 'Order status', 'flexa-formflow' ),
-			],
-			[
-				'token' => '{order_url}',
-				'label' => __( 'Order URL', 'flexa-formflow' ),
-			],
-			[
-				'token' => '{payment_url}',
-				'label' => __( 'Pay for order link (retry a failed or pending payment)', 'flexa-formflow' ),
-			],
-			[
-				'token' => '{refund_amount}',
-				'label' => __( 'Refund amount (this refund, or the total refunded so far)', 'flexa-formflow' ),
-			],
-			[
-				'token' => '{payment_method}',
-				'label' => __( 'Payment method', 'flexa-formflow' ),
-			],
-			[
-				'token' => '{shipping_method}',
-				'label' => __( 'Shipping method', 'flexa-formflow' ),
-			],
-			[
-				'token' => '{customer_first_name}',
-				'label' => __( 'Customer first name', 'flexa-formflow' ),
-			],
-			[
-				'token' => '{customer_last_name}',
-				'label' => __( 'Customer last name', 'flexa-formflow' ),
-			],
-			[
-				'token' => '{customer_full_name}',
-				'label' => __( 'Customer full name', 'flexa-formflow' ),
-			],
-			[
-				'token' => '{customer_email}',
-				'label' => __( 'Customer email', 'flexa-formflow' ),
-			],
-			[
-				'token' => '{reset_password_url}',
-				'label' => __( 'Reset password link (Reset password email only)', 'flexa-formflow' ),
-			],
-			[
-				'token' => '{set_password_url}',
-				'label' => __( 'Set password link (New account email only)', 'flexa-formflow' ),
-			],
-			[
-				'token' => '{pos_store_name}',
-				'label' => __( 'POS store name', 'flexa-formflow' ),
-			],
-			[
-				'token' => '{pos_store_email}',
-				'label' => __( 'POS store email', 'flexa-formflow' ),
-			],
-			[
-				'token' => '{pos_store_phone}',
-				'label' => __( 'POS store phone', 'flexa-formflow' ),
-			],
-			[
-				'token' => '{pos_store_address}',
-				'label' => __( 'POS store address', 'flexa-formflow' ),
-			],
-			[
-				'token' => '{pos_refund_policy}',
-				'label' => __( 'POS refund & returns policy', 'flexa-formflow' ),
-			],
-			[
-				'token' => '{gateway_title}',
-				'label' => __( 'Payment gateway name (Payment gateway enabled email only)', 'flexa-formflow' ),
-			],
-			[
-				'token' => '{gateway_settings_url}',
-				'label' => __( 'Payment gateway settings link (Payment gateway enabled email only)', 'flexa-formflow' ),
-			],
+		$labels = [
+			'{order_number}'        => __( 'Order number', 'flexa-formflow' ),
+			'{order_date}'          => __( 'Order date', 'flexa-formflow' ),
+			'{order_total}'         => __( 'Order total', 'flexa-formflow' ),
+			'{order_status}'        => __( 'Order status', 'flexa-formflow' ),
+			'{order_url}'           => __( 'Order URL', 'flexa-formflow' ),
+			'{payment_url}'         => __( 'Pay for order link (retry a failed or pending payment)', 'flexa-formflow' ),
+			'{refund_amount}'       => __( 'Refund amount (this refund, or the total refunded so far)', 'flexa-formflow' ),
+			'{payment_method}'      => __( 'Payment method', 'flexa-formflow' ),
+			'{shipping_method}'     => __( 'Shipping method', 'flexa-formflow' ),
+			'{customer_first_name}' => __( 'Customer first name', 'flexa-formflow' ),
+			'{customer_last_name}'  => __( 'Customer last name', 'flexa-formflow' ),
+			'{customer_full_name}'  => __( 'Customer full name', 'flexa-formflow' ),
+			'{customer_email}'      => __( 'Customer email', 'flexa-formflow' ),
 		];
-	}
 
-	/**
-	 * The gateway a "payment gateway enabled" alert is about. The body gets it
-	 * from the template args; the subject has none, so it is read off the
-	 * email object, which WooCommerce fills in before rendering either.
-	 *
-	 * @return array<string, string>
-	 */
-	private static function gateway_values( RenderContext $ctx ): array {
-		$email = $ctx->email;
-		$title = (string) $ctx->extra( 'gateway_title' );
-		$url   = (string) $ctx->extra( 'gateway_url' );
-
-		if ( '' === $title && null !== $email && isset( $email->gateway_title ) ) {
-			$title = (string) $email->gateway_title;
-		}
-		if ( '' === $url && null !== $email && isset( $email->gateway_settings_url ) ) {
-			$url = (string) $email->gateway_settings_url;
+		$catalog = [];
+		foreach ( $labels as $token => $label ) {
+			$catalog[] = [
+				'token' => $token,
+				'label' => $label,
+			];
 		}
 
-		return [
-			'gateway_title'        => $title,
-			'gateway_settings_url' => $url,
-		];
+		return array_merge( $catalog, ContextTokens::catalog() );
 	}
 
 	/**
@@ -208,8 +118,7 @@ final class OrderTokens {
 	 * hand the template the refund just made, which is what a partial refund
 	 * needs; the subject line has no template args, so it reads the same refund
 	 * off the email object. Without one (a manual resend) it falls back to
-	 * everything refunded on the order so far. Entities are decoded because the
-	 * value also lands in the plain-text subject, where `&#36;` would show raw.
+	 * everything refunded on the order so far.
 	 */
 	private static function refund_amount( \WC_Order $order, RenderContext $ctx ): string {
 		$refund_id = (int) $ctx->extra( 'refund_id' );
@@ -231,84 +140,26 @@ final class OrderTokens {
 	}
 
 	/**
-	 * The store details set under WooCommerce > Settings > Point of Sale. The
-	 * POS emails hand them to the template already resolved (with WooCommerce's
-	 * own fallbacks); any other email reads the saved options directly, so the
-	 * tokens still work outside a POS receipt.
-	 *
-	 * @return array<string, string>
-	 */
-	private static function pos_store_values( RenderContext $ctx ): array {
-		$pick = static function ( string $extra, string $option, string $fallback = '' ) use ( $ctx ): string {
-			$given = (string) $ctx->extra( $extra );
-			if ( '' !== $given ) {
-				return $given;
-			}
-			$saved = (string) get_option( $option, '' );
-
-			return '' !== $saved ? $saved : $fallback;
-		};
-
-		return [
-			'pos_store_name'    => $pick( 'pos_store_name', 'woocommerce_pos_store_name', (string) get_bloginfo( 'name' ) ),
-			'pos_store_email'   => $pick( 'pos_store_email', 'woocommerce_pos_store_email', (string) get_option( 'admin_email' ) ),
-			'pos_store_phone'   => $pick( 'pos_store_phone', 'woocommerce_pos_store_phone' ),
-			'pos_store_address' => $pick( 'pos_store_address', 'woocommerce_pos_store_address' ),
-			'pos_refund_policy' => $pick( 'pos_refund_policy', 'woocommerce_pos_refund_returns_policy' ),
-		];
-	}
-
-	/**
-	 * The exact link WooCommerce's own reset-password email builds, from the
-	 * reset key/user id the core email class hands the template
-	 * (see WC_Email_Customer_Reset_Password::get_content_html()). Empty when
-	 * those extras are absent (any email other than customer_reset_password).
-	 */
-	private static function reset_password_url( RenderContext $ctx ): string {
-		$reset_key  = (string) $ctx->extra( 'reset_key' );
-		$user_login = (string) $ctx->extra( 'user_login' );
-		if ( '' === $reset_key || '' === $user_login || ! function_exists( 'wc_get_endpoint_url' ) ) {
-			return '';
-		}
-
-		return add_query_arg(
-			[
-				'key'   => $reset_key,
-				'id'    => (string) $ctx->extra( 'user_id' ),
-				'login' => rawurlencode( $user_login ),
-			],
-			wc_get_endpoint_url( 'lost-password', '', wc_get_page_permalink( 'myaccount' ) )
-		);
-	}
-
-	/**
 	 * @return array<string, string>
 	 */
 	private static function sample_values(): array {
 		return [
-			'order_number'         => '1234',
-			'order_date'           => date_i18n( get_option( 'date_format' ) ),
-			'order_total'          => self::plain_price( wc_price( 128.5 ) ),
-			'order_status'         => __( 'Processing', 'flexa-formflow' ),
-			'order_url'            => home_url( '/my-account/view-order/1234/' ),
-			'payment_url'          => home_url( '/checkout/order-pay/1234/?pay_for_order=true&key=wc_order_sample' ),
-			'refund_amount'        => self::plain_price( wc_price( 32.5 ) ),
-			'payment_method'       => __( 'Credit card', 'flexa-formflow' ),
-			'shipping_method'      => __( 'Flat rate', 'flexa-formflow' ),
-			'customer_first_name'  => 'Alex',
-			'customer_last_name'   => 'Nguyen',
-			'customer_full_name'   => 'Alex Nguyen',
-			'customer_email'       => 'alex@example.com',
-			'shop_url'             => home_url( '/shop/' ),
-			'my_account_url'       => home_url( '/my-account/' ),
-			'customer_note'        => __( 'Thanks, please leave the parcel at the door.', 'flexa-formflow' ),
-			'reset_password_url'   => home_url( '/my-account/lost-password/?key=sample&id=1&login=alex' ),
-			'set_password_url'     => home_url( '/my-account/lost-password/?action=newaccount&key=sample&login=alex' ),
-			'pos_store_phone'      => '(555) 010-0199',
-			'pos_store_address'    => '123 Main Street, Springfield',
-			'pos_refund_policy'    => __( 'Returns accepted within 30 days with receipt.', 'flexa-formflow' ),
-			'gateway_title'        => __( 'Check payments', 'flexa-formflow' ),
-			'gateway_settings_url' => admin_url( 'admin.php?page=wc-settings&tab=checkout&section=cheque' ),
+			'order_number'        => '1234',
+			'order_date'          => date_i18n( get_option( 'date_format' ) ),
+			'order_total'         => self::plain_price( wc_price( 128.5 ) ),
+			'order_status'        => __( 'Processing', 'flexa-formflow' ),
+			'order_url'           => home_url( '/my-account/view-order/1234/' ),
+			'payment_url'         => home_url( '/checkout/order-pay/1234/?pay_for_order=true&key=wc_order_sample' ),
+			'refund_amount'       => self::plain_price( wc_price( 32.5 ) ),
+			'payment_method'      => __( 'Credit card', 'flexa-formflow' ),
+			'shipping_method'     => __( 'Flat rate', 'flexa-formflow' ),
+			'customer_first_name' => 'Alex',
+			'customer_last_name'  => 'Nguyen',
+			'customer_full_name'  => 'Alex Nguyen',
+			'customer_email'      => 'alex@example.com',
+			'shop_url'            => home_url( '/shop/' ),
+			'my_account_url'      => home_url( '/my-account/' ),
+			'customer_note'       => __( 'Thanks, please leave the parcel at the door.', 'flexa-formflow' ),
 		];
 	}
 }

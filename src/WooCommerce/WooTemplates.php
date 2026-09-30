@@ -144,6 +144,10 @@ final class WooTemplates {
 				'heading' => __( 'Welcome to {site_title}', 'flexa-formflow' ),
 				'text'    => __( 'Hi {customer_first_name}, your account has been created successfully at {site_title}. Use the button below to set your password and sign in.', 'flexa-formflow' ),
 			],
+			'customer_verify_email'     => [
+				'heading' => __( 'Confirm your email address', 'flexa-formflow' ),
+				'text'    => __( "Hi {customer_first_name}, once you've confirmed that {customer_email} is your email address, we'll link any past orders to your account.", 'flexa-formflow' ),
+			],
 			'admin_payment_gateway_enabled' => [
 				'heading' => __( 'Payment gateway "{gateway_title}" enabled', 'flexa-formflow' ),
 				'text'    => __( "The payment gateway \"{gateway_title}\" was just enabled on {site_title}. If you didn't enable it, log in and disable it right away.", 'flexa-formflow' ),
@@ -167,6 +171,10 @@ final class WooTemplates {
 			'customer_failed_order'   => [
 				'text' => __( 'Try again', 'flexa-formflow' ),
 				'url'  => '{payment_url}',
+			],
+			'customer_verify_email'   => [
+				'text' => __( 'Confirm email address', 'flexa-formflow' ),
+				'url'  => '{verify_email_url}',
 			],
 			'admin_payment_gateway_enabled' => [
 				'text' => __( 'Review gateway settings', 'flexa-formflow' ),
@@ -195,6 +203,7 @@ final class WooTemplates {
 		return match ( $email_id ) {
 			'customer_pos_completed_order',
 			'customer_pos_refunded_order' => __( 'Questions about your purchase? Contact {pos_store_name} at {pos_store_email}.', 'flexa-formflow' ),
+			'customer_verify_email'       => __( "If you didn't request this email, you can safely ignore it.", 'flexa-formflow' ),
 			default                       => null,
 		};
 	}
