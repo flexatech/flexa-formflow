@@ -70,7 +70,7 @@ final class WooTemplates {
 	}
 
 	/**
-	 * The heading/body copy for each of the 11 WooCommerce emails, so an
+	 * The heading/body copy for each WooCommerce email in the catalog, so an
 	 * un-assigned (template_id 0) email still reads right for its own event
 	 * instead of the generic "thanks for your order" line every id used to
 	 * share, regardless of whether it even had an order.
@@ -86,6 +86,10 @@ final class WooTemplates {
 			'cancelled_order'           => [
 				'heading' => __( 'Order {order_number} has been cancelled', 'flexa-formflow' ),
 				'text'    => __( 'The order from {customer_full_name} was just marked as Cancelled. Please check inventory and payment if needed.', 'flexa-formflow' ),
+			],
+			'customer_cancelled_order'  => [
+				'heading' => __( 'Order {order_number} has been cancelled', 'flexa-formflow' ),
+				'text'    => __( 'Hi {customer_first_name}, your order has been cancelled. If you have any questions or this was a mistake, please contact us.', 'flexa-formflow' ),
 			],
 			'failed_order'              => [
 				'heading' => __( 'Payment failed – order {order_number}', 'flexa-formflow' ),

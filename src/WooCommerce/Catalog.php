@@ -32,6 +32,13 @@ final class Catalog {
 				'recipient'   => 'admin',
 				'has_order'   => true,
 			],
+			'customer_cancelled_order'  => [
+				'template'    => 'emails/customer-cancelled-order.php',
+				'title'       => __( 'Cancelled order', 'flexa-formflow' ),
+				'description' => __( 'Sent to the customer when their order is cancelled.', 'flexa-formflow' ),
+				'recipient'   => 'customer',
+				'has_order'   => true,
+			],
 			'failed_order'              => [
 				'template'    => 'emails/admin-failed-order.php',
 				'title'       => __( 'Failed order', 'flexa-formflow' ),
