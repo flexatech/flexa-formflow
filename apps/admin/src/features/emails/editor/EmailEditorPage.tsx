@@ -29,6 +29,8 @@ import { cn } from "@/lib/cn";
 import { navigate } from "@/lib/router";
 import { SHOW_UPCOMING } from "@/lib/flags";
 import { useUiStore } from "@/lib/store";
+import { useUndoHistory, useUndoShortcuts } from "@/lib/useUndoHistory";
+import { UndoRedoButtons } from "@/components/custom/UndoRedoButtons";
 import { SaveToLibraryButton } from "@/features/library/SaveToLibrary";
 import { useFormsList } from "@/features/forms/useForms";
 import { LayerList } from "./LayerList";
@@ -107,6 +109,19 @@ export function EmailEditorPage({ id }: { id: number }) {
     // Leaving the editor clears the layer selection.
     useEffect(() => () => setSelectedElement(null), [setSelectedElement]);
 
+    // Undo/redo covers the tree (blocks + design settings); the title is a
+    // plain field with the browser's own undo.
+    const history = useUndoHistory<EmailTree>();
+    const stepHistory = (direction: "undo" | "redo") => {
+        if (!draft) return;
+        const tree = direction === "undo" ? history.undo(draft.tree) : history.redo(draft.tree);
+        if (!tree) return;
+        setDraft({ ...draft, tree });
+        // Undoing an add (or redoing a delete) can take the selected block away.
+        if (selectedId && !findInTree(tree.elements, selectedId)) setSelectedElement(null);
+    };
+    useUndoShortcuts(stepHistory);
+
     useEffect(() => {
         if (!draft) return;
         const snapshot = JSON.stringify(draft);
@@ -145,8 +160,13 @@ export function EmailEditorPage({ id }: { id: number }) {
     const elements = draft.tree.elements;
     const selected = selectedId ? findInTree(elements, selectedId) : null;
 
-    const setTree = (next: EmailTree) => setDraft((prev) => (prev ? { ...prev, tree: next } : prev));
-    const setElements = (next: EmailElement[]) => setTree({ ...draft.tree, elements: next });
+    // `key` groups rapid edits to one target (typing in a field) into a single
+    // undo step; structural edits pass none and are always their own step.
+    const setTree = (next: EmailTree, key?: string) => {
+        history.record(draft.tree, key);
+        setDraft((prev) => (prev ? { ...prev, tree: next } : prev));
+    };
+    const setElements = (next: EmailElement[], key?: string) => setTree({ ...draft.tree, elements: next }, key);
 
     const onAdd = (type: string) => {
         const element = newElement(type);
@@ -188,7 +208,7 @@ export function EmailEditorPage({ id }: { id: number }) {
         if (selectedId === elId) setSelectedElement(null);
     };
     const onChangeProps = (elId: string, props: Record<string, unknown>) =>
-        setElements(updateInTree(elements, elId, (el) => ({ ...el, props })));
+        setElements(updateInTree(elements, elId, (el) => ({ ...el, props })), `props:${elId}`);
     const onChangeVisibility = (elId: string, visibility: ConditionSet) =>
         setElements(
             updateInTree(elements, elId, (el) => {
@@ -198,10 +218,12 @@ export function EmailEditorPage({ id }: { id: number }) {
                 }
                 return { ...el, visibility };
             }),
+            `visibility:${elId}`,
         );
     const onChangeColumnCount = (elId: string, count: number) =>
         setElements(updateInTree(elements, elId, (el) => resizeColumns(el, count)));
-    const onChangeSettings = (settings: TreeSettings) => setTree({ ...draft.tree, settings });
+    const onChangeSettings = (settings: TreeSettings) => setTree({ ...draft.tree, settings }, "settings");
+    const onReorder = (next: EmailElement[]) => setElements(next);
 
     return (
         <div className="ff:flex ff:h-[calc(100vh-2rem)] ff:min-w-0 ff:flex-1 ff:flex-col ff:bg-slate-50">
@@ -224,6 +246,12 @@ export function EmailEditorPage({ id }: { id: number }) {
                         "ff:min-w-0 ff:flex-1 ff:border-0 ff:bg-transparent ff:text-base ff:font-semibold ff:text-slate-900 ff:outline-none ff:placeholder:text-slate-400",
                     )}
                     spellCheck={false}
+                />
+                <UndoRedoButtons
+                    canUndo={history.canUndo}
+                    canRedo={history.canRedo}
+                    onUndo={() => stepHistory("undo")}
+                    onRedo={() => stepHistory("redo")}
                 />
                 <SaveStatus state={save.isPending ? "saving" : dirty ? "dirty" : "saved"} />
                 <div className="ff:flex ff:items-center ff:gap-1 ff:rounded-md ff:border ff:border-slate-200 ff:p-0.5">
@@ -290,7 +318,7 @@ export function EmailEditorPage({ id }: { id: number }) {
                                 selectedId={selectedId}
                                 onSelect={setSelectedElement}
                                 onAdd={onAdd}
-                                onReorder={setElements}
+                                onReorder={onReorder}
                                 onDuplicate={onDuplicate}
                                 onDelete={onDelete}
                             />

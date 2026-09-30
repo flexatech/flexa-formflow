@@ -241,6 +241,21 @@ export function PreviewPane({
             const el = (e.target as HTMLElement | null)?.closest?.("[data-ff-el]");
             onSelectRef.current(el?.getAttribute("data-ff-el") ?? null);
         });
+        // Clicking a block focuses this iframe, whose key events never reach
+        // the editor window; forward shortcut chords so Ctrl/Cmd+Z still works.
+        doc.addEventListener("keydown", (e) => {
+            if (!e.ctrlKey && !e.metaKey) return;
+            const forwarded = new KeyboardEvent("keydown", {
+                key: e.key,
+                ctrlKey: e.ctrlKey,
+                metaKey: e.metaKey,
+                shiftKey: e.shiftKey,
+                altKey: e.altKey,
+                cancelable: true,
+            });
+            window.dispatchEvent(forwarded);
+            if (forwarded.defaultPrevented) e.preventDefault();
+        });
     };
 
     useEffect(() => {
