@@ -93,6 +93,8 @@ export function FormPreviewDialog({
                         <iframe
                             title={__("Form preview")}
                             srcDoc={preview.data ?? ""}
+                            // A look-only preview: same origin so it can be sized, scripts off.
+                            sandbox="allow-same-origin"
                             className={cn(
                                 "ff:h-full ff:rounded-md ff:border ff:border-slate-200 ff:bg-white",
                                 viewport === "desktop" ? "ff:w-full" : "ff:w-[390px] ff:shrink-0",

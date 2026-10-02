@@ -163,6 +163,12 @@ final class Registry {
 
 	/**
 	 * Whether a Pro pattern can be inserted. Free shows Pro patterns with a lock.
+	 *
+	 * No pattern bundled with this plugin is Pro. Every built-in entry is declared
+	 * through self::define(), which hardcodes `tier => 'free'`, so nothing that
+	 * ships here is ever locked and there is no feature to unlock. The tier exists
+	 * for patterns a separately installed add-on registers through
+	 * `flexa_formflow.emails.patterns`; that add-on also answers this filter.
 	 */
 	public static function pro_active(): bool {
 		return (bool) apply_filters( 'flexa_formflow.pro_active', false );

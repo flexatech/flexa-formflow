@@ -48,7 +48,11 @@ $ff_extras = [
 $ff_ctx  = new RenderContext( type: $ff_id, order: $ff_order, email: $ff_email, extras: $ff_extras );
 $ff_tree = WooTemplates::tree_for( $ff_id );
 
-// The renderer returns a complete email document with every dynamic value
-// escaped by context inside the element render methods.
+// The renderer returns a complete email document (<html>, <head>, table shell)
+// with every dynamic value escaped by context inside the element render
+// methods: esc_html() for text, esc_attr() for inline styles, esc_url() for
+// links, and wp_kses() with an explicit tag list for WooCommerce total markup.
+// wp_kses_post() cannot be applied here: it strips the document shell the email
+// client needs, and the sink is a mail body passed to wp_mail(), not a page.
 echo Renderer::instance()->render_tree( $ff_tree, $ff_ctx ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- renderer output is pre-escaped email HTML.
 // phpcs:enable WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedVariableFound

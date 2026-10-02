@@ -116,7 +116,11 @@ Nothing is removed unless you turn on "Delete data on uninstall" in Settings fir
 
 = How is the admin interface built, and where is the source? =
 
-The admin app is written in React and TypeScript and compiled to the files in `assets/dist/`. The unminified source ships with the plugin in `apps/admin/src/`, next to its build config, and is also public at https://github.com/flexatech/flexa-formflow. To build it yourself: install Node 20+ and pnpm 9+, run `pnpm install`, then `pnpm build`. The `README.md` in the repository has the full developer setup.
+`assets/dist/` holds the only compiled files in the plugin: the admin app, written in React and TypeScript and bundled by Vite. Its unminified source ships with the plugin in `apps/admin/src/`, alongside the build config (`package.json`, `pnpm-lock.yaml`, `apps/admin/vite.config.ts`, `apps/admin/tsconfig.json`), and is also public at https://github.com/flexatech/flexa-formflow. To build it yourself: install Node 20+ and pnpm 9+, run `pnpm install`, then `pnpm build`. The `README.md` in the repository has the full developer setup.
+
+Third-party code in that bundle comes from npm, pinned in `package.json` and `pnpm-lock.yaml`: React, TanStack Query, dnd-kit, Radix UI, Zustand, Lucide icons and Tailwind CSS.
+
+Every other script and stylesheet is hand-written and ships exactly as it was authored, with no build step: `assets/frontend/form.js` and `assets/frontend/form.css` for the public form, and `assets/blocks/form/editor.js` for the block editor panel.
 
 == Screenshots ==
 
