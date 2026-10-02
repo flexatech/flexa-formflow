@@ -6,6 +6,8 @@ namespace Flexa\FormFlow\Domain\Forms;
 
 use Flexa\FormFlow\Concerns\HasInstance;
 use Flexa\FormFlow\Database\Schema;
+use Flexa\FormFlow\Spam\Captcha\Registry as CaptchaRegistry;
+use Flexa\FormFlow\Support\Settings;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -100,7 +102,7 @@ final class FormRepository {
 				'uuid'       => wp_generate_uuid4(),
 				'title'      => $title,
 				'status'     => 'draft',
-				'config'     => (string) wp_json_encode( [] === $config ? FieldTypes::default_config() : FieldTypes::sanitize_config( $config ) ),
+				'config'     => (string) wp_json_encode( self::new_form_config( $config ) ),
 				'created_at' => $now,
 				'updated_at' => $now,
 			],
@@ -108,6 +110,22 @@ final class FormRepository {
 		);
 
 		return (int) $wpdb->insert_id;
+	}
+
+	/**
+	 * A new form's config. Unless the caller picked a CAPTCHA, it gets the site's
+	 * "Default CAPTCHA for new forms"; existing forms never change with it.
+	 *
+	 * @param array<string, mixed> $config
+	 * @return array<string, mixed>
+	 */
+	private static function new_form_config( array $config ): array {
+		$clean = [] === $config ? FieldTypes::default_config() : FieldTypes::sanitize_config( $config );
+		if ( ! isset( $config['settings']['captcha'] ) ) {
+			$clean['settings']['captcha'] = CaptchaRegistry::coerce( Settings::get( 'captcha_default' ) );
+		}
+
+		return $clean;
 	}
 
 	/**

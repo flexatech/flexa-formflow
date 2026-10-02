@@ -29,6 +29,7 @@ final class Plugin {
 		Emails\Render\Visibility::instance()->register();
 		Workflows\Engine::instance()->register();
 		Integrations\ActivityRecorder::instance()->register();
+		Support\RenderCache::instance()->register();
 
 		// WooCommerce email takeover: only wire the interceptor and render
 		// extensions when WooCommerce is active. The plugin keeps working without

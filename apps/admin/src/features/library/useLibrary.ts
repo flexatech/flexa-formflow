@@ -291,6 +291,13 @@ function mergeWorkflowConfig(
     return {
         trigger: { type: "form_submitted", form_id: formId },
         actions: Array.isArray(payload.actions) ? payload.actions : base.actions,
+        // A branched recipe brings its condition and Otherwise steps along.
+        ...(isRecord(payload.condition)
+            ? {
+                  condition: payload.condition,
+                  else_actions: Array.isArray(payload.else_actions) ? payload.else_actions : [],
+              }
+            : {}),
     };
 }
 

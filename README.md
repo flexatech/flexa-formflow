@@ -60,6 +60,17 @@ Regenerate translations after changing UI strings:
 ./makepot.sh      # WP-CLI make-pot + the TSX string extraction
 ```
 
+## Tests
+
+```bash
+pnpm test          # Vitest: admin app logic (patterns, header/footer modes)
+composer test      # PHPUnit: tests/Unit with an in-memory WordPress stub
+php tests/run.php  # the same PHP suite without PHPUnit installed
+```
+
+The PHP suite needs no database or WordPress install: `tests/bootstrap.php`
+stubs the handful of WordPress functions the tested classes call.
+
 ## Static analysis
 
 ```bash

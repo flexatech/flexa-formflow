@@ -19,6 +19,13 @@ export interface PluginSettings {
     ai_model: string;
     /** Masked sentinel ("__ff_secret__") when a key is stored, else "". */
     ai_api_key: string;
+    /** CAPTCHA a new form starts with; existing forms keep their own. */
+    captcha_default: "none" | "turnstile" | "recaptcha_v2";
+    turnstile_site_key: string;
+    /** Masked sentinel when stored. Send "" to remove, the mask to keep. */
+    turnstile_secret_key: string;
+    recaptcha_v2_site_key: string;
+    recaptcha_v2_secret_key: string;
 }
 
 interface SettingsResponse {
@@ -44,6 +51,11 @@ export function useSaveSettings() {
             (await api.post<SettingsResponse>("/settings", partial)).settings,
         onSuccess: (settings) => {
             queryClient.setQueryData(["settings"], settings);
+            // Provider readiness feeds the form builder and the dashboard.
+            void queryClient.invalidateQueries({ queryKey: ["spam-status"] });
+            // Brand colour and site identity change what pattern thumbnails show;
+            // the library's revision moves with them.
+            void queryClient.invalidateQueries({ queryKey: ["email-patterns"] });
         },
         onSettled: () => {
             void queryClient.invalidateQueries({ queryKey: ["settings"] });

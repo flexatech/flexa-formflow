@@ -1,4 +1,4 @@
-import { ArrowLeft, Eye, Share2 } from "lucide-react";
+import { ArrowLeft, Eye, FlaskConical, Share2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -16,6 +16,9 @@ import { useForm, useSaveForm } from "../useForms";
 import type { FormConfig, FormStatus } from "../types";
 import { BuildTab } from "./BuildTab";
 import { FormPreviewDialog } from "./FormPreviewDialog";
+import { TestSubmissionDialog } from "./TestSubmissionDialog";
+import { ApiError } from "@/lib/api";
+import { captchaReady, useSpamStatus } from "@/features/spam/useSpam";
 import { NotificationsTab } from "./NotificationsTab";
 import { ShareTab } from "./ShareTab";
 
@@ -42,6 +45,8 @@ export function BuilderPage({ id }: { id: number }) {
     const [tab, setTab] = useState<TabName>("build");
     const [previewOpen, setPreviewOpen] = useState(false);
     const [previewViewport, setPreviewViewport] = useState<"desktop" | "mobile">("desktop");
+    const [testOpen, setTestOpen] = useState(false);
+    const { data: spam } = useSpamStatus();
     const lastSaved = useRef("");
 
     useEffect(() => {
@@ -77,7 +82,14 @@ export function BuilderPage({ id }: { id: number }) {
                 onSuccess: () => {
                     lastSaved.current = snapshot;
                 },
-                onError: () => showToast(__("Autosave failed. Your latest change is not stored yet."), "error"),
+                onError: (error) =>
+                    showToast(
+                        // The server explains a refused publish (a CAPTCHA without keys).
+                        error instanceof ApiError && error.status === 422
+                            ? error.message
+                            : __("Autosave failed. Your latest change is not stored yet."),
+                        "error",
+                    ),
             });
         }, 800);
         return () => window.clearTimeout(timer);
@@ -123,7 +135,17 @@ export function BuilderPage({ id }: { id: number }) {
                 <label className="ff:flex ff:items-center ff:gap-2 ff:text-sm ff:font-medium ff:text-slate-700">
                     <Switch
                         checked={draft.status === "published"}
-                        onCheckedChange={(next) => patch({ status: next ? "published" : "draft" })}
+                        onCheckedChange={(next) => {
+                            // Never publish a form whose CAPTCHA cannot verify anyone.
+                            if (next && !captchaReady(draft.config.settings.captcha ?? "none", spam)) {
+                                showToast(
+                                    __("Add the CAPTCHA keys in Settings > Spam protection, or choose another CAPTCHA, before publishing."),
+                                    "error",
+                                );
+                                return;
+                            }
+                            patch({ status: next ? "published" : "draft" });
+                        }}
                     />
                     {draft.status === "published" ? __("Published") : __("Draft")}
                 </label>
@@ -135,6 +157,10 @@ export function BuilderPage({ id }: { id: number }) {
                         getPayload={() => draft.config as unknown as Record<string, unknown>}
                     />
                 )}
+                <Button variant="outline" size="sm" onClick={() => setTestOpen(true)}>
+                    <FlaskConical aria-hidden className="ff:h-4 ff:w-4" />
+                    {__("Run test")}
+                </Button>
                 <Button variant="outline" size="sm" onClick={() => setPreviewOpen(true)}>
                     <Eye aria-hidden className="ff:h-4 ff:w-4" />
                     {__("Preview")}
@@ -158,12 +184,21 @@ export function BuilderPage({ id }: { id: number }) {
             </nav>
 
             <div className="ff:min-h-0 ff:flex-1 ff:overflow-y-auto">
-                {tab === "build" && <BuildTab config={draft.config} onChange={patchConfig} />}
+                {tab === "build" && (
+                    <BuildTab config={draft.config} published={draft.status === "published"} onChange={patchConfig} />
+                )}
                 {tab === "notifications" && (
                     <NotificationsTab config={draft.config} onChange={patchConfig} />
                 )}
                 {tab === "share" && <ShareTab form={form} status={draft.status} />}
             </div>
+
+            <TestSubmissionDialog
+                open={testOpen}
+                onOpenChange={setTestOpen}
+                formId={id}
+                config={draft.config}
+            />
 
             <FormPreviewDialog
                 open={previewOpen}

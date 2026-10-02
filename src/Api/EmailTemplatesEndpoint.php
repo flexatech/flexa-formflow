@@ -6,6 +6,7 @@ namespace Flexa\FormFlow\Api;
 
 use Flexa\FormFlow\Domain\EmailTemplates\EmailTemplateRepository;
 use Flexa\FormFlow\Emails\Render\DefaultTemplates;
+use Flexa\FormFlow\Emails\TemplateOrigin;
 use WP_Error;
 use WP_REST_Request;
 use WP_REST_Response;
@@ -86,7 +87,15 @@ final class EmailTemplatesEndpoint extends Endpoint {
 			$title = __( 'Untitled template', 'flexa-formflow' );
 		}
 
-		$tree = is_array( $params['tree'] ?? null ) ? $params['tree'] : DefaultTemplates::tree_for( 'admin' );
+		$tree = is_array( $params['tree'] ?? null )
+			? $params['tree']
+			: TemplateOrigin::stamp(
+				DefaultTemplates::tree_for( 'admin' ),
+				[
+					'kind' => 'form',
+					'ref'  => 'admin',
+				]
+			);
 
 		$id = EmailTemplateRepository::instance()->create( $title, $tree );
 		if ( $id <= 0 ) {

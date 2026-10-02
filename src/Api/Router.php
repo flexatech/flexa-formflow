@@ -30,7 +30,10 @@ final class Router {
 		( new EntriesEndpoint() )->register_routes();
 		( new StatsEndpoint() )->register_routes();
 		( new SubmitEndpoint() )->register_routes();
+		( new SpamEndpoint() )->register_routes();
 		( new EmailTemplatesEndpoint() )->register_routes();
+		( new EmailTemplateDefaultsEndpoint() )->register_routes();
+		( new EmailTemplateImportEndpoint() )->register_routes();
 		( new EmailPreviewEndpoint() )->register_routes();
 		( new EmailDynamicDataEndpoint() )->register_routes();
 		( new EmailPatternsEndpoint() )->register_routes();

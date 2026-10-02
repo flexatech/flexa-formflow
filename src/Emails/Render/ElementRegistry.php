@@ -37,6 +37,7 @@ final class ElementRegistry {
 			Elements\Divider::class,
 			Elements\Spacer::class,
 			Elements\Social::class,
+			Elements\Navigation::class,
 			Elements\FieldsTable::class,
 			Elements\FooterText::class,
 			Elements\Html::class,

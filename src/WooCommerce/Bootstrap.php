@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Flexa\FormFlow\WooCommerce;
 
 use Flexa\FormFlow\Concerns\HasInstance;
+use Flexa\FormFlow\WooCommerce\Elements\OrderAddress;
 use Flexa\FormFlow\WooCommerce\Elements\OrderDetails;
 
 defined( 'ABSPATH' ) || exit;
@@ -28,7 +29,7 @@ final class Bootstrap {
 	}
 
 	/**
-	 * Add the order-details block to the email builder registry.
+	 * Add the order-details and address blocks to the email builder registry.
 	 *
 	 * @param array<string, \Flexa\FormFlow\Emails\Render\BaseElement> $elements
 	 * @return array<string, \Flexa\FormFlow\Emails\Render\BaseElement>
@@ -36,6 +37,9 @@ final class Bootstrap {
 	public function register_elements( array $elements ): array {
 		$order_details                      = new OrderDetails();
 		$elements[ $order_details->type() ] = $order_details;
+
+		$order_address                      = new OrderAddress();
+		$elements[ $order_address->type() ] = $order_address;
 
 		return $elements;
 	}

@@ -29,13 +29,8 @@ final class LayoutOverlap {
 			$elements = isset( $template->tree['elements'] ) && is_array( $template->tree['elements'] ) ? $template->tree['elements'] : [];
 			$settings = isset( $template->tree['settings'] ) && is_array( $template->tree['settings'] ) ? $template->tree['settings'] : [];
 			$nodes    = array_values( array_filter( $elements, 'is_array' ) );
-			$set      = GlobalLayout::instance()->set_for( $settings );
-			if ( null === $set ) {
-				continue;
-			}
-
-			$header = GlobalLayout::has_type( $set['header'], 'logo' ) && GlobalLayout::has_type( $nodes, 'logo' ) && empty( $settings['hideGlobalHeader'] );
-			$footer = GlobalLayout::has_type( $set['footer'], 'footer_text' ) && GlobalLayout::has_type( $nodes, 'footer_text' ) && empty( $settings['hideGlobalFooter'] );
+			$header = GlobalLayout::has_type( LayoutParts::nodes( $settings, 'header' ), 'logo' ) && GlobalLayout::has_type( $nodes, 'logo' );
+			$footer = GlobalLayout::has_type( LayoutParts::nodes( $settings, 'footer' ), 'footer_text' ) && GlobalLayout::has_type( $nodes, 'footer_text' );
 			if ( $header || $footer ) {
 				$found[] = [
 					'id'     => $template->id,

@@ -39,7 +39,7 @@ export function ColorField({
                 aria-label={swatchLabel}
                 value={HEX.test(value) ? value : "#000000"}
                 onChange={(e) => onChange(e.target.value)}
-                className="ff:h-9 ff:w-10 ff:shrink-0 ff:cursor-pointer ff:rounded ff:border ff:border-slate-300 ff:bg-white ff:p-0.5"
+                className="flexa-formflow-swatch ff:h-9 ff:w-10 ff:shrink-0 ff:cursor-pointer ff:rounded-field ff:border ff:border-slate-300 ff:bg-white ff:p-0.5"
             />
             <Input
                 id={id}

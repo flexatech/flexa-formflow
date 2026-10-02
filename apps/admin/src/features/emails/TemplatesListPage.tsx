@@ -1,4 +1,4 @@
-import { Copy, Mail, Pencil, Plus, Trash2 } from "lucide-react";
+import { Copy, Download, Mail, Pencil, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/custom/EmptyState";
@@ -25,6 +25,7 @@ import { BulkLayoutBar } from "./layout/BulkLayoutBar";
 import { LayoutBadge } from "./layout/LayoutBadge";
 import { useEmailLayout } from "./layout/useEmailLayout";
 import type { EmailTemplate } from "./types";
+import { downloadTemplates } from "./templateTransfer";
 
 /**
  * The "Form Emails" tab body of the Emails screen. The page title and the
@@ -100,6 +101,7 @@ export function FormEmailsTab() {
                                     <th className="ff:w-10 ff:py-3 ff:pl-5">
                                         <input
                                             type="checkbox"
+                                            className="flexa-formflow-check"
                                             aria-label={__("Select all templates")}
                                             checked={allPicked}
                                             onChange={() => setSelected(allPicked ? [] : items.map((t) => t.id))}
@@ -123,6 +125,7 @@ export function FormEmailsTab() {
                                         <td className="ff:w-10 ff:py-3.5 ff:pl-5" onClick={(e) => e.stopPropagation()}>
                                             <input
                                                 type="checkbox"
+                                                className="flexa-formflow-check"
                                                 aria-label={sprintf(__("Select %s"), template.title || __("Untitled template"))}
                                                 checked={picked.includes(template.id)}
                                                 onChange={() => toggle(template.id)}
@@ -166,6 +169,16 @@ export function FormEmailsTab() {
                                                 onClick={() => onDuplicate(template)}
                                             >
                                                 <Copy aria-hidden className="ff:h-4 ff:w-4" />
+                                            </Button>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                aria-label={__("Export template")}
+                                                title={__("Download as .json to import on another site")}
+                                                className="ff:text-slate-400 ff:hover:text-slate-900"
+                                                onClick={() => downloadTemplates([template], template.title)}
+                                            >
+                                                <Download aria-hidden className="ff:h-4 ff:w-4" />
                                             </Button>
                                             <Button
                                                 variant="ghost"

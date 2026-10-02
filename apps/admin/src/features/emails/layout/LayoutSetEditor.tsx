@@ -5,12 +5,20 @@ import { Button } from "@/components/ui/button";
 import { EditorSkeleton } from "@/components/custom/Skeletons";
 import { SaveStatus } from "@/components/custom/SaveStatus";
 import { UndoRedoButtons } from "@/components/custom/UndoRedoButtons";
-import { __ } from "@/lib/i18n";
+import { __, sprintf } from "@/lib/i18n";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
 import { cn } from "@/lib/cn";
 import { navigate } from "@/lib/router";
 import { useUiStore } from "@/lib/store";
 import { useUndoable } from "@/lib/useUndoHistory";
-import { useFormsList } from "@/features/forms/useForms";
+import { useForm } from "@/features/forms/useForms";
 import { LeftTab, SidePanel } from "../editor/EditorPanels";
 import { LayerList } from "../editor/LayerList";
 import { PatternPalette } from "../editor/PatternPalette";
@@ -18,7 +26,7 @@ import { PreviewPane } from "../editor/PreviewPane";
 import { PropsPanel } from "../editor/PropsPanel";
 import { createTreeHandlers } from "../editor/treeHandlers";
 import { useEmailPatterns } from "../useEmailTemplates";
-import { findInTree, type EmailElement } from "../types";
+import { findInTree, sampleSource, type EmailElement, type PreviewSource } from "../types";
 import { LayoutSettings } from "./LayoutSettings";
 import { SetPicker } from "./SetPicker";
 import { updateLayoutSet, useUpdateLayoutSet, type EmailLayout } from "./useEmailLayout";
@@ -59,12 +67,18 @@ export function LayoutSetEditor({
     const [leftTab, setLeftTab] = useState<"blocks" | "patterns">("blocks");
     const [leftCollapsed, setLeftCollapsed] = useState(false);
     const [rightCollapsed, setRightCollapsed] = useState(false);
-    const [previewFormId, setPreviewFormId] = useState(0);
+    const [previewSource, setPreviewSource] = useState<PreviewSource>(sampleSource);
+    const previewFormId = previewSource.formId;
     const lastSaved = useRef("");
 
-    const { data: formsData } = useFormsList({ per_page: 100 });
-    const forms = formsData?.items ?? [];
-    const { data: patterns = [], isLoading: patternsLoading } = useEmailPatterns();
+    const { data: previewForm } = useForm(previewFormId);
+    // Only the patterns made for the part being edited (header or footer).
+    const { data: library, isLoading: patternsLoading } = useEmailPatterns(
+        part === "header" ? "global-header" : "global-footer",
+    );
+    const patterns = library?.patterns ?? [];
+    // A template picked while the part already has blocks waits for a choice.
+    const [pendingPattern, setPendingPattern] = useState<string | null>(null);
 
     useEffect(() => {
         if (draft === null) {
@@ -127,10 +141,9 @@ export function LayoutSetEditor({
     // The visibility panel needs form fields to test against; a global block
     // can hide itself on a form value just like a template's block.
     const conditionFields = useMemo(() => {
-        const form = forms.find((f) => f.id === previewFormId);
-        if (!form) return [];
-        return form.config.fields.map((field) => ({ id: field.id, label: field.label || field.id, type: field.type }));
-    }, [forms, previewFormId]);
+        if (!previewForm || previewFormId === 0) return [];
+        return previewForm.config.fields.map((field) => ({ id: field.id, label: field.label || field.id, type: field.type }));
+    }, [previewForm, previewFormId]);
 
     if (!draft) {
         return <EditorSkeleton />;
@@ -146,9 +159,12 @@ export function LayoutSetEditor({
     };
     const handlers = createTreeHandlers({ elements, setElements, patterns, selectedId, setSelectedElement });
 
+    // The other region's blocks are a different list: drop the selection and
+    // any template choice still waiting for Replace / Insert.
     const switchPart = (next: Part) => {
         setPart(next);
         setSelectedElement(null);
+        setPendingPattern(null);
     };
 
     return (
@@ -224,8 +240,18 @@ export function LayoutSetEditor({
                             ) : (
                                 <PatternPalette
                                     patterns={patterns}
+                                    categories={library?.categories ?? []}
+                                    revision={library?.revision ?? 0}
                                     isLoading={patternsLoading}
-                                    onAdd={handlers.onAddPattern}
+                                    note={
+                                        part === "header"
+                                            ? __("Patterns you can use in the global header: everything except footers.")
+                                            : __("Patterns you can use in the global footer: everything except headers.")
+                                    }
+                                    onAdd={(id) => {
+                                        if (elements.length === 0) handlers.onReplaceWithPattern(id);
+                                        else setPendingPattern(id);
+                                    }}
                                 />
                             )}
                         </div>
@@ -235,15 +261,15 @@ export function LayoutSetEditor({
                     tree={{ version: 1, settings: {}, elements }}
                     layout={draft}
                     layoutPart={part}
-                    formId={previewFormId}
-                    forms={forms}
-                    onFormChange={setPreviewFormId}
+                    source={previewSource}
+                    onSourceChange={setPreviewSource}
                     viewport={viewport}
                     selectedId={selectedId}
                     onSelect={setSelectedElement}
                     onInsert={handlers.onInsertAt}
                     onInsertPattern={handlers.onInsertPatternAt}
                     onMove={handlers.onMove}
+                    onChangeProps={handlers.onChangeProps}
                 />
                 <SidePanel side="right" collapsed={rightCollapsed} onToggle={() => setRightCollapsed((v) => !v)}>
                     <aside className="ff:h-full ff:w-72 ff:shrink-0 ff:overflow-y-auto ff:border-l ff:border-slate-200 ff:bg-white ff:p-4">
@@ -252,6 +278,7 @@ export function LayoutSetEditor({
                                 element={selected}
                                 settings={{}}
                                 formId={previewFormId}
+                                orderId={previewSource.orderId}
                                 conditionFields={conditionFields}
                                 hasPreviewForm={previewFormId > 0}
                                 onChangeProps={handlers.onChangeProps}
@@ -260,6 +287,7 @@ export function LayoutSetEditor({
                                 onDuplicate={handlers.onDuplicate}
                                 onDelete={handlers.onDelete}
                                 onChangeSettings={() => undefined}
+                                onConvertToNavigation={handlers.onConvertToNavigation}
                             />
                         ) : (
                             <LayoutSettings layout={layout} set={set} onSetChange={onSetChange} />
@@ -267,7 +295,63 @@ export function LayoutSetEditor({
                     </aside>
                 </SidePanel>
             </div>
+            <ApplyTemplateDialog
+                open={pendingPattern !== null}
+                partLabel={part === "header" ? __("header") : __("footer")}
+                onCancel={() => setPendingPattern(null)}
+                onReplace={() => {
+                    if (pendingPattern) handlers.onReplaceWithPattern(pendingPattern);
+                    setPendingPattern(null);
+                }}
+                onInsert={() => {
+                    if (pendingPattern) handlers.onAddPattern(pendingPattern);
+                    setPendingPattern(null);
+                }}
+            />
         </div>
+    );
+}
+
+/**
+ * Applying a template to a part that already has blocks never overwrites them
+ * silently: replace them, add the template's blocks next to them, or cancel.
+ */
+function ApplyTemplateDialog({
+    open,
+    partLabel,
+    onCancel,
+    onReplace,
+    onInsert,
+}: {
+    open: boolean;
+    partLabel: string;
+    onCancel: () => void;
+    onReplace: () => void;
+    onInsert: () => void;
+}) {
+    return (
+        <Dialog open={open} onOpenChange={(next) => !next && onCancel()}>
+            <DialogContent>
+                <DialogHeader>
+                    <DialogTitle>{__("Apply this template?")}</DialogTitle>
+                    <DialogDescription>
+                        {sprintf(
+                            __("The %s already has blocks. Replace them with the template, or insert the template's blocks after the selected block (or at the end)."),
+                            partLabel,
+                        )}
+                    </DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                    <Button variant="outline" onClick={onCancel}>
+                        {__("Cancel")}
+                    </Button>
+                    <Button variant="outline" onClick={onInsert}>
+                        {__("Insert blocks")}
+                    </Button>
+                    <Button onClick={onReplace}>{__("Replace current")}</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     );
 }
 

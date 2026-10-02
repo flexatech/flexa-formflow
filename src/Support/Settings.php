@@ -12,9 +12,9 @@ defined( 'ABSPATH' ) || exit;
  * REST and renderers both go through here so the schema can never drift.
  * Saves are partial-merge: sanitize the incoming keys, merge over stored.
  *
- * The AI API key is a secret: stored encrypted, decrypted only in all() for
- * outbound calls, and masked in for_rest() so the plaintext never reaches the
- * browser.
+ * The AI API key and the CAPTCHA secret keys are secrets: stored encrypted,
+ * decrypted only in all() for outbound calls, and masked in for_rest() so the
+ * plaintext never reaches the browser (see CaptchaSettings).
  */
 final class Settings {
 	public const OPTION_KEY = 'flexa_formflow_settings';
@@ -66,7 +66,7 @@ final class Settings {
 			'ai_provider'              => 'anthropic',
 			'ai_model'                 => '',
 			'ai_api_key'               => '',
-		];
+		] + CaptchaSettings::defaults();
 	}
 
 	/**
@@ -78,7 +78,7 @@ final class Settings {
 		$raw               = self::raw();
 		$raw['ai_api_key'] = Encryption::decrypt( (string) $raw['ai_api_key'] );
 
-		return $raw;
+		return CaptchaSettings::decrypt( $raw );
 	}
 
 	/**
@@ -110,7 +110,7 @@ final class Settings {
 		$all               = self::all();
 		$all['ai_api_key'] = '' !== (string) $all['ai_api_key'] ? self::SECRET_MASK : '';
 
-		return $all;
+		return CaptchaSettings::mask( $all );
 	}
 
 	/**
@@ -168,7 +168,7 @@ final class Settings {
 			}
 		}
 
-		return $clean;
+		return array_merge( $clean, CaptchaSettings::sanitize( $incoming ) );
 	}
 
 	/**
@@ -201,7 +201,7 @@ final class Settings {
 			$out['ai_api_key'] = $stored['ai_api_key'];
 		}
 
-		return $out;
+		return array_merge( $out, CaptchaSettings::coerce( $stored ) );
 	}
 
 	/**

@@ -1,4 +1,4 @@
-import { StrictMode, useEffect, useState, type ReactNode } from "react";
+import { StrictMode, useEffect, useRef, useState, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 import {
     FileText,
@@ -67,10 +67,19 @@ const NAV: NavItem[] = [
  */
 function useFullscreen(): [boolean, () => void] {
     const [fullscreen, setFullscreen] = useState(false);
+    // The page's scroll position when fullscreen opened. Read before the root
+    // turns fixed: that takes it out of the flow and the page can shrink.
+    const scrollBefore = useRef(0);
 
+    // Lock the page behind the overlay; on exit unlock it and give the scroll
+    // position back.
     useEffect(() => {
-        document.body.classList.toggle("flexa-formflow-fs-lock", fullscreen);
-        return () => document.body.classList.remove("flexa-formflow-fs-lock");
+        if (!fullscreen) return;
+        document.body.classList.add("flexa-formflow-fs-lock");
+        return () => {
+            document.body.classList.remove("flexa-formflow-fs-lock");
+            window.scrollTo(0, scrollBefore.current);
+        };
     }, [fullscreen]);
 
     useEffect(() => {
@@ -82,7 +91,11 @@ function useFullscreen(): [boolean, () => void] {
         return () => window.removeEventListener("keydown", onKeyDown);
     }, [fullscreen]);
 
-    return [fullscreen, () => setFullscreen((v) => !v)];
+    const toggle = () => {
+        if (!fullscreen) scrollBefore.current = window.scrollY;
+        setFullscreen(!fullscreen);
+    };
+    return [fullscreen, toggle];
 }
 
 /**
@@ -195,7 +208,7 @@ function App() {
     // stop reserving room for that 32px bar (top-8 / h-[calc(100vh-2rem)]).
     const rootClass = cn(
         "ff:flex ff:bg-slate-50",
-        fullscreen ? "ff:fixed ff:inset-0 ff:z-[100000] ff:h-screen ff:overflow-auto" : "ff:min-h-screen",
+        fullscreen ? "ff:fixed ff:inset-0 ff:z-[100000] ff:overflow-auto" : "ff:min-h-screen",
     );
     const sidebarTopClass = fullscreen ? "ff:top-0 ff:h-screen" : "ff:top-8 ff:h-[calc(100vh-2rem)]";
 
@@ -206,8 +219,11 @@ function App() {
         route.name === "emailLayout" ||
         route.name === "workflowEditor"
     ) {
+        // The workflow builder sizes itself to the viewport (three rows, only
+        // the content scrolls); the root must not add a min-height of its own.
+        const viewportSized = route.name === "workflowEditor";
         return (
-            <div className={rootClass}>
+            <div className={viewportSized && !fullscreen ? "ff:flex ff:bg-slate-50" : rootClass}>
                 {screenFor(route)}
                 <FullscreenToggle active={fullscreen} onToggle={toggleFullscreen} />
                 <Toaster />

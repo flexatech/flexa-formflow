@@ -143,29 +143,25 @@ final class GlobalLayout {
 
 	/**
 	 * The header and footer blocks to wrap this email in: empty when the layout
-	 * is off, out of scope, the template chose no set, or it hides that part.
+	 * is off or out of scope, otherwise each part as its mode says (see
+	 * {@see LayoutParts}).
 	 *
 	 * @param array<string, mixed> $tree
 	 * @return array{header: list<array<string, mixed>>, footer: list<array<string, mixed>>}
 	 */
 	public function parts_for( array $tree, RenderContext $ctx ): array {
-		$parts = [
-			'header' => [],
-			'footer' => [],
-		];
 		if ( ! $this->applies_to( $ctx ) ) {
-			return $parts;
+			return [
+				'header' => [],
+				'footer' => [],
+			];
 		}
 
 		$settings = isset( $tree['settings'] ) && is_array( $tree['settings'] ) ? $tree['settings'] : [];
-		$set      = $this->set_for( $settings );
-		if ( null === $set ) {
-			return $parts;
-		}
 
 		return [
-			'header' => empty( $settings['hideGlobalHeader'] ) ? $set['header'] : [],
-			'footer' => empty( $settings['hideGlobalFooter'] ) ? $set['footer'] : [],
+			'header' => LayoutParts::nodes( $settings, 'header' ),
+			'footer' => LayoutParts::nodes( $settings, 'footer' ),
 		];
 	}
 

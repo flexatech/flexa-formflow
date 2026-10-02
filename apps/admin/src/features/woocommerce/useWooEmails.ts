@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 
 export interface WooEmailRow {
@@ -46,9 +46,10 @@ export interface WooEmailPatch {
     template_id?: number;
 }
 
-export function useWooEmails() {
+export function useWooEmails(enabled = true) {
     return useQuery({
         queryKey: ["woo-emails"],
+        enabled,
         queryFn: async () => api.get<WooEmailsResponse>("/woo-emails"),
         // The "disabled in WooCommerce" warning links out to WooCommerce's
         // settings; refetch on return so it clears once the email is enabled.
@@ -106,5 +107,37 @@ export function useSendWooTestEmail(id: string) {
                     order_id: orderId,
                 })
             ).sent,
+    });
+}
+
+/**
+ * Orders for a preview data-source picker: the latest ones for an empty
+ * search, else those matching the order number, customer name, email or
+ * address. Keeps the previous results on screen while the next search loads.
+ */
+export function useWooOrderSearch(search: string, enabled = true) {
+    return useQuery({
+        queryKey: ["woo-orders", search],
+        enabled,
+        placeholderData: keepPreviousData,
+        staleTime: 30_000,
+        queryFn: async () =>
+            (await api.get<{ orders: WooOrderOption[] }>(`/woo-emails/orders?search=${encodeURIComponent(search)}`)).orders,
+    });
+}
+
+/**
+ * Copy an email's built-in design into a new template assigned to it, so it
+ * can be opened in the editor. Resolves to the new template id.
+ */
+export function useCustomizeWooEmail() {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: async (id: string) =>
+            (await api.post<{ templateId: number }>(`/woo-emails/${id}/customize`)).templateId,
+        onSuccess: () => {
+            void queryClient.invalidateQueries({ queryKey: ["woo-emails"] });
+            void queryClient.invalidateQueries({ queryKey: ["email-templates"] });
+        },
     });
 }

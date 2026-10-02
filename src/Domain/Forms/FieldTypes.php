@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Flexa\FormFlow\Domain\Forms;
 
+use Flexa\FormFlow\Spam\Captcha\Registry as CaptchaRegistry;
+
 defined( 'ABSPATH' ) || exit;
 
 /**
@@ -180,6 +182,8 @@ final class FieldTypes {
 			'settings'      => [
 				'submit_label'    => sanitize_text_field( (string) ( $settings['submit_label'] ?? '' ) ),
 				'success_message' => sanitize_text_field( (string) ( $settings['success_message'] ?? '' ) ),
+				// Only the provider id; keys live in the plugin settings.
+				'captcha'         => CaptchaRegistry::coerce( $settings['captcha'] ?? CaptchaRegistry::NONE ),
 			],
 			'notifications' => [
 				'admin'        => [

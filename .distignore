@@ -29,6 +29,11 @@
 /phpstan.neon
 /phpstan-bootstrap.php
 /phpunit.xml
+/phpunit.xml.dist
+# Unit tests of the admin app (the app source itself ships).
+/apps/admin/vitest.config.ts
+/apps/admin/src/test
+*.test.ts
 /scripts
 /stubs
 /i18n/extracted-strings.js

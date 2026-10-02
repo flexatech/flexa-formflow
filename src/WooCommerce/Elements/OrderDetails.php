@@ -101,7 +101,11 @@ final class OrderDetails extends BaseElement {
 			? '<p style="margin:0 0 10px;font-size:16px;font-weight:600;color:' . ( '' !== $o['titleColor'] ? esc_attr( $o['titleColor'] ) : $text ) . ';">' . esc_html( $title ) . '</p>'
 			: '';
 
-		$box = 'padding:' . $o['paddingY'] . 'px ' . $o['paddingX'] . 'px;' . ( '' !== $o['backgroundColor'] ? 'background-color:' . esc_attr( $o['backgroundColor'] ) . ';' : '' );
+		// Side padding: the author's paddingX at the top level. Inside Columns it
+		// is padding of a visible box when the block has a background; without
+		// one, the Columns wrapper already holds the email's 40px.
+		$padding_x = '' !== $o['backgroundColor'] ? $o['paddingX'] : $this->horizontal_padding( $ctx, $o['paddingX'] );
+		$box       = 'padding:' . $o['paddingY'] . 'px ' . $padding_x . 'px;' . ( '' !== $o['backgroundColor'] ? 'background-color:' . esc_attr( $o['backgroundColor'] ) . ';' : '' );
 
 		return '<tr><td style="' . $box . '">'
 			. $title_html

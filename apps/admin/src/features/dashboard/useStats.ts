@@ -6,6 +6,8 @@ export interface Stats {
     entries: number;
     unread: number;
     entries_last_7_days: number;
+    /** Published forms whose CAPTCHA has no keys; they reject every submission. */
+    captcha_warnings?: { id: number; title: string; provider: string }[];
 }
 
 export function useStats() {

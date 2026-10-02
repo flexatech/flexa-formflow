@@ -54,13 +54,29 @@ final class TreeSanitizer {
 			$settings['layoutSet'] = $incoming['layoutSet'];
 		}
 
+		// An email's own copy of a global part (the "Override for this email"
+		// mode). Kept as a block list, even an empty one, so the mode survives.
+		foreach ( [ 'headerOverride', 'footerOverride' ] as $key ) {
+			if ( isset( $incoming[ $key ] ) && is_array( $incoming[ $key ] ) ) {
+				$settings[ $key ] = self::sanitize_elements( $incoming[ $key ], true );
+			}
+		}
+
 		$nodes = isset( $tree['elements'] ) && is_array( $tree['elements'] ) ? $tree['elements'] : [];
 
-		return [
+		$clean = [
 			'version'  => 1,
 			'settings' => $settings,
 			'elements' => self::sanitize_elements( $nodes, true ),
 		];
+
+		// Where the design came from, so it can be reset (see TemplateOrigin).
+		$origin = TemplateOrigin::sanitize( $tree['origin'] ?? null );
+		if ( null !== $origin ) {
+			$clean['origin'] = $origin;
+		}
+
+		return $clean;
 	}
 
 	/**

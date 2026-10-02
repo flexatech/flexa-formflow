@@ -37,6 +37,8 @@ final class StatsEndpoint extends Endpoint {
 				'entries'             => $entry_counts['total'],
 				'unread'              => $entry_counts['unread'],
 				'entries_last_7_days' => $entry_counts['last_7_days'],
+				// Published forms whose CAPTCHA lost its keys: they reject every submission.
+				'captcha_warnings'    => SpamEndpoint::captcha_warnings(),
 			],
 			200
 		);

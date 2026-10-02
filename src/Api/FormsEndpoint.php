@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Flexa\FormFlow\Api;
 
+use Flexa\FormFlow\Domain\Forms\Form;
 use Flexa\FormFlow\Domain\Forms\FormRepository;
+use Flexa\FormFlow\Spam\Captcha\Registry as CaptchaRegistry;
 use WP_Error;
 use WP_REST_Request;
 use WP_REST_Response;
@@ -138,7 +140,15 @@ final class FormsEndpoint extends Endpoint {
 
 		$params = (array) $request->get_json_params();
 		$fields = array_intersect_key( $params, array_flip( [ 'title', 'status', 'config' ] ) );
+
+		$blocked = $this->captcha_blocks_publish( $repo->find( $id ), $fields );
+		if ( null !== $blocked ) {
+			return $blocked;
+		}
+
 		$repo->update( $id, $fields );
+		// Sample data and previews read the form's fields.
+		do_action( 'flexa_formflow.form.saved', $id );
 
 		$form = $repo->find( $id );
 
@@ -166,6 +176,44 @@ final class FormsEndpoint extends Endpoint {
 		$form = FormRepository::instance()->find( $new_id );
 
 		return new WP_REST_Response( [ 'form' => $form?->to_array() ], 201 );
+	}
+
+	/**
+	 * A form cannot go live with a CAPTCHA that has no keys: it could never
+	 * accept a submission. Drafts save freely. A form that is already published
+	 * and only loses its keys later (in Settings) is left alone here; its
+	 * submissions fail closed and the dashboard flags it.
+	 *
+	 * @param array<string, mixed> $fields
+	 */
+	private function captcha_blocks_publish( ?Form $current, array $fields ): ?WP_Error {
+		if ( null === $current ) {
+			return null;
+		}
+		$status  = isset( $fields['status'] ) && is_string( $fields['status'] ) ? $fields['status'] : $current->status;
+		$config  = isset( $fields['config'] ) && is_array( $fields['config'] ) ? $fields['config'] : $current->config;
+		$captcha = CaptchaRegistry::coerce( $config['settings']['captcha'] ?? CaptchaRegistry::NONE );
+		$before  = CaptchaRegistry::coerce( $current->settings()['captcha'] ?? CaptchaRegistry::NONE );
+		$changed = $status !== $current->status || $captcha !== $before;
+
+		if ( 'published' !== $status || ! $changed || CaptchaRegistry::is_ready( $captcha ) ) {
+			return null;
+		}
+
+		$provider = CaptchaRegistry::get( $captcha );
+
+		return new WP_Error(
+			'flexa_formflow_captcha_not_configured',
+			sprintf(
+				/* translators: %s: CAPTCHA provider name. */
+				__( '%s has no keys yet, so this form cannot be published with it. Add the keys in Settings > Spam protection, or choose another CAPTCHA.', 'flexa-formflow' ),
+				null !== $provider ? $provider->label() : $captcha
+			),
+			[
+				'status'       => 422,
+				'settings_url' => admin_url( 'admin.php?page=flexa-formflow#/settings' ),
+			]
+		);
 	}
 
 	private function not_found(): WP_Error {

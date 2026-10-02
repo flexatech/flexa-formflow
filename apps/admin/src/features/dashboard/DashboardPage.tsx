@@ -1,4 +1,5 @@
 import {
+    AlertTriangle,
     CalendarClock,
     Compass,
     FileText,
@@ -51,6 +52,35 @@ export function DashboardPage() {
                     {__("Build forms, design the emails they send, and automate what happens next.")}
                 </p>
             </div>
+
+            {(stats?.captcha_warnings ?? []).length > 0 && (
+                <div role="alert" className="ff:flex ff:items-start ff:gap-3 ff:rounded-xl ff:border ff:border-amber-200 ff:bg-amber-50 ff:p-4">
+                    <AlertTriangle aria-hidden className="ff:mt-0.5 ff:h-4 ff:w-4 ff:shrink-0 ff:text-amber-700" />
+                    <div className="ff:min-w-0 ff:text-sm ff:text-amber-900">
+                        <p className="ff:m-0 ff:font-medium">
+                            {__("Some published forms cannot accept submissions")}
+                        </p>
+                        <p className="ff:m-0 ff:mt-0.5 ff:text-xs">
+                            {__("Their CAPTCHA has no keys, so every submission is refused. Add the keys, or pick another CAPTCHA on the form.")}
+                        </p>
+                        <ul className="ff:m-0 ff:mt-2 ff:flex ff:list-none ff:flex-wrap ff:gap-x-4 ff:gap-y-1 ff:p-0 ff:text-xs">
+                            {stats?.captcha_warnings?.map((w) => (
+                                <li key={w.id}>
+                                    <a href={`#/forms/${w.id}/edit`} className="ff:font-medium ff:text-amber-900 ff:underline">
+                                        {w.title || __("Untitled form")}
+                                    </a>{" "}
+                                    ({w.provider})
+                                </li>
+                            ))}
+                            <li>
+                                <a href="#/settings" className="ff:font-medium ff:text-amber-900 ff:underline">
+                                    {__("Open Settings")}
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            )}
 
             <div className="ff:grid ff:grid-cols-2 ff:gap-3 ff:lg:grid-cols-4">
                 <QuickAction href="#/forms" icon={Plus} label={__("Create form")} />

@@ -16,6 +16,17 @@
     --radius-sm: 0.25rem;
     --radius-md: 0.375rem;
     --radius-lg: 0.5rem;
+
+    /* Radius tokens (utilities ff:rounded-field / -item / -card). One source
+     * for every boxed control so a screen can't drift:
+     *   field  6px  input, select, textarea, button, color swatch
+     *   item   8px  pattern/list/dropdown item
+     *   card  12px  card, panel, modal
+     * Pills (badge, switch, status dot) use ff:rounded-full; tab underlines,
+     * table rows and the bare editor title stay square on purpose. */
+    --radius-field: 6px;
+    --radius-item: 8px;
+    --radius-card: 12px;
 }
 
 /* Tailwind v4 CSS-first dark-mode opt-in. AppProviders sets data-theme on a
@@ -32,6 +43,40 @@
  * above wp-admin's own bars, so the page behind it must stop scrolling too. */
 body.flexa-formflow-fs-lock {
     overflow: hidden;
+}
+
+/* A full-area editor (the workflow builder) sized to the visible viewport
+ * below wp-admin's toolbar, so its own content row, not the page, scrolls.
+ * WordPress publishes the toolbar height as --wp-admin--admin-bar--height
+ * (32px, 46px on small screens, unset without a toolbar); fullscreen covers
+ * the toolbar, so it counts as 0 there. dvh follows mobile browser chrome;
+ * vh is the fallback for browsers without it. */
+.flexa-formflow-takeover {
+    --ff-takeover-top: var(--wp-admin--admin-bar--height, 0px);
+    height: calc(100vh - var(--ff-takeover-top));
+    height: calc(100dvh - var(--ff-takeover-top));
+    min-height: 320px;
+}
+
+body.flexa-formflow-fs-lock .flexa-formflow-takeover {
+    --ff-takeover-top: 0px;
+}
+
+/* The toolbar and tab bar stay pinned under the toolbar even if wp-admin adds
+ * a little page scroll (an admin notice above the app). */
+.flexa-formflow-takeover-chrome {
+    position: sticky;
+    top: var(--ff-takeover-top);
+}
+
+/* While a full-area editor is open, wp-admin's footer and the padding kept
+ * for it would only add a page scrollbar under a viewport-sized editor. */
+body.flexa-formflow-takeover-open #wpbody-content {
+    padding-bottom: 0;
+}
+
+body.flexa-formflow-takeover-open #wpfooter {
+    display: none;
 }
 
 /* WP admin's #wpcontent has 20px side padding - this margin trick bleeds the
@@ -130,12 +175,16 @@ a[class*="ff:"] {
 /* WP's forms.css styles bare input/textarea/select (gray border, 3px radius,
  * min-height, and a blue focus box-shadow) UNLAYERED, so it beats every
  * Tailwind utility regardless of specificity. Re-assert the design on a stable
- * `.flexa-formflow-control` marker (added to Input/Select). Bare marker (no theme
- * scope) because controls also render inside Radix portals. Focus recolors the
- * border to brand and removes WP's ring — never a transparent outline. */
+ * `.flexa-formflow-control` marker (added to Input/Select/Textarea). Bare marker
+ * (no theme scope) because controls also render inside Radix portals.
+ *
+ * Theme variables carry the `ff` prefix (`--ff-radius-field`), so the
+ * unprefixed names this rule once used resolved to nothing and every control
+ * fell back to square corners. Focus swaps WP's ring for a brand border plus a
+ * visible ring of our own. */
 .flexa-formflow-control {
     border: 1px solid #cbd5e1 !important; /* slate-300 */
-    border-radius: var(--radius-md) !important;
+    border-radius: var(--ff-radius-field) !important;
     background-color: #fff !important;
     box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05) !important;
     min-height: 0 !important;
@@ -145,20 +194,40 @@ a[class*="ff:"] {
 .flexa-formflow-control:focus,
 .flexa-formflow-control:focus-visible {
     outline: none !important;
-    box-shadow: none !important;
-    border-color: var(--color-brand-500) !important;
+    border-color: var(--ff-color-brand-500) !important;
+    box-shadow: 0 0 0 2px color-mix(in oklab, var(--ff-color-brand-500) 30%, transparent) !important;
+}
+/* A rich-text box: the frame is the control, its editable area is bare. */
+.flexa-formflow-richtext:empty::before {
+    content: attr(data-placeholder);
+    color: #94a3b8;
 }
 [data-theme="dark"] .flexa-formflow-control {
     background-color: #2c3338 !important;
     border-color: #3c434a !important;
     color: #e6e7e8 !important;
 }
-/* WP paints input[type=checkbox]:focus with the same blue ring; kill it on our
- * visible checkboxes/radios (marker: `.flexa-formflow-check`). */
-.flexa-formflow-check:focus,
-.flexa-formflow-check:focus-visible {
+/* Checkboxes and radios keep their own shape (a radio stays round) but share
+ * the field border and accent, and replace WP's blue ring with our own
+ * visible focus ring (marker: `.flexa-formflow-check`). */
+.flexa-formflow-check {
+    border-color: #94a3b8 !important; /* slate-400 */
+    accent-color: var(--ff-color-brand-600);
+}
+.flexa-formflow-check[type="checkbox"] {
+    border-radius: 4px !important;
+}
+.flexa-formflow-check:focus {
     outline: none !important;
     box-shadow: none !important;
+}
+.flexa-formflow-check:focus-visible {
+    outline: 2px solid var(--ff-color-brand-500) !important;
+    outline-offset: 2px;
+}
+/* The color input next to a color text field: same radius as the field. */
+.flexa-formflow-swatch {
+    border-radius: var(--ff-radius-field) !important;
 }
 
 /* Radix Dialog/Tooltip portal to `document.body`, OUTSIDE

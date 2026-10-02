@@ -12,7 +12,7 @@ defined( 'ABSPATH' ) || exit;
  * need a manual re-activation.
  */
 final class Schema {
-	public const DB_VERSION  = 6;
+	public const DB_VERSION  = 7;
 	public const VERSION_KEY = 'flexa_formflow_db_version';
 
 	public static function forms_table(): string {
@@ -45,6 +45,15 @@ final class Schema {
 		return $wpdb->prefix . 'flexa_formflow_workflow_runs';
 	}
 
+	/**
+	 * Short-lived spam counters (rate limits, one-time CAPTCHA tokens). Rows
+	 * hold a hashed bucket and a count; never an IP or a token.
+	 */
+	public static function throttle_table(): string {
+		global $wpdb;
+		return $wpdb->prefix . 'flexa_formflow_throttle';
+	}
+
 	public static function maybe_upgrade(): void {
 		if ( (int) get_option( self::VERSION_KEY, 0 ) < self::DB_VERSION || ! self::tables_present() ) {
 			self::migrate();
@@ -59,7 +68,7 @@ final class Schema {
 	private static function tables_present(): bool {
 		global $wpdb;
 
-		$table = self::workflow_runs_table();
+		$table = self::throttle_table();
 		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, PluginCheck.Security.DirectDB.UnescapedDBParameter -- schema probe on our own table name; value is escaped with esc_like + prepare.
 		$found = $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $wpdb->esc_like( $table ) ) );
 
@@ -78,6 +87,7 @@ final class Schema {
 		$workflows       = self::workflows_table();
 		$library         = self::library_table();
 		$workflow_runs   = self::workflow_runs_table();
+		$throttle        = self::throttle_table();
 
 		dbDelta(
 			"CREATE TABLE {$forms} (
@@ -174,6 +184,18 @@ final class Schema {
 			) {$charset_collate};"
 		);
 
+		// Spam counters: one upsert per hit keeps increments atomic (see
+		// Spam\DbCounterStore). Expired rows are swept as hits come in.
+		dbDelta(
+			"CREATE TABLE {$throttle} (
+				bucket CHAR(64) NOT NULL,
+				hits INT UNSIGNED NOT NULL DEFAULT 0,
+				expires_at BIGINT UNSIGNED NOT NULL DEFAULT 0,
+				PRIMARY KEY  (bucket),
+				KEY expires_at (expires_at)
+			) {$charset_collate};"
+		);
+
 		update_option( self::VERSION_KEY, self::DB_VERSION );
 	}
 
@@ -181,6 +203,7 @@ final class Schema {
 		global $wpdb;
 
 		// phpcs:disable WordPress.DB.DirectDatabaseQuery, WordPress.DB.DirectDatabaseQuery.SchemaChange -- destructive teardown of our own tables.
+		$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', self::throttle_table() ) );
 		$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', self::workflow_runs_table() ) );
 		$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', self::library_table() ) );
 		$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', self::workflows_table() ) );

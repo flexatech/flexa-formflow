@@ -23,7 +23,7 @@ final class WorkflowSanitizer {
 
 	/**
 	 * @param array<string, mixed> $config
-	 * @return array{trigger: array{type: string, form_id: int}, condition: array<string, string>, actions: list<array{id: string, type: string, config: array<string, mixed>}>}
+	 * @return array{trigger: array{type: string, form_id: int}, condition: array<string, string>, actions: list<array{id: string, type: string, config: array<string, mixed>}>, else_actions: list<array{id: string, type: string, config: array<string, mixed>}>}
 	 */
 	public static function sanitize( array $config ): array {
 		$trigger_in = is_array( $config['trigger'] ?? null ) ? $config['trigger'] : [];
@@ -34,13 +34,32 @@ final class WorkflowSanitizer {
 
 		$condition = self::sanitize_condition( $config['condition'] ?? null );
 
-		$extension_types = Registry::workflow_action_type_ids();
-		$allowed_types   = array_merge( self::ACTION_TYPES, $extension_types );
+		// Ids stay unique across both branches, so one counter numbers both.
+		$index   = 0;
+		$actions = self::sanitize_actions( $config['actions'] ?? null, $index );
+		// The Otherwise branch only exists behind a condition: without one there
+		// is nothing for it to be the "else" of, so it is dropped.
+		$else_actions = [] !== $condition ? self::sanitize_actions( $config['else_actions'] ?? null, $index ) : [];
 
-		$actions_in = is_array( $config['actions'] ?? null ) ? $config['actions'] : [];
-		$actions    = [];
-		$index      = 0;
-		foreach ( $actions_in as $action ) {
+		return [
+			'trigger'      => $trigger,
+			'condition'    => $condition,
+			'actions'      => $actions,
+			'else_actions' => $else_actions,
+		];
+	}
+
+	/**
+	 * One branch's action list: known types only, each with a stable id and a
+	 * config sanitized for its type.
+	 *
+	 * @param mixed $raw
+	 * @return list<array{id: string, type: string, config: array<string, mixed>}>
+	 */
+	private static function sanitize_actions( $raw, int &$index ): array {
+		$allowed_types = array_merge( self::ACTION_TYPES, Registry::workflow_action_type_ids() );
+		$actions       = [];
+		foreach ( is_array( $raw ) ? $raw : [] as $action ) {
 			if ( ! is_array( $action ) ) {
 				continue;
 			}
@@ -56,11 +75,7 @@ final class WorkflowSanitizer {
 			];
 		}
 
-		return [
-			'trigger'   => $trigger,
-			'condition' => $condition,
-			'actions'   => $actions,
-		];
+		return $actions;
 	}
 
 	/**

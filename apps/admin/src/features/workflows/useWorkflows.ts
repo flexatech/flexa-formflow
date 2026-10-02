@@ -28,7 +28,10 @@ export interface Workflow {
     trigger: WorkflowTrigger;
     /** Empty object when the workflow has no condition (always runs). */
     condition: WorkflowCondition | Record<string, never>;
+    /** Run when the condition is met, or always when there is none. */
     actions: WorkflowAction[];
+    /** The Otherwise branch: run when the condition is not met. Empty without a condition. */
+    else_actions?: WorkflowAction[];
     created_at: string;
     updated_at: string;
 }
@@ -37,6 +40,8 @@ export interface FormFieldOption {
     id: string;
     label: string;
     type: string;
+    /** Choice fields (dropdown, radio, checkboxes) only. */
+    options?: string[];
 }
 
 export interface FormOption {
@@ -88,6 +93,7 @@ export interface WorkflowConfig {
     trigger: WorkflowTrigger;
     condition?: WorkflowCondition | Record<string, never>;
     actions: WorkflowAction[];
+    else_actions?: WorkflowAction[];
 }
 
 export function useWorkflows() {
@@ -145,9 +151,19 @@ export function useDeleteWorkflow() {
     });
 }
 
+/**
+ * What a test run uses: the trigger form's latest entry, a chosen entry, or
+ * typed values (never saved; actions that write to an entry only report).
+ */
+export type TestSource =
+    | { source: "latest" }
+    | { source: "entry"; entry_id: number }
+    | { source: "values"; form_id?: number; values: Record<string, string | string[]> };
+
 export function useTestWorkflow(id: number) {
     return useMutation({
-        mutationFn: async () => api.post<TestResult>(`/workflows/${id}/test`),
+        mutationFn: async (params: TestSource) =>
+            api.post<TestResult>(`/workflows/${id}/test`, params as unknown as Record<string, unknown>),
     });
 }
 

@@ -172,7 +172,7 @@ function WorkflowRow({
                         /* translators: 1: form name, 2: number of actions. */
                         __("When %1$s is submitted · %2$d action(s)"),
                         triggerLabel,
-                        workflow.actions.length,
+                        workflow.actions.length + (workflow.else_actions?.length ?? 0),
                     )}
                     {" · "}
                     {formatDate(workflow.updated_at)}

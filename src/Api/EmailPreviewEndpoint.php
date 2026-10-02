@@ -83,9 +83,13 @@ final class EmailPreviewEndpoint extends Endpoint {
 			];
 		}
 
+		// The template's own design settings when an email edits its overridden
+		// part (the global editor sends none); the parts themselves come from the drafts.
+		$tree = TreeSanitizer::sanitize( is_array( $params['tree'] ?? null ) ? $params['tree'] : [] );
+
 		return Renderer::instance()->render_tree(
 			[
-				'settings' => [],
+				'settings' => $tree['settings'],
 				'elements' => $elements,
 			],
 			$ctx,
@@ -95,7 +99,8 @@ final class EmailPreviewEndpoint extends Endpoint {
 
 	/**
 	 * Build a preview/test render context from request params: the chosen form
-	 * (if any) and its most recent entry, so field tokens show real data.
+	 * (if any) and its most recent entry, so field tokens show real data, or a
+	 * chosen WooCommerce order, so order blocks and tokens do.
 	 *
 	 * @param array<string, mixed> $params
 	 */
@@ -115,6 +120,9 @@ final class EmailPreviewEndpoint extends Endpoint {
 			$entry  = $recent['items'][0] ?? null;
 		}
 
-		return new RenderContext( form: $form, entry: $entry, type: $type, is_preview: $is_preview, editor: $editor );
+		$order_id = (int) ( $params['order_id'] ?? 0 );
+		$order    = $order_id > 0 && class_exists( \WooCommerce::class ) ? WooEmailsEndpoint::load_order( $order_id ) : null;
+
+		return new RenderContext( form: $form, entry: $entry, type: $type, is_preview: $is_preview, order: $order, editor: $editor );
 	}
 }

@@ -6,18 +6,22 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { __, sprintf } from "@/lib/i18n";
-import { elementDef, isLayout, type EmailElement, type TreeSettings } from "../types";
+import { COMMON_FIELDS, elementDef, fieldVisible, isLayout, unknownTokens, type EmailElement, type TreeSettings } from "../types";
 import { GlobalLayoutToggles } from "../layout/GlobalLayoutToggles";
 import { DynamicDataBrowser } from "./DynamicDataBrowser";
 import { FieldEditor } from "./FieldEditor";
+import { useDynamicData } from "../useEmailTemplates";
+import { parseLegacyMenu } from "../navigation";
+import { Button } from "@/components/ui/button";
+import type { TokenTarget } from "./tokenTarget";
 
-/** A text-bearing input the Dynamic Data browser can insert a token into. */
-type ActiveField = { el: HTMLInputElement | HTMLTextAreaElement; onChange: (value: string) => void };
 
 interface PropsPanelProps {
     element: EmailElement | null;
     settings: TreeSettings;
     formId: number;
+    /** The WooCommerce order the preview renders with, if any. */
+    orderId?: number;
     conditionFields: SchemaContextField[];
     hasPreviewForm: boolean;
     onChangeProps: (id: string, props: Record<string, unknown>) => void;
@@ -26,12 +30,17 @@ interface PropsPanelProps {
     onDuplicate: (id: string) => void;
     onDelete: (id: string) => void;
     onChangeSettings: (settings: TreeSettings) => void;
+    /** Replace a Text block holding a row of links with a Navigation block. */
+    onConvertToNavigation?: (id: string) => void;
+    /** Open an overridden global header/footer on the canvas. */
+    onEditLayoutPart?: (part: "header" | "footer") => void;
 }
 
 export function PropsPanel({
     element,
     settings,
     formId,
+    orderId = 0,
     conditionFields,
     hasPreviewForm,
     onChangeProps,
@@ -40,10 +49,12 @@ export function PropsPanel({
     onDuplicate,
     onDelete,
     onChangeSettings,
+    onEditLayoutPart,
+    onConvertToNavigation,
 }: PropsPanelProps) {
     // The last text field the user focused, so the Dynamic Data browser inserts
     // its token at the cursor there. Cleared when the selected block changes.
-    const activeRef = useRef<ActiveField | null>(null);
+    const activeRef = useRef<TokenTarget | null>(null);
     const [hasActive, setHasActive] = useState(false);
 
     useEffect(() => {
@@ -51,27 +62,15 @@ export function PropsPanel({
         setHasActive(false);
     }, [element?.id]);
 
-    const registerActive = (el: HTMLInputElement | HTMLTextAreaElement, onChange: (value: string) => void) => {
-        activeRef.current = { el, onChange };
+    const registerActive = (target: TokenTarget) => {
+        activeRef.current = target;
         setHasActive(true);
     };
 
-    const insertToken = (token: string) => {
-        const active = activeRef.current;
-        if (!active) return;
-        const { el, onChange } = active;
-        const start = el.selectionStart ?? el.value.length;
-        const end = el.selectionEnd ?? el.value.length;
-        onChange(el.value.slice(0, start) + token + el.value.slice(end));
-        const caret = start + token.length;
-        window.requestAnimationFrame(() => {
-            el.focus();
-            el.setSelectionRange(caret, caret);
-        });
-    };
+    const insertToken = (token: string) => activeRef.current?.insert(token);
 
     const browser = (
-        <DynamicDataBrowser formId={formId} canInsert={hasActive} onInsert={insertToken} />
+        <DynamicDataBrowser formId={formId} orderId={orderId} canInsert={hasActive} onInsert={insertToken} />
     );
 
     if (!element) {
@@ -119,7 +118,7 @@ export function PropsPanel({
                 <p className="ff:m-0 ff:text-xs ff:text-slate-500">
                     {__("Empty fields inherit the global design tokens from Settings.")}
                 </p>
-                <GlobalLayoutToggles settings={settings} onChange={onChangeSettings} />
+                <GlobalLayoutToggles settings={settings} onChange={onChangeSettings} onEditPart={onEditLayoutPart} />
                 {browser}
             </div>
         );
@@ -202,7 +201,7 @@ export function PropsPanel({
                 </div>
             )}
             {def.fields
-                .filter((field) => !field.showIf || (element.props[field.showIf.key] ?? def.defaults[field.showIf.key]) === field.showIf.equals)
+                .filter((field) => fieldVisible(field, element.props, def.defaults))
                 .map((field) => (
                     <FieldEditor
                         key={field.key}
@@ -210,8 +209,23 @@ export function PropsPanel({
                         value={element.props[field.key] ?? def.defaults[field.key]}
                         onChange={(v) => setProp(field.key, v)}
                         onFocusField={registerActive}
+                        props={element.props}
+                        onPatch={(patch) => onChangeProps(element.id, { ...element.props, ...patch })}
                     />
                 ))}
+            {COMMON_FIELDS.map((field) => (
+                <FieldEditor
+                    key={field.key}
+                    field={field}
+                    value={element.props[field.key] ?? ""}
+                    onChange={(v) => setProp(field.key, v)}
+                    onFocusField={registerActive}
+                />
+            ))}
+            {element.type === "text" && onConvertToNavigation && (
+                <LegacyMenuNotice element={element} onConvert={() => onConvertToNavigation(element.id)} />
+            )}
+            <UnknownTokens props={element.props} formId={formId} />
             <VisibilitySection
                 element={element}
                 fields={conditionFields}
@@ -263,6 +277,65 @@ function VisibilitySection({
             )}
             <ConditionsBuilder value={value} disabled={false} fields={fields} onChange={onChange} />
         </section>
+    );
+}
+
+/**
+ * Flags merge tags this email cannot fill (a typo, a deleted form field, an
+ * order tag in a form email). The preview shows them as typed; a real send
+ * leaves them empty, so they never reach a reader raw.
+ */
+function UnknownTokens({ props, formId }: { props: Record<string, unknown>; formId: number }) {
+    const { data: categories } = useDynamicData(formId);
+    if (!categories) return null;
+    const known = new Set(categories.flatMap((c) => c.items.map((i) => i.token)));
+    const unknown = unknownTokens(props, known);
+    if (unknown.length === 0) return null;
+    return (
+        <p role="status" className="ff:m-0 ff:rounded-md ff:bg-amber-50 ff:px-2.5 ff:py-2 ff:text-[11px] ff:text-amber-800">
+            {sprintf(__("Not available here, left empty when sent: %s"), unknown.join(", "))}
+        </p>
+    );
+}
+
+/**
+ * Older menus were Text blocks of hand-written links. When this one parses as
+ * a menu, offer to turn it into a Navigation block, but only after the user
+ * confirms (and sees any link that cannot be kept). Nothing converts silently.
+ */
+function LegacyMenuNotice({ element, onConvert }: { element: EmailElement; onConvert: () => void }) {
+    const [confirming, setConfirming] = useState(false);
+    const menu = typeof element.props.html === "string" ? parseLegacyMenu(element.props.html) : null;
+    if (!menu) return null;
+
+    return (
+        <div className="ff:flex ff:flex-col ff:gap-2 ff:rounded-item ff:border ff:border-brand-200 ff:bg-brand-50 ff:p-3 ff:text-xs ff:text-slate-700">
+            <p className="ff:m-0">
+                {sprintf(__("This text is a row of %d links. Edit it more easily as a Navigation block."), menu.props.items.length)}
+            </p>
+            {confirming ? (
+                <>
+                    {menu.dropped.length > 0 && (
+                        <p className="ff:m-0 ff:text-amber-800" role="alert">
+                            {sprintf(__("These links have no usable URL and will be left out: %s"), menu.dropped.join(", "))}
+                        </p>
+                    )}
+                    <div className="ff:flex ff:gap-2">
+                        <Button size="sm" onClick={onConvert}>
+                            {__("Convert")}
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={() => setConfirming(false)}>
+                            {__("Cancel")}
+                        </Button>
+                    </div>
+                    <p className="ff:m-0 ff:text-[11px] ff:text-slate-500">{__("You can undo this.")}</p>
+                </>
+            ) : (
+                <Button size="sm" variant="outline" onClick={() => setConfirming(true)}>
+                    {__("Convert to Navigation")}
+                </Button>
+            )}
+        </div>
     );
 }
 

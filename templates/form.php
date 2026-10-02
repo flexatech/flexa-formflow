@@ -1,10 +1,12 @@
 <?php
 /**
- * Frontend form template. Rendered by Frontend\Shortcode::render() which
- * provides $form (Domain\Forms\Form) and $brand (hex string).
+ * Frontend form template. Rendered by Frontend\Shortcode::render_markup()
+ * which provides $form (Domain\Forms\Form), $brand (hex string) and $captcha
+ * (Shortcode::captcha_view(), or null when the form has no CAPTCHA).
  *
  * @var \Flexa\FormFlow\Domain\Forms\Form $form
  * @var string                            $brand
+ * @var array{provider: string, label: string, site_key: string, ready: bool, preview: bool, script: string, global: string}|null $captcha
  */
 
 declare(strict_types=1);
@@ -116,6 +118,38 @@ if ( '' === $flexa_formflow_submit_label ) {
 		</label>
 	</div>
 	<input type="hidden" name="_ff_ts" value="<?php echo esc_attr( (string) time() ); ?>" />
+
+	<?php if ( null !== $captcha ) : ?>
+		<?php if ( $captcha['preview'] ) : ?>
+			<div class="flexa-formflow-captcha flexa-formflow-captcha--preview" data-provider="<?php echo esc_attr( $captcha['provider'] ); ?>">
+				<div class="flexa-formflow-captcha__mock">
+					<span class="flexa-formflow-captcha__box" aria-hidden="true"></span>
+					<span>
+						<?php echo 'recaptcha_v2' === $captcha['provider'] ? esc_html__( 'I’m not a robot', 'flexa-formflow' ) : esc_html__( 'Verify you are human', 'flexa-formflow' ); ?>
+						<small><?php echo esc_html( $captcha['label'] ); ?></small>
+					</span>
+				</div>
+				<p class="flexa-formflow-captcha__note">
+					<?php echo $captcha['ready'] ? esc_html__( 'Preview only. The real widget and the server-side check run on the published form.', 'flexa-formflow' ) : esc_html__( 'This CAPTCHA has no keys yet. Add them in Settings > Spam protection before publishing.', 'flexa-formflow' ); ?>
+				</p>
+			</div>
+		<?php else : ?>
+			<div
+				class="flexa-formflow-captcha"
+				data-provider="<?php echo esc_attr( $captcha['provider'] ); ?>"
+				data-sitekey="<?php echo esc_attr( $captcha['site_key'] ); ?>"
+				data-script="<?php echo esc_url( $captcha['script'] ); ?>"
+				data-global="<?php echo esc_attr( $captcha['global'] ); ?>"
+				<?php echo $captcha['ready'] ? '' : 'data-unavailable="1"'; ?>
+			>
+				<div class="flexa-formflow-captcha__widget"></div>
+				<div class="flexa-formflow-captcha__status" role="alert" hidden>
+					<span class="flexa-formflow-captcha__message"></span>
+					<button type="button" class="flexa-formflow-captcha__retry"><?php echo esc_html__( 'Try again', 'flexa-formflow' ); ?></button>
+				</div>
+			</div>
+		<?php endif; ?>
+	<?php endif; ?>
 
 	<p class="flexa-formflow-message" role="status" aria-live="polite" hidden></p>
 

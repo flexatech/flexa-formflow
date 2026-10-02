@@ -1,6 +1,7 @@
 import { __, sprintf } from "@/lib/i18n";
 import type { EmailElement, TreeSettings } from "../types";
 import type { EmailLayout } from "./useEmailLayout";
+import { partBlocks, partMode, setFor, type PartMode } from "./partModes";
 
 export type LayoutStatusTone = "on" | "muted" | "warn";
 
@@ -32,7 +33,12 @@ export function layoutStatus(
         };
     }
 
-    if (settings.layoutSet === "none") {
+    const header = partMode(settings, "header");
+    const footer = partMode(settings, "footer");
+    const set = setFor(settings, layout);
+    const usesSet = (header === "global" || footer === "global") && set !== null;
+
+    if (!usesSet && header !== "override" && footer !== "override") {
         return {
             label: __("No header/footer"),
             tone: "muted",
@@ -40,30 +46,34 @@ export function layoutStatus(
         };
     }
 
-    const set = layout.sets.find((s) => s.id === settings.layoutSet) ?? layout.sets.find((s) => s.id === layout.default);
-    if (!set) {
-        return { label: "—", tone: "muted", detail: "" };
-    }
-
-    const hideHeader = Boolean(settings.hideGlobalHeader);
-    const hideFooter = Boolean(settings.hideGlobalFooter);
     const has = (type: string) => elements.some((el) => el.type === type);
     const notes: string[] = [];
-    if (!hideHeader && set.header.some((el) => el.type === "logo") && has("logo")) {
-        notes.push(__("The set's logo replaces this template's own logo."));
+    if (partBlocks(settings, layout, "header").some((el) => el.type === "logo") && has("logo")) {
+        notes.push(__("The header's logo replaces this template's own logo."));
     }
-    if (!hideFooter && set.footer.some((el) => el.type === "footer_text") && has("footer_text")) {
-        notes.push(__("The set's footer replaces this template's own footer."));
+    if (partBlocks(settings, layout, "footer").some((el) => el.type === "footer_text") && has("footer_text")) {
+        notes.push(__("The footer replaces this template's own footer."));
     }
 
-    let label = set.name;
-    if (hideHeader && hideFooter) label = sprintf(__("%s · hidden"), set.name);
-    else if (hideHeader) label = sprintf(__("%s · no header"), set.name);
-    else if (hideFooter) label = sprintf(__("%s · no footer"), set.name);
+    const describe = (mode: PartMode, part: "header" | "footer") => {
+        if (mode === "override") return part === "header" ? __("own header") : __("own footer");
+        if (mode === "disabled" || !set) return part === "header" ? __("no header") : __("no footer");
+        return "";
+    };
+    const extras = [describe(header, "header"), describe(footer, "footer")].filter(Boolean);
+    const base = usesSet && set ? set.name : __("Custom");
+    const label = extras.length > 0 ? sprintf(__("%1$s · %2$s"), base, extras.join(", ")) : base;
+
+    const details: string[] = [];
+    if (usesSet && set) details.push(sprintf(__("Uses the “%s” header and footer."), set.name));
+    if (header === "override") details.push(__("The header is this email's own copy."));
+    if (footer === "override") details.push(__("The footer is this email's own copy."));
+    if (header === "disabled") details.push(__("The header is turned off for this email."));
+    if (footer === "disabled") details.push(__("The footer is turned off for this email."));
 
     return {
         label,
-        tone: hideHeader || hideFooter ? "warn" : "on",
-        detail: [sprintf(__("Uses the “%s” header and footer."), set.name), ...notes].join(" "),
+        tone: header === "global" && footer === "global" ? "on" : "warn",
+        detail: [...details, ...notes].join(" "),
     };
 }

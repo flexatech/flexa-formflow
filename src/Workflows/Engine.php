@@ -20,10 +20,12 @@ use Flexa\FormFlow\Emails\Tokens;
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Runs active workflows when a form is submitted. A workflow is a trigger plus
- * an ordered action chain (send email, webhook, set status, note). Actions run
- * top to bottom against the new entry; the same run() path backs the editor's
- * test-run button.
+ * Runs active workflows when a form is submitted. A workflow is a trigger, an
+ * optional condition, and ordered actions (send email, webhook, set status,
+ * note). With a condition, `actions` run when it is met and `else_actions`
+ * when it is not. Actions run top to bottom against the entry; the same run()
+ * path backs the editor's test-run button, including test data that was never
+ * saved as an entry (id 0), which actions must not write to.
  */
 final class Engine {
 	use HasInstance;
@@ -71,6 +73,14 @@ final class Engine {
 			);
 
 			if ( ! $met ) {
+				$else = $workflow->else_actions();
+				if ( [] !== $else ) {
+					$log[0]['detail'] = __( 'Condition not met; running the Otherwise steps.', 'flexa-formflow' );
+				}
+				foreach ( $else as $action ) {
+					$log[] = $this->run_action( $action['type'], $action['config'], $form, $entry, $ctx );
+				}
+
 				return $this->finish( $workflow, $form, $entry, $log, $record );
 			}
 		}
@@ -108,7 +118,8 @@ final class Engine {
 
 	/**
 	 * Collapse the per-step statuses into one run outcome: any error wins; a
-	 * short log led by a skipped condition is a skip; otherwise the run is ok.
+	 * condition that was not met with no Otherwise steps is a skip; otherwise
+	 * the run is ok.
 	 *
 	 * @param list<array{type: string, status: string, detail: string}> $log
 	 */
@@ -118,7 +129,7 @@ final class Engine {
 				return 'error';
 			}
 		}
-		if ( isset( $log[0] ) && 'condition' === $log[0]['type'] && 'skipped' === $log[0]['status'] ) {
+		if ( 1 === count( $log ) && 'condition' === $log[0]['type'] && 'skipped' === $log[0]['status'] ) {
 			return 'skipped';
 		}
 
@@ -269,6 +280,10 @@ final class Engine {
 	 */
 	private function do_set_status( array $config, Entry $entry ): array {
 		$status = in_array( $config['status'] ?? '', [ 'read', 'unread' ], true ) ? (string) $config['status'] : 'read';
+		if ( $entry->id <= 0 ) {
+			/* translators: %s: entry status. */
+			return $this->result( 'set_status', 'ok', sprintf( __( 'Test data: would mark the entry %s.', 'flexa-formflow' ), $status ) );
+		}
 		EntryRepository::instance()->set_status( $entry->id, $status );
 
 		return $this->result( 'set_status', 'ok', sprintf( /* translators: %s: entry status. */ __( 'Marked %s.', 'flexa-formflow' ), $status ) );
@@ -282,6 +297,11 @@ final class Engine {
 		$note = Tokens::resolve( (string) ( $config['note'] ?? '' ), $ctx );
 		if ( '' === $note ) {
 			return $this->result( 'add_note', 'skipped', __( 'Empty note.', 'flexa-formflow' ) );
+		}
+
+		if ( $entry->id <= 0 ) {
+			/* translators: %s: the note text. */
+			return $this->result( 'add_note', 'ok', sprintf( __( 'Test data: would add the note "%s".', 'flexa-formflow' ), $note ) );
 		}
 
 		do_action( 'flexa_formflow.entry.note', $entry->id, $note );

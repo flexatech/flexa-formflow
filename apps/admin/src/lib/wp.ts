@@ -85,6 +85,11 @@ export interface PluginGlobal {
     theme: AppTheme;
     /** Whether the current user may change settings (manage_options). */
     canManageSettings: boolean;
+    /**
+     * Whether the current user may use the Media Library (upload_files).
+     * wp_localize_script delivers it as "1" or "", so read it with Boolean().
+     */
+    canUpload?: boolean | string;
     /** Whether WooCommerce is active (the WooCommerce emails tab needs it). */
     hasWooCommerce: boolean;
     /** First-run guide state, localized so the guide renders on first paint. */

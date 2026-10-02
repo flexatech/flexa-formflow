@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Copy, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import {
     Dialog,
     DialogContent,
@@ -90,8 +91,8 @@ export function AiWritingDialog({ open, onClose }: { open: boolean; onClose: () 
                     </div>
                 ) : (
                     <div className="ff:flex ff:flex-col ff:gap-3">
-                        <textarea
-                            className="flexa-formflow-control ff:min-h-24 ff:w-full ff:rounded-md ff:border ff:border-slate-300 ff:bg-white ff:px-3 ff:py-2 ff:text-sm ff:shadow-sm"
+                        <Textarea
+                            className="ff:min-h-24"
                             value={text}
                             onChange={(e) => setText(e.target.value)}
                             placeholder={__("Paste your text here. Tokens like {form_title} are preserved.")}
