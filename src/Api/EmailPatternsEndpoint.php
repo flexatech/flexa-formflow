@@ -56,6 +56,8 @@ final class EmailPatternsEndpoint extends Endpoint {
 
 	public function index( WP_REST_Request $request ): WP_REST_Response {
 		$context  = self::context( (string) $request->get_param( 'context' ) );
+		// `locked` can only come out true for a pattern an add-on registered: every
+		// pattern bundled with this plugin is tier 'free'. See Registry::pro_active().
 		$unlocked = Registry::pro_active();
 
 		$patterns = array_map(

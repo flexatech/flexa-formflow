@@ -194,6 +194,8 @@ function WooPreviewDialog({
                         <iframe
                             title={__("Email preview")}
                             srcDoc={preview.data ? withPreviewReset(preview.data) : ""}
+                            // A look-only preview: same origin so it can be sized, scripts off.
+                            sandbox="allow-same-origin"
                             className={
                                 viewport === "desktop"
                                     ? "ff:h-full ff:w-full ff:rounded-md ff:border ff:border-slate-200 ff:bg-white"
