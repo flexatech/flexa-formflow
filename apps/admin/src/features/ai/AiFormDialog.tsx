@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Sparkles, Wand2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import {
     Dialog,
     DialogContent,
@@ -75,8 +76,8 @@ export function AiFormDialog({ open, onClose }: { open: boolean; onClose: () => 
                         </Button>
                     </div>
                 ) : (
-                    <textarea
-                        className="flexa-formflow-control ff:min-h-28 ff:w-full ff:rounded-md ff:border ff:border-slate-300 ff:bg-white ff:px-3 ff:py-2 ff:text-sm ff:shadow-sm"
+                    <Textarea
+                        className="ff:min-h-28"
                         value={prompt}
                         onChange={(e) => setPrompt(e.target.value)}
                         placeholder={__("e.g. A contact form for a dentist: name, email, phone, preferred appointment date, and a message.")}

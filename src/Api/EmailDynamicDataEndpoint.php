@@ -6,6 +6,7 @@ namespace Flexa\FormFlow\Api;
 
 use Flexa\FormFlow\Domain\Forms\FormRepository;
 use Flexa\FormFlow\Emails\Tokens;
+use Flexa\FormFlow\Support\RenderCache;
 use Flexa\FormFlow\WooCommerce\OrderTokens;
 use WP_REST_Request;
 use WP_REST_Response;
@@ -21,7 +22,7 @@ defined( 'ABSPATH' ) || exit;
  */
 final class EmailDynamicDataEndpoint extends Endpoint {
 	/** Which globals belong to which category (everything else is submission data). */
-	private const SITE_TOKENS = [ '{site_title}', '{site_url}', '{admin_email}', '{year}' ];
+	private const SITE_TOKENS = [ '{site_title}', '{site_tagline}', '{site_url}', '{site_logo_url}', '{admin_email}', '{year}' ];
 
 	public function register_routes(): void {
 		register_rest_route(
@@ -32,15 +33,43 @@ final class EmailDynamicDataEndpoint extends Endpoint {
 					'methods'             => 'GET',
 					'callback'            => [ $this, 'index' ],
 					'permission_callback' => [ $this, 'manage_permission' ],
-					'args'                => [ 'form_id' => [ 'sanitize_callback' => 'absint' ] ],
+					'args'                => [
+						'form_id'  => [ 'sanitize_callback' => 'absint' ],
+						'order_id' => [ 'sanitize_callback' => 'absint' ],
+					],
 				],
 			]
 		);
 	}
 
 	public function index( WP_REST_Request $request ): WP_REST_Response {
-		$form_id = (int) $request->get_param( 'form_id' );
-		$ctx     = EmailPreviewEndpoint::build_context( [ 'form_id' => $form_id ], true );
+		$form_id  = (int) $request->get_param( 'form_id' );
+		$order_id = (int) $request->get_param( 'order_id' );
+
+		// Cached per form and preview order until an entry, the form or the
+		// settings change (RenderCache revision); sample values come from the
+		// latest entry or the chosen order.
+		$categories = RenderCache::remember(
+			'dynamic-data',
+			[ $form_id, $order_id, class_exists( \WooCommerce::class ), get_locale() ],
+			fn(): array => $this->categories( $form_id, $order_id ),
+			5 * MINUTE_IN_SECONDS
+		);
+
+		return new WP_REST_Response( [ 'categories' => $categories ], 200 );
+	}
+
+	/**
+	 * @return list<array<string, mixed>>
+	 */
+	private function categories( int $form_id, int $order_id ): array {
+		$ctx = EmailPreviewEndpoint::build_context(
+			[
+				'form_id'  => $form_id,
+				'order_id' => $order_id,
+			],
+			true
+		);
 
 		$site       = [];
 		$submission = [];
@@ -108,7 +137,7 @@ final class EmailDynamicDataEndpoint extends Endpoint {
 		 */
 		$categories = apply_filters( 'flexa_formflow.emails.dynamic_data', $categories, $ctx );
 
-		return new WP_REST_Response( [ 'categories' => $categories ], 200 );
+		return is_array( $categories ) ? array_values( $categories ) : [];
 	}
 
 	/**

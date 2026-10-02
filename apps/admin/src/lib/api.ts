@@ -17,9 +17,14 @@ async function request<T>(
     method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE",
     path: string,
     body?: Json,
+    signal?: AbortSignal,
 ): Promise<T> {
     const { restUrl, restNonce } = getPluginGlobal();
-    const url = restUrl.replace(/\/$/, "") + "/" + path.replace(/^\//, "");
+    let url = restUrl.replace(/\/$/, "") + "/" + path.replace(/^\//, "");
+    // With plain permalinks restUrl is ".../?rest_route=/namespace/", so the
+    // path's own query string must join it with "&", not a second "?".
+    const query = url.indexOf("?");
+    if (query !== -1) url = url.slice(0, query + 1) + url.slice(query + 1).replace(/\?/g, "&");
 
     const response = await fetch(url, {
         method,
@@ -29,6 +34,7 @@ async function request<T>(
             "X-WP-Nonce": restNonce,
         },
         body: body !== undefined ? JSON.stringify(body) : undefined,
+        signal,
     });
 
     if (response.status === 204) {
@@ -55,8 +61,8 @@ async function request<T>(
 }
 
 export const api = {
-    get: <T>(path: string) => request<T>("GET", path),
-    post: <T>(path: string, body?: Json) => request<T>("POST", path, body),
+    get: <T>(path: string, signal?: AbortSignal) => request<T>("GET", path, undefined, signal),
+    post: <T>(path: string, body?: Json, signal?: AbortSignal) => request<T>("POST", path, body, signal),
     put: <T>(path: string, body?: Json) => request<T>("PUT", path, body),
     patch: <T>(path: string, body?: Json) => request<T>("PATCH", path, body),
     delete: <T>(path: string, body?: Json) => request<T>("DELETE", path, body),

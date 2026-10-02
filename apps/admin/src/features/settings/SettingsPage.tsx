@@ -10,34 +10,30 @@ import { Switch } from "@/components/ui/switch";
 import { __ } from "@/lib/i18n";
 import { useUiStore } from "@/lib/store";
 import { SECRET_MASK, useSaveSettings, useSettings, type PluginSettings } from "./useSettings";
+import { SpamProtection } from "./SpamProtection";
 
-type Draft = Pick<
-    PluginSettings,
-    | "brand_color"
-    | "background_color"
-    | "content_background"
-    | "text_color"
-    | "font_family"
-    | "container_width"
-    | "delete_data_on_uninstall"
-    | "ai_provider"
-    | "ai_model"
-    | "ai_api_key"
->;
+const DRAFT_KEYS = [
+    "brand_color",
+    "background_color",
+    "content_background",
+    "text_color",
+    "font_family",
+    "container_width",
+    "delete_data_on_uninstall",
+    "ai_provider",
+    "ai_model",
+    "ai_api_key",
+    "captcha_default",
+    "turnstile_site_key",
+    "turnstile_secret_key",
+    "recaptcha_v2_site_key",
+    "recaptcha_v2_secret_key",
+] as const satisfies readonly (keyof PluginSettings)[];
+
+type Draft = Pick<PluginSettings, (typeof DRAFT_KEYS)[number]>;
 
 function toDraft(settings: PluginSettings): Draft {
-    return {
-        brand_color: settings.brand_color,
-        background_color: settings.background_color,
-        content_background: settings.content_background,
-        text_color: settings.text_color,
-        font_family: settings.font_family,
-        container_width: settings.container_width,
-        delete_data_on_uninstall: settings.delete_data_on_uninstall,
-        ai_provider: settings.ai_provider,
-        ai_model: settings.ai_model,
-        ai_api_key: settings.ai_api_key,
-    };
+    return Object.fromEntries(DRAFT_KEYS.map((key) => [key, settings[key]])) as Draft;
 }
 
 export function SettingsPage() {
@@ -62,32 +58,12 @@ export function SettingsPage() {
         );
     }
 
-    const dirty =
-        draft.brand_color !== settings.brand_color ||
-        draft.background_color !== settings.background_color ||
-        draft.content_background !== settings.content_background ||
-        draft.text_color !== settings.text_color ||
-        draft.font_family !== settings.font_family ||
-        draft.container_width !== settings.container_width ||
-        draft.delete_data_on_uninstall !== settings.delete_data_on_uninstall ||
-        draft.ai_provider !== settings.ai_provider ||
-        draft.ai_model !== settings.ai_model ||
-        draft.ai_api_key !== settings.ai_api_key;
+    const changed = DRAFT_KEYS.filter((key) => draft[key] !== settings[key]);
+    const dirty = changed.length > 0;
 
     const onSave = () => {
-        const partial: Partial<PluginSettings> = {};
-        if (draft.brand_color !== settings.brand_color) partial.brand_color = draft.brand_color;
-        if (draft.background_color !== settings.background_color) partial.background_color = draft.background_color;
-        if (draft.content_background !== settings.content_background)
-            partial.content_background = draft.content_background;
-        if (draft.text_color !== settings.text_color) partial.text_color = draft.text_color;
-        if (draft.font_family !== settings.font_family) partial.font_family = draft.font_family;
-        if (draft.container_width !== settings.container_width) partial.container_width = draft.container_width;
-        if (draft.delete_data_on_uninstall !== settings.delete_data_on_uninstall)
-            partial.delete_data_on_uninstall = draft.delete_data_on_uninstall;
-        if (draft.ai_provider !== settings.ai_provider) partial.ai_provider = draft.ai_provider;
-        if (draft.ai_model !== settings.ai_model) partial.ai_model = draft.ai_model;
-        if (draft.ai_api_key !== settings.ai_api_key) partial.ai_api_key = draft.ai_api_key;
+        // Only the changed keys: the server merges a partial payload.
+        const partial = Object.fromEntries(changed.map((key) => [key, draft[key]])) as Partial<PluginSettings>;
 
         save.mutate(partial, {
             onSuccess: (next) => {
@@ -151,6 +127,13 @@ export function SettingsPage() {
                     />
                 </div>
             </section>
+
+            <SpamProtection
+                draft={draft}
+                stored={settings}
+                onChange={(patch) => setDraft({ ...draft, ...patch })}
+                dirtyKeys={changed}
+            />
 
             <section className="ff:overflow-hidden ff:rounded-xl ff:border ff:border-slate-200 ff:bg-white">
                 <div className="ff:flex ff:items-center ff:gap-3 ff:border-b ff:border-slate-100 ff:px-5 ff:py-4">

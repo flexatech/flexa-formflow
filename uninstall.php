@@ -16,6 +16,7 @@ global $wpdb;
 // Standalone on purpose: uninstall runs without the plugin loaded, so no
 // autoloader or classes here — table names are duplicated from Database\Schema.
 // phpcs:disable WordPress.DB.DirectDatabaseQuery, WordPress.DB.DirectDatabaseQuery.SchemaChange -- destructive teardown of our own tables.
+$wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $wpdb->prefix . 'flexa_formflow_throttle' ) );
 $wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $wpdb->prefix . 'flexa_formflow_workflow_runs' ) );
 $wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $wpdb->prefix . 'flexa_formflow_library' ) );
 $wpdb->query( $wpdb->prepare( 'DROP TABLE IF EXISTS %i', $wpdb->prefix . 'flexa_formflow_workflows' ) );
@@ -28,5 +29,8 @@ delete_option( 'flexa_formflow_settings' );
 delete_option( 'flexa_formflow_onboarding' );
 delete_option( 'flexa_formflow_woo_emails' );
 delete_option( 'flexa_formflow_installed_packs' );
+delete_option( 'flexa_formflow_email_layout' );
+delete_option( 'flexa_formflow_spam_stats' );
+delete_option( 'flexa_formflow_render_rev' );
 delete_option( 'flexa_formflow_db_version' );
 delete_transient( 'flexa_formflow_activation_redirect' );

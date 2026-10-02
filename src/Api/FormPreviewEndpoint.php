@@ -53,7 +53,7 @@ final class FormPreviewEndpoint extends Endpoint {
 		);
 
 		$brand  = (string) Settings::get( 'brand_color' );
-		$markup = Shortcode::instance()->render_markup( $form, $brand );
+		$markup = Shortcode::instance()->render_markup( $form, $brand, true );
 		$html   = $this->document( $markup );
 
 		return new WP_REST_Response( [ 'html' => $html ], 200 );

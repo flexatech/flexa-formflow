@@ -1,12 +1,15 @@
-import { Plus } from "lucide-react";
-import type { ReactNode } from "react";
+import { Download, Plus, Upload } from "lucide-react";
+import { useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { __ } from "@/lib/i18n";
 import { cn } from "@/lib/cn";
 import { navigate } from "@/lib/router";
 import { useUiStore } from "@/lib/store";
 import { WooEmailsTab } from "@/features/woocommerce/WooCommercePage";
-import { useCreateEmailTemplate } from "./useEmailTemplates";
+import { useCreateEmailTemplate, useEmailTemplatesList } from "./useEmailTemplates";
+import { ImportTemplatesDialog } from "./ImportTemplatesDialog";
+import { downloadTemplates } from "./templateTransfer";
+import { LayoutCard } from "./layout/LayoutCard";
 import { FormEmailsTab } from "./TemplatesListPage";
 
 export type EmailsTab = "form" | "woocommerce";
@@ -21,6 +24,8 @@ export function EmailsPage({ tab }: { tab: EmailsTab }) {
     const active: EmailsTab = tab === "woocommerce" && hasWoo ? "woocommerce" : "form";
     const createTemplate = useCreateEmailTemplate();
     const showToast = useUiStore((s) => s.showToast);
+    const { data: templates = [] } = useEmailTemplatesList();
+    const [importOpen, setImportOpen] = useState(false);
 
     const onCreate = () => {
         createTemplate.mutate(__("Untitled template"), {
@@ -40,13 +45,31 @@ export function EmailsPage({ tab }: { tab: EmailsTab }) {
                             : __("Design the notification and confirmation emails your forms send.")}
                     </p>
                 </div>
-                {active === "form" && (
-                    <Button onClick={onCreate} disabled={createTemplate.isPending}>
-                        <Plus aria-hidden className="ff:h-4 ff:w-4" />
-                        {__("New template")}
+                <div className="ff:flex ff:shrink-0 ff:items-center ff:gap-2">
+                    <Button variant="outline" onClick={() => setImportOpen(true)}>
+                        <Upload aria-hidden className="ff:h-4 ff:w-4" />
+                        {__("Import")}
                     </Button>
-                )}
+                    {templates.length > 0 && (
+                        <Button
+                            variant="outline"
+                            onClick={() => downloadTemplates(templates, "all")}
+                            title={__("Download every template as one .json file")}
+                        >
+                            <Download aria-hidden className="ff:h-4 ff:w-4" />
+                            {__("Export all")}
+                        </Button>
+                    )}
+                    {active === "form" && (
+                        <Button onClick={onCreate} disabled={createTemplate.isPending}>
+                            <Plus aria-hidden className="ff:h-4 ff:w-4" />
+                            {__("New template")}
+                        </Button>
+                    )}
+                </div>
             </div>
+
+            <LayoutCard />
 
             {hasWoo && (
                 <div className="ff:flex ff:gap-1 ff:border-b ff:border-slate-200">
@@ -60,6 +83,8 @@ export function EmailsPage({ tab }: { tab: EmailsTab }) {
             )}
 
             {active === "woocommerce" ? <WooEmailsTab /> : <FormEmailsTab />}
+
+            <ImportTemplatesDialog open={importOpen} onClose={() => setImportOpen(false)} />
         </div>
     );
 }

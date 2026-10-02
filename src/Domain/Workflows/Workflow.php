@@ -55,9 +55,9 @@ final class Workflow {
 	}
 
 	/**
-	 * The optional single gate on the action chain. An empty array means the
-	 * workflow always runs its actions (the pre-Phase-2 behavior). Free allows
-	 * exactly one condition; add-ons can extend the same node into branches.
+	 * The optional single gate. An empty array means the workflow always runs
+	 * its actions (the pre-Phase-2 behavior). With one, `actions` run when it is
+	 * met and `else_actions` when it is not.
 	 *
 	 * @return array{field: string, operator: string, value: string}|array{}
 	 */
@@ -80,7 +80,25 @@ final class Workflow {
 	 * @return list<array{id: string, type: string, config: array<string, mixed>}>
 	 */
 	public function actions(): array {
-		$actions = is_array( $this->config['actions'] ?? null ) ? $this->config['actions'] : [];
+		return self::action_list( $this->config['actions'] ?? null );
+	}
+
+	/**
+	 * The Otherwise branch: what runs when the condition is not met. Always
+	 * empty without a condition, and for workflows saved before branches.
+	 *
+	 * @return list<array{id: string, type: string, config: array<string, mixed>}>
+	 */
+	public function else_actions(): array {
+		return [] === $this->condition() ? [] : self::action_list( $this->config['else_actions'] ?? null );
+	}
+
+	/**
+	 * @param mixed $raw
+	 * @return list<array{id: string, type: string, config: array<string, mixed>}>
+	 */
+	private static function action_list( $raw ): array {
+		$actions = is_array( $raw ) ? $raw : [];
 		$clean   = [];
 		foreach ( $actions as $action ) {
 			if ( ! is_array( $action ) || ! isset( $action['type'] ) || ! is_string( $action['type'] ) ) {
@@ -101,14 +119,15 @@ final class Workflow {
 	 */
 	public function to_array(): array {
 		return [
-			'id'         => $this->id,
-			'title'      => $this->title,
-			'status'     => $this->status,
-			'trigger'    => $this->trigger(),
-			'condition'  => $this->condition(),
-			'actions'    => $this->actions(),
-			'created_at' => $this->created_at,
-			'updated_at' => $this->updated_at,
+			'id'           => $this->id,
+			'title'        => $this->title,
+			'status'       => $this->status,
+			'trigger'      => $this->trigger(),
+			'condition'    => $this->condition(),
+			'actions'      => $this->actions(),
+			'else_actions' => $this->else_actions(),
+			'created_at'   => $this->created_at,
+			'updated_at'   => $this->updated_at,
 		];
 	}
 }

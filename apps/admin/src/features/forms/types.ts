@@ -105,6 +105,8 @@ export interface FormConfig {
     settings: {
         submit_label: string;
         success_message: string;
+        /** CAPTCHA provider id; keys live in Settings. Older forms may lack it (= none). */
+        captcha?: "none" | "turnstile" | "recaptcha_v2";
     };
     notifications: {
         admin: { enabled: boolean; to: string; subject: string; template_id: number };

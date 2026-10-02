@@ -11,6 +11,7 @@ use Flexa\FormFlow\Domain\Forms\FormRepository;
 use Flexa\FormFlow\Domain\Workflows\WorkflowRepository;
 use Flexa\FormFlow\Domain\Workflows\WorkflowRunRepository;
 use Flexa\FormFlow\Workflows\Engine;
+use Flexa\FormFlow\Workflows\TestRun;
 use WP_Error;
 use WP_REST_Request;
 use WP_REST_Response;
@@ -105,9 +106,11 @@ final class WorkflowsEndpoint extends Endpoint {
 				'title'  => $form->title,
 				'fields' => array_map(
 					static fn( $field ) => [
-						'id'    => (string) ( $field['id'] ?? '' ),
-						'label' => (string) ( $field['label'] ?? ( $field['id'] ?? '' ) ),
-						'type'  => (string) ( $field['type'] ?? 'text' ),
+						'id'      => (string) ( $field['id'] ?? '' ),
+						'label'   => (string) ( $field['label'] ?? ( $field['id'] ?? '' ) ),
+						'type'    => (string) ( $field['type'] ?? 'text' ),
+						// Choice fields' options, for the test dialog's inputs.
+						'options' => array_values( array_map( 'strval', array_filter( is_array( $field['options'] ?? null ) ? $field['options'] : [], 'is_scalar' ) ) ),
 					],
 					$form->fields()
 				),
@@ -202,26 +205,22 @@ final class WorkflowsEndpoint extends Endpoint {
 			return $this->not_found();
 		}
 
-		$form_id = $workflow->trigger()['form_id'];
-		$entries = EntryRepository::instance()->all(
-			array_merge( [ 'per_page' => 1 ], $form_id > 0 ? [ 'form_id' => $form_id ] : [] )
-		);
-		$entry   = $entries['items'][0] ?? null;
-		if ( null === $entry ) {
+		// Latest entry, a chosen entry, or values typed into the test dialog.
+		$subject = TestRun::subject( $workflow, (array) $request->get_json_params() );
+		if ( $subject instanceof WP_Error ) {
+			return $subject;
+		}
+		if ( null === $subject ) {
 			return new WP_REST_Response(
 				[
 					'ran'  => false,
 					'log'  => [],
-					'note' => __( 'No entries yet to test against. Submit the form once, then run the test.', 'flexa-formflow' ),
+					'note' => __( 'No entries yet to test against. Enter test values instead, or submit the form once.', 'flexa-formflow' ),
 				],
 				200
 			);
 		}
-
-		$form = FormRepository::instance()->find( $entry->form_id );
-		if ( null === $form ) {
-			return $this->not_found();
-		}
+		[ 'form' => $form, 'entry' => $entry ] = $subject;
 
 		// Test runs never persist: the Logs tab shows only runs the live form fired.
 		$log = Engine::instance()->run( $workflow, $form, $entry, false );

@@ -1,4 +1,4 @@
-import { ArrowLeft, Eye, Share2 } from "lucide-react";
+import { ArrowLeft, Eye, FlaskConical, Share2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -7,12 +7,18 @@ import { cn } from "@/lib/cn";
 import { navigate } from "@/lib/router";
 import { SHOW_UPCOMING } from "@/lib/flags";
 import { useUiStore } from "@/lib/store";
+import { useUndoable } from "@/lib/useUndoHistory";
 import { SaveToLibraryButton } from "@/features/library/SaveToLibrary";
 import { EditorSkeleton } from "@/components/custom/Skeletons";
+import { UndoRedoButtons } from "@/components/custom/UndoRedoButtons";
+import { SaveStatus } from "@/components/custom/SaveStatus";
 import { useForm, useSaveForm } from "../useForms";
 import type { FormConfig, FormStatus } from "../types";
 import { BuildTab } from "./BuildTab";
 import { FormPreviewDialog } from "./FormPreviewDialog";
+import { TestSubmissionDialog } from "./TestSubmissionDialog";
+import { ApiError } from "@/lib/api";
+import { captchaReady, useSpamStatus } from "@/features/spam/useSpam";
 import { NotificationsTab } from "./NotificationsTab";
 import { ShareTab } from "./ShareTab";
 
@@ -33,11 +39,14 @@ export function BuilderPage({ id }: { id: number }) {
     const { data: form, isLoading } = useForm(id);
     const save = useSaveForm(id);
     const showToast = useUiStore((s) => s.showToast);
+    const selectedFieldId = useUiStore((s) => s.selectedFieldId);
     const setSelectedField = useUiStore((s) => s.setSelectedField);
     const [draft, setDraft] = useState<Draft | null>(null);
     const [tab, setTab] = useState<TabName>("build");
     const [previewOpen, setPreviewOpen] = useState(false);
     const [previewViewport, setPreviewViewport] = useState<"desktop" | "mobile">("desktop");
+    const [testOpen, setTestOpen] = useState(false);
+    const { data: spam } = useSpamStatus();
     const lastSaved = useRef("");
 
     useEffect(() => {
@@ -51,6 +60,19 @@ export function BuilderPage({ id }: { id: number }) {
     // Leaving the builder clears the canvas selection.
     useEffect(() => () => setSelectedField(null), [setSelectedField]);
 
+    // Undo/redo covers the config (fields, form settings, notifications). The
+    // title has the browser's own undo, and publish/draft is a deliberate
+    // switch with a live effect, so neither is part of the history.
+    const undo = useUndoable<FormConfig>({
+        current: draft?.config ?? null,
+        restore: (config) => {
+            setDraft((prev) => (prev ? { ...prev, config } : prev));
+            if (selectedFieldId && !config.fields.some((f) => f.id === selectedFieldId)) setSelectedField(null);
+        },
+        // Don't rewrite the form behind the preview dialog.
+        enabled: !previewOpen,
+    });
+
     useEffect(() => {
         if (!draft) return;
         const snapshot = JSON.stringify(draft);
@@ -60,7 +82,14 @@ export function BuilderPage({ id }: { id: number }) {
                 onSuccess: () => {
                     lastSaved.current = snapshot;
                 },
-                onError: () => showToast(__("Autosave failed. Your latest change is not stored yet."), "error"),
+                onError: (error) =>
+                    showToast(
+                        // The server explains a refused publish (a CAPTCHA without keys).
+                        error instanceof ApiError && error.status === 422
+                            ? error.message
+                            : __("Autosave failed. Your latest change is not stored yet."),
+                        "error",
+                    ),
             });
         }, 800);
         return () => window.clearTimeout(timer);
@@ -74,7 +103,10 @@ export function BuilderPage({ id }: { id: number }) {
 
     const dirty = JSON.stringify(draft) !== lastSaved.current;
     const patch = (partial: Partial<Draft>) => setDraft((prev) => (prev ? { ...prev, ...partial } : prev));
-    const patchConfig = (config: FormConfig) => patch({ config });
+    const patchConfig = (config: FormConfig) => {
+        undo.record(draft.config, historyKey(draft.config, config));
+        patch({ config });
+    };
 
     return (
         <div className="ff:flex ff:h-[calc(100vh-2rem)] ff:min-w-0 ff:flex-1 ff:flex-col ff:bg-slate-50">
@@ -99,10 +131,21 @@ export function BuilderPage({ id }: { id: number }) {
                     spellCheck={false}
                 />
                 <SaveStatus state={save.isPending ? "saving" : dirty ? "dirty" : "saved"} />
+                <UndoRedoButtons {...undo.controls} />
                 <label className="ff:flex ff:items-center ff:gap-2 ff:text-sm ff:font-medium ff:text-slate-700">
                     <Switch
                         checked={draft.status === "published"}
-                        onCheckedChange={(next) => patch({ status: next ? "published" : "draft" })}
+                        onCheckedChange={(next) => {
+                            // Never publish a form whose CAPTCHA cannot verify anyone.
+                            if (next && !captchaReady(draft.config.settings.captcha ?? "none", spam)) {
+                                showToast(
+                                    __("Add the CAPTCHA keys in Settings > Spam protection, or choose another CAPTCHA, before publishing."),
+                                    "error",
+                                );
+                                return;
+                            }
+                            patch({ status: next ? "published" : "draft" });
+                        }}
                     />
                     {draft.status === "published" ? __("Published") : __("Draft")}
                 </label>
@@ -114,6 +157,10 @@ export function BuilderPage({ id }: { id: number }) {
                         getPayload={() => draft.config as unknown as Record<string, unknown>}
                     />
                 )}
+                <Button variant="outline" size="sm" onClick={() => setTestOpen(true)}>
+                    <FlaskConical aria-hidden className="ff:h-4 ff:w-4" />
+                    {__("Run test")}
+                </Button>
                 <Button variant="outline" size="sm" onClick={() => setPreviewOpen(true)}>
                     <Eye aria-hidden className="ff:h-4 ff:w-4" />
                     {__("Preview")}
@@ -137,12 +184,21 @@ export function BuilderPage({ id }: { id: number }) {
             </nav>
 
             <div className="ff:min-h-0 ff:flex-1 ff:overflow-y-auto">
-                {tab === "build" && <BuildTab config={draft.config} onChange={patchConfig} />}
+                {tab === "build" && (
+                    <BuildTab config={draft.config} published={draft.status === "published"} onChange={patchConfig} />
+                )}
                 {tab === "notifications" && (
                     <NotificationsTab config={draft.config} onChange={patchConfig} />
                 )}
                 {tab === "share" && <ShareTab form={form} status={draft.status} />}
             </div>
+
+            <TestSubmissionDialog
+                open={testOpen}
+                onOpenChange={setTestOpen}
+                formId={id}
+                config={draft.config}
+            />
 
             <FormPreviewDialog
                 open={previewOpen}
@@ -156,23 +212,43 @@ export function BuilderPage({ id }: { id: number }) {
     );
 }
 
-function SaveStatus({ state }: { state: "saving" | "dirty" | "saved" }) {
-    return (
-        <span
-            className={cn(
-                "ff:flex ff:items-center ff:gap-1.5 ff:whitespace-nowrap ff:text-xs ff:font-medium",
-                state === "saved" ? "ff:text-emerald-600" : "ff:text-amber-600",
-            )}
-        >
-            <span
-                className={cn(
-                    "ff:h-1.5 ff:w-1.5 ff:rounded-full",
-                    state === "saved" ? "ff:bg-emerald-500" : "ff:animate-pulse ff:bg-amber-500",
-                )}
-            />
-            {state === "saving" ? __("Saving…") : state === "dirty" ? __("Unsaved changes") : __("Saved")}
-        </span>
-    );
+/**
+ * The undo-grouping key for a config change, worked out by comparing the two
+ * versions (the tabs hand back a whole config, not what they changed). It
+ * narrows to the exact property that changed — `field:<id>.label`,
+ * `config:notifications.admin.subject` — so only repeated edits to one input
+ * group into a step: typing a label is one step, but flipping a toggle and then
+ * typing in the field it reveals stay two. Adding, removing, reordering or
+ * inserting fields returns no key: always its own step.
+ */
+function historyKey(prev: FormConfig, next: FormConfig): string | undefined {
+    const keys = Object.keys({ ...prev, ...next }) as (keyof FormConfig)[];
+    const changed = keys.filter((k) => prev[k] !== next[k]);
+    if (changed.length === 0) return undefined;
+
+    if (!changed.includes("fields")) {
+        return `config:${changed.map((k) => changedPath(prev[k], next[k], k)).sort().join(",")}`;
+    }
+    if (changed.length > 1 || prev.fields.length !== next.fields.length) return undefined;
+
+    let edited: string | undefined;
+    for (let i = 0; i < prev.fields.length; i++) {
+        if (prev.fields[i].id !== next.fields[i].id) return undefined;
+        if (prev.fields[i] !== next.fields[i]) {
+            if (edited !== undefined) return undefined;
+            edited = changedPath(prev.fields[i], next.fields[i], `field:${prev.fields[i].id}`);
+        }
+    }
+    return edited;
+}
+
+/** Follow a change down plain objects while exactly one key differs. */
+function changedPath(a: unknown, b: unknown, path: string): string {
+    const isObject = (v: unknown): v is Record<string, unknown> =>
+        typeof v === "object" && v !== null && !Array.isArray(v);
+    if (!isObject(a) || !isObject(b)) return path;
+    const diff = Object.keys({ ...a, ...b }).filter((k) => a[k] !== b[k]);
+    return diff.length === 1 ? changedPath(a[diff[0]], b[diff[0]], `${path}.${diff[0]}`) : path;
 }
 
 function TabButton({

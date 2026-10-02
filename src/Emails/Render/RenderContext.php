@@ -33,7 +33,36 @@ final class RenderContext {
 		public readonly ?\WC_Order $order = null,
 		public readonly ?\WC_Email $email = null,
 		public readonly array $extras = [],
+		/** The editor canvas: adds selection markup and keeps blocks the global layout replaces. */
+		public readonly bool $editor = false,
+		/**
+		 * Rendering a block inside a Columns cell. The Columns wrapper already
+		 * holds the email's side padding, so blocks there add none of their own.
+		 */
+		public readonly bool $inside_column = false,
 	) {}
+
+	/**
+	 * The same context for a block inside a Columns cell. A new object: the
+	 * caller's context (and every block rendered after the Columns) is unchanged.
+	 */
+	public function for_column(): self {
+		if ( $this->inside_column ) {
+			return $this;
+		}
+
+		return new self(
+			form: $this->form,
+			entry: $this->entry,
+			type: $this->type,
+			is_preview: $this->is_preview,
+			order: $this->order,
+			email: $this->email,
+			extras: $this->extras,
+			editor: $this->editor,
+			inside_column: true,
+		);
+	}
 
 	public function extra( string $key ): mixed {
 		return $this->extras[ $key ] ?? null;

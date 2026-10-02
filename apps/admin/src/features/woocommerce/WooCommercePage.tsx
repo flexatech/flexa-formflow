@@ -1,9 +1,10 @@
-import { Eye, Monitor, Send, ShoppingCart, Smartphone } from "lucide-react";
+import { AlertTriangle, ExternalLink, Eye, Monitor, Pencil, Send, ShoppingCart, Smartphone } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
+import { SearchSelect, useDebouncedValue, type SearchSelectOption } from "@/components/custom/SearchSelect";
 import { Switch } from "@/components/ui/switch";
 import {
     Dialog,
@@ -15,14 +16,20 @@ import {
 } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/custom/EmptyState";
 import { TableSkeleton } from "@/components/custom/Skeletons";
+import { LayoutBadge } from "@/features/emails/layout/LayoutBadge";
+import { useEmailTemplatesList } from "@/features/emails/useEmailTemplates";
+import type { EmailTemplate } from "@/features/emails/types";
 import { withPreviewReset } from "@/features/emails/previewFrame";
 import { __ } from "@/lib/i18n";
+import { navigate } from "@/lib/router";
 import { useUiStore } from "@/lib/store";
 import {
+    useCustomizeWooEmail,
     useSaveWooEmail,
     useSendWooTestEmail,
     useWooEmailPreview,
     useWooEmails,
+    useWooOrderSearch,
     type TokenHint,
     type WooEmailRow,
     type WooOrderOption,
@@ -37,6 +44,7 @@ import {
 export function WooEmailsTab() {
     const { data, isLoading } = useWooEmails();
     const [preview, setPreview] = useState<{ id: string; title: string } | null>(null);
+    const { data: templates = [] } = useEmailTemplatesList();
 
     if (isLoading || !data) {
         return <TableSkeleton columns={3} />;
@@ -54,6 +62,10 @@ export function WooEmailsTab() {
         );
     }
 
+    // A taken-over email uses its template's design, or the built-in default
+    // (no opt-outs, no own blocks to replace) when none is chosen.
+    const templateOf = (email: WooEmailRow): EmailTemplate | undefined =>
+        email.templateId > 0 ? templates.find((t) => t.id === email.templateId) : undefined;
     return (
         <>
             <TokensHint tokens={data.tokens} />
@@ -62,13 +74,14 @@ export function WooEmailsTab() {
                     <EmailCard
                         key={email.id}
                         email={email}
+                        template={templateOf(email)}
                         templates={data.templates}
                         onPreview={(id, title) => setPreview({ id, title })}
                     />
                 ))}
             </div>
 
-            <WooPreviewDialog email={preview} orders={data.orders} onClose={() => setPreview(null)} />
+            <WooPreviewDialog email={preview} onClose={() => setPreview(null)} />
         </>
     );
 }
@@ -81,14 +94,16 @@ export function WooEmailsTab() {
  */
 function WooPreviewDialog({
     email,
-    orders,
     onClose,
 }: {
     email: { id: string; title: string } | null;
-    orders: WooOrderOption[];
     onClose: () => void;
 }) {
-    const [orderId, setOrderId] = useState(0);
+    const [order, setOrder] = useState<WooOrderOption>({ id: 0, label: __("Sample order") });
+    const orderId = order.id;
+    const [search, setSearch] = useState("");
+    const term = useDebouncedValue(search.trim());
+    const orders = useWooOrderSearch(term, email !== null);
     const [viewport, setViewport] = useState<"desktop" | "mobile">("desktop");
     const [to, setTo] = useState("");
     const preview = useWooEmailPreview(email?.id ?? null, orderId);
@@ -98,7 +113,7 @@ function WooPreviewDialog({
     // Reset the data source, viewport, and test address whenever a different
     // email opens.
     useEffect(() => {
-        setOrderId(0);
+        setOrder({ id: 0, label: __("Sample order") });
         setViewport("desktop");
         setTo("");
     }, [email?.id]);
@@ -117,9 +132,9 @@ function WooPreviewDialog({
         );
     };
 
-    const orderOptions = [
-        { value: "0", label: __("Sample order") },
-        ...orders.map((o) => ({ value: String(o.id), label: o.label })),
+    const orderOptions: SearchSelectOption[] = [
+        ...(term === "" ? [{ value: "0", label: __("Sample order") }] : []),
+        ...(orders.data ?? []).map((o) => ({ value: String(o.id), label: o.label })),
     ];
 
     return (
@@ -133,12 +148,18 @@ function WooPreviewDialog({
                 </DialogHeader>
                 <div className="ff:flex ff:flex-wrap ff:items-center ff:gap-2">
                     <span className="ff:text-xs ff:font-medium ff:text-slate-600">{__("Preview with")}</span>
-                    <Select
-                        aria-label={__("Preview data source")}
+                    <SearchSelect
+                        ariaLabel={__("Preview data source")}
                         value={String(orderId)}
+                        valueLabel={order.label}
                         options={orderOptions}
-                        onChange={(e) => setOrderId(Number(e.target.value))}
-                        className="ff:min-w-52"
+                        search={search}
+                        onSearchChange={setSearch}
+                        onChange={(option) => setOrder({ id: Number(option.value), label: option.label })}
+                        loading={orders.isFetching}
+                        placeholder={__("Search by order number, name or email…")}
+                        emptyText={__("No orders match.")}
+                        className="ff:w-80"
                     />
                     {preview.isFetching && (
                         <span className="ff:text-xs ff:text-slate-400">{__("Rendering…")}</span>
@@ -233,15 +254,26 @@ function TokensHint({ tokens }: { tokens: TokenHint[] }) {
 
 function EmailCard({
     email,
+    template,
     templates,
     onPreview,
 }: {
     email: WooEmailRow;
+    template: EmailTemplate | undefined;
     templates: WooTemplateOption[];
     onPreview: (id: string, title: string) => void;
 }) {
     const save = useSaveWooEmail(email.id);
+    const customize = useCustomizeWooEmail();
     const showToast = useUiStore((s) => s.showToast);
+
+    // The built-in design is not a template, so copy it into one to edit it.
+    const onCustomize = () => {
+        customize.mutate(email.id, {
+            onSuccess: (templateId) => navigate(`/emails/${templateId}/edit`),
+            onError: () => showToast(__("Could not create the template."), "error"),
+        });
+    };
 
     const templateOptions = [
         { value: "0", label: __("Default design") },
@@ -264,6 +296,13 @@ function EmailCard({
                         <span className="ff:rounded ff:bg-slate-100 ff:px-1.5 ff:py-0.5 ff:text-[11px] ff:text-slate-500">
                             {email.recipient === "admin" ? __("Admin") : __("Customer")}
                         </span>
+                        {email.enabled && (
+                            <LayoutBadge
+                                settings={template?.tree.settings ?? {}}
+                                elements={template?.tree.elements ?? []}
+                                kind="woo"
+                            />
+                        )}
                     </div>
                     <p className="ff:mt-0.5 ff:text-xs ff:text-slate-500">{email.description}</p>
                 </div>
@@ -276,6 +315,28 @@ function EmailCard({
 
             {email.enabled ? (
                 <div className="ff:flex ff:flex-col ff:gap-3 ff:border-t ff:border-slate-100 ff:bg-slate-50/60 ff:px-5 ff:py-4">
+                    {!email.wcEnabled && (
+                        <div
+                            role="alert"
+                            className="ff:flex ff:items-start ff:gap-2.5 ff:rounded-lg ff:border ff:border-amber-200 ff:bg-amber-50 ff:px-3.5 ff:py-2.5 ff:text-xs ff:text-amber-800"
+                        >
+                            <AlertTriangle aria-hidden className="ff:mt-0.5 ff:h-4 ff:w-4 ff:shrink-0 ff:text-amber-500" />
+                            <p className="ff:flex-1">
+                                {__(
+                                    "This email is turned off in WooCommerce, so it will not be sent. Enable it in WooCommerce's email settings.",
+                                )}{" "}
+                                <a
+                                    href={email.wcSettingsUrl}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="ff:inline-flex ff:items-center ff:gap-1 ff:font-medium ff:text-amber-900 ff:underline ff:underline-offset-2"
+                                >
+                                    {__("Open WooCommerce settings")}
+                                    <ExternalLink aria-hidden className="ff:h-3 ff:w-3" />
+                                </a>
+                            </p>
+                        </div>
+                    )}
                     <div className="ff:flex ff:flex-col ff:gap-1.5">
                         <label className="ff:text-xs ff:font-medium ff:text-slate-600">
                             {__("Subject line")}
@@ -302,6 +363,22 @@ function EmailCard({
                                 onChange={(e) => patch({ template_id: parseInt(e.target.value, 10) })}
                             />
                         </div>
+                        {email.templateId > 0 ? (
+                            <Button variant="outline" onClick={() => navigate(`/emails/${email.templateId}/edit`)}>
+                                <Pencil aria-hidden className="ff:h-4 ff:w-4" />
+                                {__("Edit design")}
+                            </Button>
+                        ) : (
+                            <Button
+                                variant="outline"
+                                onClick={onCustomize}
+                                disabled={customize.isPending}
+                                title={__("Copy the default design into a template you can edit")}
+                            >
+                                <Pencil aria-hidden className="ff:h-4 ff:w-4" />
+                                {customize.isPending ? __("Creating…") : __("Customize")}
+                            </Button>
+                        )}
                         <Button variant="outline" onClick={() => onPreview(email.id, email.title)}>
                             <Eye aria-hidden className="ff:h-4 ff:w-4" />
                             {__("Preview")}

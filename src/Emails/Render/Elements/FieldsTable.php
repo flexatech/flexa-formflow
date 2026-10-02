@@ -28,6 +28,9 @@ final class FieldsTable extends BaseElement {
 	}
 
 	public function render( array $props, RenderContext $ctx, array $design ): string {
+		// Side padding: 40px at the top level, none inside Columns (the wrapper has it).
+		$px = $this->horizontal_padding( $ctx );
+
 		$form = $ctx->form;
 		if ( null === $form ) {
 			return '';
@@ -77,7 +80,7 @@ final class FieldsTable extends BaseElement {
 			? '<p style="margin:0 0 10px;font-size:16px;font-weight:600;color:' . $text . ';">' . esc_html( $title ) . '</p>'
 			: '';
 
-		return '<tr><td style="padding:12px 40px;">'
+		return '<tr><td style="padding:12px ' . $px . 'px;">'
 			. $title_html
 			. '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:collapse;border:1px solid ' . $border . ';border-radius:6px;">'
 			. $rows

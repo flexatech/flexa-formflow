@@ -12,7 +12,7 @@
 
 declare(strict_types=1);
 
-defined( 'FLEXA_FORMFLOW_VERSION' ) || define( 'FLEXA_FORMFLOW_VERSION', '1.0.0' );
+defined( 'FLEXA_FORMFLOW_VERSION' ) || define( 'FLEXA_FORMFLOW_VERSION', '1.2.0' );
 defined( 'FLEXA_FORMFLOW_FILE' ) || define( 'FLEXA_FORMFLOW_FILE', __DIR__ . '/flexa-formflow.php' );
 defined( 'FLEXA_FORMFLOW_PATH' ) || define( 'FLEXA_FORMFLOW_PATH', __DIR__ . '/' );
 defined( 'FLEXA_FORMFLOW_URL' ) || define( 'FLEXA_FORMFLOW_URL', 'https://example.test/wp-content/plugins/flexa-formflow/' );

@@ -28,9 +28,29 @@ final class WorkflowRefs {
 		unset( $trigger['form_ref'] );
 		$trigger['form_id'] = $form_ids[ $form_ref ] ?? 0;
 
-		$actions_in = is_array( $payload['actions'] ?? null ) ? $payload['actions'] : [];
-		$actions    = [];
-		foreach ( $actions_in as $action ) {
+		$out = [
+			'trigger' => $trigger,
+			'actions' => self::actions( $payload['actions'] ?? null, $email_ids ),
+		];
+		// A recipe with a condition carries it, and its Otherwise branch, over.
+		if ( is_array( $payload['condition'] ?? null ) ) {
+			$out['condition']    = $payload['condition'];
+			$out['else_actions'] = self::actions( $payload['else_actions'] ?? null, $email_ids );
+		}
+
+		return $out;
+	}
+
+	/**
+	 * One branch's actions with `template_ref` resolved to the installed id.
+	 *
+	 * @param mixed              $raw
+	 * @param array<string, int> $email_ids
+	 * @return list<array<string, mixed>>
+	 */
+	private static function actions( $raw, array $email_ids ): array {
+		$actions = [];
+		foreach ( is_array( $raw ) ? $raw : [] as $action ) {
 			if ( ! is_array( $action ) ) {
 				continue;
 			}
@@ -44,9 +64,6 @@ final class WorkflowRefs {
 			$actions[]        = $action;
 		}
 
-		return [
-			'trigger' => $trigger,
-			'actions' => $actions,
-		];
+		return $actions;
 	}
 }

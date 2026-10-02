@@ -1,21 +1,10 @@
-import {
-    ArrowLeft,
-    Blocks,
-    ChevronLeft,
-    ChevronRight,
-    LayoutTemplate,
-    Monitor,
-    Send,
-    Smartphone,
-    Sparkles,
-} from "lucide-react";
+import { ArrowLeft, Blocks, Download, LayoutTemplate, Monitor, RotateCcw, Send, Smartphone, Sparkles } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { EditorSkeleton } from "@/components/custom/Skeletons";
 import { AiWritingDialog } from "@/features/ai/AiWritingDialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select } from "@/components/ui/select";
 import {
     Dialog,
     DialogContent,
@@ -29,42 +18,34 @@ import { cn } from "@/lib/cn";
 import { navigate } from "@/lib/router";
 import { SHOW_UPCOMING } from "@/lib/flags";
 import { useUiStore } from "@/lib/store";
+import { useUndoable } from "@/lib/useUndoHistory";
+import { UndoRedoButtons } from "@/components/custom/UndoRedoButtons";
+import { SaveStatus } from "@/components/custom/SaveStatus";
+import { MoreMenu } from "@/components/custom/MoreMenu";
 import { SaveToLibraryButton } from "@/features/library/SaveToLibrary";
-import { useFormsList } from "@/features/forms/useForms";
+import { useForm } from "@/features/forms/useForms";
+import { LeftTab, SidePanel } from "./EditorPanels";
 import { LayerList } from "./LayerList";
 import { PatternPalette } from "./PatternPalette";
 import { PreviewPane } from "./PreviewPane";
+import { PreviewSourcePicker } from "./PreviewSourcePicker";
+import { ResetTemplateDialog } from "./ResetTemplateDialog";
+import { TemplateSwitcher } from "./TemplateSwitcher";
 import { PropsPanel } from "./PropsPanel";
-import type { ConditionSet } from "@/components/custom/SchemaFields";
+import { createTreeHandlers } from "./treeHandlers";
+import { useEmailLayout } from "../layout/useEmailLayout";
+import { overrideKey, partBlocks, partMode, type LayoutPart } from "../layout/partModes";
+import { downloadTemplates } from "../templateTransfer";
 import { useEmailPatterns, useEmailTemplate, useSaveEmailTemplate, useTestSend } from "../useEmailTemplates";
 import {
     emptyTree,
     findInTree,
-    insertInTree,
-    insertManyInTree,
-    materializePattern,
-    moveInTree,
-    newElement,
-    removeFromTree,
-    resizeColumns,
-    updateInTree,
-    type DropTarget,
+    sampleSource,
     type EmailElement,
     type EmailTree,
+    type PreviewSource,
     type TreeSettings,
 } from "../types";
-
-/** Deep-copy an element (and any column children) with fresh ids. */
-function cloneWithIds(source: EmailElement): EmailElement {
-    const copy: EmailElement = { ...newElement(source.type), props: { ...source.props } };
-    if (source.columns) {
-        copy.columns = source.columns.map((col) => col.map(cloneWithIds));
-    }
-    if (source.visibility) {
-        copy.visibility = { match: source.visibility.match, rules: source.visibility.rules.map((r) => ({ ...r })) };
-    }
-    return copy;
-}
 
 interface Draft {
     title: string;
@@ -87,14 +68,20 @@ export function EmailEditorPage({ id }: { id: number }) {
     const [leftTab, setLeftTab] = useState<"blocks" | "patterns">("blocks");
     const [leftCollapsed, setLeftCollapsed] = useState(false);
     const [rightCollapsed, setRightCollapsed] = useState(false);
-    const [previewFormId, setPreviewFormId] = useState(0);
+    const [previewSource, setPreviewSource] = useState<PreviewSource>(sampleSource);
+    const previewFormId = previewSource.formId;
     const [testOpen, setTestOpen] = useState(false);
+    // Which list the canvas edits: the email's own blocks, or its overridden
+    // copy of the global header or footer.
+    const [editPart, setEditPart] = useState<"content" | LayoutPart>("content");
+    const { data: layout } = useEmailLayout();
     const [aiOpen, setAiOpen] = useState(false);
+    const [resetOpen, setResetOpen] = useState(false);
     const lastSaved = useRef("");
 
-    const { data: formsData } = useFormsList({ per_page: 100 });
-    const forms = formsData?.items ?? [];
-    const { data: patterns = [], isLoading: patternsLoading } = useEmailPatterns();
+    const { data: previewForm } = useForm(previewFormId);
+    const { data: library, isLoading: patternsLoading } = useEmailPatterns("email");
+    const patterns = library?.patterns ?? [];
 
     useEffect(() => {
         if (template && draft === null) {
@@ -106,6 +93,18 @@ export function EmailEditorPage({ id }: { id: number }) {
 
     // Leaving the editor clears the layer selection.
     useEffect(() => () => setSelectedElement(null), [setSelectedElement]);
+
+    // Undo/redo covers the tree (blocks + design settings); the title is a
+    // plain field with the browser's own undo.
+    const undo = useUndoable<EmailTree>({
+        current: draft?.tree ?? null,
+        restore: (tree) => {
+            setDraft((prev) => (prev ? { ...prev, tree } : prev));
+            // Undoing an add (or redoing a delete) can take the selected block away.
+            const lists = [tree.elements, tree.settings.headerOverride ?? [], tree.settings.footerOverride ?? []];
+            if (selectedId && !lists.some((list) => findInTree(list, selectedId))) setSelectedElement(null);
+        },
+    });
 
     useEffect(() => {
         if (!draft) return;
@@ -128,80 +127,85 @@ export function EmailEditorPage({ id }: { id: number }) {
     // A template is reusable, so the subjects follow whichever form is picked
     // for preview; the stored rules key off field ids, which are stable.
     const conditionFields = useMemo(() => {
-        const form = forms.find((f) => f.id === previewFormId);
-        if (!form) return [];
-        return form.config.fields.map((field) => ({
+        if (!previewForm || previewFormId === 0) return [];
+        return previewForm.config.fields.map((field) => ({
             id: field.id,
             label: field.label || field.id,
             type: field.type,
         }));
-    }, [forms, previewFormId]);
+    }, [previewForm, previewFormId]);
 
     if (isLoading || !template || !draft) {
         return <EditorSkeleton />;
     }
 
     const dirty = JSON.stringify(draft) !== lastSaved.current;
-    const elements = draft.tree.elements;
+
+    // Leaving cancels the pending autosave timer, so store the latest change
+    // first; on failure, stay so nothing is lost.
+    const leave = async (path: string) => {
+        if (dirty) {
+            const snapshot = JSON.stringify(draft);
+            try {
+                await save.mutateAsync(draft);
+                lastSaved.current = snapshot;
+            } catch {
+                showToast(__("Could not save your latest change. Try again before leaving."), "error");
+                return;
+            }
+        }
+        navigate(path);
+    };
+    const settings = draft.tree.settings;
+    // An undo can take the override away; the canvas then goes back to the content.
+    const editingPart = editPart !== "content" && partMode(settings, editPart) === "override" ? editPart : null;
+    const elements = editingPart ? (settings[overrideKey(editingPart)] ?? []) : draft.tree.elements;
     const selected = selectedId ? findInTree(elements, selectedId) : null;
 
-    const setTree = (next: EmailTree) => setDraft((prev) => (prev ? { ...prev, tree: next } : prev));
-    const setElements = (next: EmailElement[]) => setTree({ ...draft.tree, elements: next });
+    // `key` groups rapid edits to one target (typing in a field) into a single
+    // undo step; structural edits pass none and are always their own step.
+    const setTree = (next: EmailTree, key?: string) => {
+        undo.record(draft.tree, key);
+        setDraft((prev) => (prev ? { ...prev, tree: next } : prev));
+    };
+    const setElements = (next: EmailElement[], key?: string) =>
+        editingPart
+            ? setTree({ ...draft.tree, settings: { ...settings, [overrideKey(editingPart)]: next } }, key)
+            : setTree({ ...draft.tree, elements: next }, key);
+    const switchPart = (next: "content" | LayoutPart) => {
+        setEditPart(next);
+        setSelectedElement(null);
+    };
+    const overridden = (["header", "footer"] as const).filter((p) => partMode(settings, p) === "override");
 
-    const onAdd = (type: string) => {
-        const element = newElement(type);
-        setElements([...elements, element]);
-        setSelectedElement(element.id);
+    const {
+        onAdd,
+        onInsertAt,
+        onInsertPatternAt,
+        onAddPattern,
+        onMove,
+        onDuplicate,
+        onDelete,
+        onChangeProps,
+        onChangeVisibility,
+        onChangeColumnCount,
+        onReorder,
+        onConvertToNavigation,
+    } = createTreeHandlers({ elements, setElements, patterns, selectedId, setSelectedElement });
+    const onChangeSettings = (settings: TreeSettings) => setTree({ ...draft.tree, settings }, "settings");
+
+    // A reset swaps in the default design but keeps which header & footer the
+    // template uses; it is one undo step.
+    const onResetTo = (tree: EmailTree) => {
+        const keep = draft.tree.settings;
+        const settings: TreeSettings = { ...tree.settings };
+        if (keep.layoutSet !== undefined) settings.layoutSet = keep.layoutSet;
+        if (keep.hideGlobalHeader !== undefined) settings.hideGlobalHeader = keep.hideGlobalHeader;
+        if (keep.hideGlobalFooter !== undefined) settings.hideGlobalFooter = keep.hideGlobalFooter;
+        setTree({ ...tree, settings });
+        setSelectedElement(null);
+        showToast(__("Template reset to its default design. Press Ctrl+Z to undo."));
     };
-    const onInsertAt = (type: string, target: DropTarget) => {
-        const element = newElement(type);
-        setElements(insertInTree(elements, target, element));
-        setSelectedElement(element.id);
-    };
-    const onInsertPatternAt = (patternId: string, target: DropTarget) => {
-        const pattern = patterns.find((p) => p.id === patternId);
-        if (!pattern) return;
-        const blocks = materializePattern(pattern.blocks);
-        setElements(insertManyInTree(elements, target, blocks));
-        setSelectedElement(blocks[0]?.id ?? null);
-    };
-    const onAddPattern = (patternId: string) => {
-        const pattern = patterns.find((p) => p.id === patternId);
-        if (!pattern) return;
-        const blocks = materializePattern(pattern.blocks);
-        setElements([...elements, ...blocks]);
-        setSelectedElement(blocks[0]?.id ?? null);
-    };
-    const onMove = (id: string, target: DropTarget) => {
-        setElements(moveInTree(elements, id, target));
-    };
-    const onDuplicate = (elId: string) => {
-        const source = findInTree(elements, elId);
-        const { from } = removeFromTree(elements, elId);
-        if (!source || !from) return;
-        const clone = cloneWithIds(source);
-        setElements(insertInTree(elements, { ...from, index: from.index + 1 }, clone));
-        setSelectedElement(clone.id);
-    };
-    const onDelete = (elId: string) => {
-        setElements(removeFromTree(elements, elId).elements);
-        if (selectedId === elId) setSelectedElement(null);
-    };
-    const onChangeProps = (elId: string, props: Record<string, unknown>) =>
-        setElements(updateInTree(elements, elId, (el) => ({ ...el, props })));
-    const onChangeVisibility = (elId: string, visibility: ConditionSet) =>
-        setElements(
-            updateInTree(elements, elId, (el) => {
-                if (visibility.rules.length === 0) {
-                    const { visibility: _drop, ...rest } = el;
-                    return rest;
-                }
-                return { ...el, visibility };
-            }),
-        );
-    const onChangeColumnCount = (elId: string, count: number) =>
-        setElements(updateInTree(elements, elId, (el) => resizeColumns(el, count)));
-    const onChangeSettings = (settings: TreeSettings) => setTree({ ...draft.tree, settings });
 
     return (
         <div className="ff:flex ff:h-[calc(100vh-2rem)] ff:min-w-0 ff:flex-1 ff:flex-col ff:bg-slate-50">
@@ -210,10 +214,11 @@ export function EmailEditorPage({ id }: { id: number }) {
                     variant="ghost"
                     size="icon"
                     aria-label={__("Back to emails")}
-                    onClick={() => navigate("/emails")}
+                    onClick={() => void leave("/emails")}
                 >
                     <ArrowLeft aria-hidden className="ff:h-4 ff:w-4" />
                 </Button>
+                <TemplateSwitcher currentId={id} onSwitch={(next) => void leave(`/emails/${next}/edit`)} />
                 <input
                     value={draft.title}
                     onChange={(e) => setDraft((prev) => (prev ? { ...prev, title: e.target.value } : prev))}
@@ -225,7 +230,11 @@ export function EmailEditorPage({ id }: { id: number }) {
                     )}
                     spellCheck={false}
                 />
+                {overridden.length > 0 && (
+                    <PartSwitch active={editingPart ?? "content"} parts={overridden} onChange={switchPart} />
+                )}
                 <SaveStatus state={save.isPending ? "saving" : dirty ? "dirty" : "saved"} />
+                <UndoRedoButtons {...undo.controls} />
                 <div className="ff:flex ff:items-center ff:gap-1 ff:rounded-md ff:border ff:border-slate-200 ff:p-0.5">
                     <Button
                         variant={viewport === "desktop" ? "default" : "ghost"}
@@ -260,6 +269,16 @@ export function EmailEditorPage({ id }: { id: number }) {
                     <Send aria-hidden className="ff:h-4 ff:w-4" />
                     {__("Send test")}
                 </Button>
+                <MoreMenu
+                    items={[
+                        {
+                            label: __("Export as JSON"),
+                            icon: Download,
+                            onSelect: () => downloadTemplates([{ title: draft.title, tree: draft.tree }], draft.title),
+                        },
+                        { label: __("Reset to default"), icon: RotateCcw, onSelect: () => setResetOpen(true), destructive: true },
+                    ]}
+                />
             </header>
 
             <div className="ff:flex ff:min-h-0 ff:flex-1">
@@ -290,13 +309,15 @@ export function EmailEditorPage({ id }: { id: number }) {
                                 selectedId={selectedId}
                                 onSelect={setSelectedElement}
                                 onAdd={onAdd}
-                                onReorder={setElements}
+                                onReorder={onReorder}
                                 onDuplicate={onDuplicate}
                                 onDelete={onDelete}
                             />
                         ) : (
                             <PatternPalette
                                 patterns={patterns}
+                                categories={library?.categories ?? []}
+                                revision={library?.revision ?? 0}
                                 isLoading={patternsLoading}
                                 onAdd={onAddPattern}
                             />
@@ -305,16 +326,25 @@ export function EmailEditorPage({ id }: { id: number }) {
                 </aside>
                 </SidePanel>
                 <PreviewPane
-                    tree={draft.tree}
-                    formId={previewFormId}
-                    forms={forms}
-                    onFormChange={setPreviewFormId}
+                    tree={editingPart ? { ...draft.tree, elements } : draft.tree}
+                    layout={
+                        editingPart && layout
+                            ? {
+                                  header: editingPart === "header" ? elements : partBlocks(settings, layout, "header"),
+                                  footer: editingPart === "footer" ? elements : partBlocks(settings, layout, "footer"),
+                              }
+                            : undefined
+                    }
+                    layoutPart={editingPart ?? undefined}
+                    source={previewSource}
+                    onSourceChange={setPreviewSource}
                     viewport={viewport}
                     selectedId={selectedId}
                     onSelect={setSelectedElement}
                     onInsert={onInsertAt}
                     onInsertPattern={onInsertPatternAt}
                     onMove={onMove}
+                    onChangeProps={onChangeProps}
                 />
                 <SidePanel
                     side="right"
@@ -326,6 +356,7 @@ export function EmailEditorPage({ id }: { id: number }) {
                         element={selected}
                         settings={draft.tree.settings}
                         formId={previewFormId}
+                        orderId={previewSource.orderId}
                         conditionFields={conditionFields}
                         hasPreviewForm={previewFormId > 0}
                         onChangeProps={onChangeProps}
@@ -334,6 +365,8 @@ export function EmailEditorPage({ id }: { id: number }) {
                         onDuplicate={onDuplicate}
                         onDelete={onDelete}
                         onChangeSettings={onChangeSettings}
+                        onEditLayoutPart={switchPart}
+                        onConvertToNavigation={onConvertToNavigation}
                     />
                 </aside>
                 </SidePanel>
@@ -343,99 +376,57 @@ export function EmailEditorPage({ id }: { id: number }) {
                 open={testOpen}
                 onClose={() => setTestOpen(false)}
                 tree={draft.tree}
-                formId={previewFormId}
-                forms={forms}
-                onFormChange={setPreviewFormId}
+                source={previewSource}
+                onSourceChange={setPreviewSource}
             />
 
             <AiWritingDialog open={aiOpen} onClose={() => setAiOpen(false)} />
+
+            <ResetTemplateDialog
+                open={resetOpen}
+                onClose={() => setResetOpen(false)}
+                templateId={id}
+                onApply={onResetTo}
+            />
         </div>
     );
 }
 
-/**
- * Wraps a builder side panel with a collapse/expand pill on the edge facing the
- * canvas. Collapsed, the panel shrinks to a thin rail so the preview gets the
- * room; the pill flips its arrow to expand it again.
- */
-function SidePanel({
-    side,
-    collapsed,
-    onToggle,
-    children,
-}: {
-    side: "left" | "right";
-    collapsed: boolean;
-    onToggle: () => void;
-    children: React.ReactNode;
-}) {
-    // The pill sits on the border between the panel and the canvas: the right
-    // edge of a left panel, the left edge of a right panel.
-    const pillOnRight = side === "left";
-    const Icon =
-        side === "left"
-            ? collapsed
-                ? ChevronRight
-                : ChevronLeft
-            : collapsed
-              ? ChevronLeft
-              : ChevronRight;
-
-    return (
-        <div className="ff:relative ff:shrink-0">
-            {collapsed ? (
-                <div
-                    className={cn(
-                        "ff:h-full ff:w-7 ff:bg-white",
-                        side === "left" ? "ff:border-r" : "ff:border-l",
-                        "ff:border-slate-200",
-                    )}
-                />
-            ) : (
-                children
-            )}
-            <button
-                type="button"
-                onClick={onToggle}
-                aria-label={collapsed ? __("Expand panel") : __("Collapse panel")}
-                aria-expanded={!collapsed}
-                className={cn(
-                    "ff:absolute ff:top-1/2 ff:z-10 ff:flex ff:h-10 ff:w-5 ff:-translate-y-1/2 ff:cursor-pointer ff:items-center ff:justify-center ff:rounded-full ff:border ff:border-slate-200 ff:bg-white ff:text-slate-500 ff:shadow-sm ff:transition-colors ff:hover:text-slate-800",
-                    pillOnRight ? "ff:right-0 ff:translate-x-1/2" : "ff:left-0 ff:-translate-x-1/2",
-                )}
-            >
-                <Icon aria-hidden className="ff:h-4 ff:w-4" />
-            </button>
-        </div>
-    );
-}
-
-function LeftTab({
-    icon: Icon,
-    label,
+/** Switches the canvas between the email's content and its overridden header/footer. */
+function PartSwitch({
     active,
-    onClick,
+    parts,
+    onChange,
 }: {
-    icon: typeof Blocks;
-    label: string;
-    active: boolean;
-    onClick: () => void;
+    active: "content" | LayoutPart;
+    parts: LayoutPart[];
+    onChange: (part: "content" | LayoutPart) => void;
 }) {
+    const label = (part: "content" | LayoutPart) =>
+        part === "content" ? __("Content") : part === "header" ? __("Header (this email)") : __("Footer (this email)");
     return (
-        <button
-            type="button"
-            onClick={onClick}
-            aria-pressed={active}
-            className={cn(
-                "ff:flex ff:flex-1 ff:items-center ff:justify-center ff:gap-1.5 ff:rounded-md ff:px-2 ff:py-1.5 ff:text-xs ff:font-medium ff:transition-colors",
-                active
-                    ? "ff:bg-brand-50 ff:text-brand-700"
-                    : "ff:text-slate-600 ff:hover:bg-slate-50 ff:hover:text-slate-900",
-            )}
+        <div
+            role="group"
+            aria-label={__("Part to edit")}
+            className="ff:flex ff:items-center ff:gap-1 ff:rounded-md ff:border ff:border-slate-200 ff:p-0.5"
         >
-            <Icon aria-hidden className="ff:h-3.5 ff:w-3.5" />
-            {label}
-        </button>
+            {(["content", ...parts] as const).map((part) => (
+                <button
+                    key={part}
+                    type="button"
+                    aria-pressed={active === part}
+                    onClick={() => onChange(part)}
+                    className={cn(
+                        "ff:cursor-pointer ff:rounded ff:border-0 ff:px-2.5 ff:py-1 ff:text-xs ff:font-medium ff:transition-colors",
+                        active === part
+                            ? "ff:bg-brand-700 ff:text-white"
+                            : "ff:bg-transparent ff:text-slate-600 ff:hover:text-slate-900",
+                    )}
+                >
+                    {label(part)}
+                </button>
+            ))}
+        </div>
     );
 }
 
@@ -443,16 +434,14 @@ function TestDialog({
     open,
     onClose,
     tree,
-    formId,
-    forms,
-    onFormChange,
+    source,
+    onSourceChange,
 }: {
     open: boolean;
     onClose: () => void;
     tree: EmailTree;
-    formId: number;
-    forms: { id: number; title: string }[];
-    onFormChange: (id: number) => void;
+    source: PreviewSource;
+    onSourceChange: (source: PreviewSource) => void;
 }) {
     const testSend = useTestSend();
     const showToast = useUiStore((s) => s.showToast);
@@ -460,7 +449,7 @@ function TestDialog({
 
     const onSend = () => {
         testSend.mutate(
-            { tree, to, form_id: formId || undefined },
+            { tree, to, form_id: source.formId || undefined, order_id: source.orderId || undefined },
             {
                 onSuccess: (sent) => {
                     showToast(sent ? __("Test email sent.") : __("Could not send. Check your mail setup."), sent ? "success" : "error");
@@ -477,7 +466,7 @@ function TestDialog({
                 <DialogHeader>
                     <DialogTitle>{__("Send a test email")}</DialogTitle>
                     <DialogDescription>
-                        {__("We render this template with sample or real form data and send it once.")}
+                        {__("We render this template with sample data, a form's latest entry or a real order, and send it once.")}
                     </DialogDescription>
                 </DialogHeader>
                 <div className="ff:flex ff:flex-col ff:gap-4 ff:py-2">
@@ -494,19 +483,10 @@ function TestDialog({
                         />
                     </div>
                     <div>
-                        <Label htmlFor="ff-test-form" className="ff:mb-1.5 ff:block">
+                        <Label className="ff:mb-1.5 ff:block">
                             {__("Use data from")}
                         </Label>
-                        <Select
-                            id="ff-test-form"
-                            value={String(formId)}
-                            onChange={(e) => onFormChange(Number(e.target.value))}
-                            options={[
-                                { value: "0", label: __("Sample data") },
-                                ...forms.map((f) => ({ value: String(f.id), label: f.title || __("Untitled form") })),
-                            ]}
-                            className="ff:w-full"
-                        />
+                        <PreviewSourcePicker value={source} onChange={onSourceChange} className="ff:w-full" />
                     </div>
                 </div>
                 <DialogFooter>
@@ -519,24 +499,5 @@ function TestDialog({
                 </DialogFooter>
             </DialogContent>
         </Dialog>
-    );
-}
-
-function SaveStatus({ state }: { state: "saving" | "dirty" | "saved" }) {
-    return (
-        <span
-            className={cn(
-                "ff:flex ff:items-center ff:gap-1.5 ff:whitespace-nowrap ff:text-xs ff:font-medium",
-                state === "saved" ? "ff:text-emerald-600" : "ff:text-amber-600",
-            )}
-        >
-            <span
-                className={cn(
-                    "ff:h-1.5 ff:w-1.5 ff:rounded-full",
-                    state === "saved" ? "ff:bg-emerald-500" : "ff:animate-pulse ff:bg-amber-500",
-                )}
-            />
-            {state === "saving" ? __("Saving…") : state === "dirty" ? __("Unsaved changes") : __("Saved")}
-        </span>
     );
 }

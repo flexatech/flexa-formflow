@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { Select } from "@/components/ui/select";
 import { cn } from "@/lib/cn";
 import { __ } from "@/lib/i18n";
-import type { FormSummary } from "@/features/forms/types";
-import { useEmailPreview } from "../useEmailTemplates";
+import { canUseMediaLibrary, openMediaPicker } from "@/lib/media";
+import { useCanvasRender } from "../useEmailTemplates";
 import { PREVIEW_RESET_CSS } from "../previewFrame";
+import { PreviewSourcePicker } from "./PreviewSourcePicker";
 import {
     BLOCK_DRAG_TYPE,
     BLOCK_MOVE_TYPE,
@@ -12,20 +12,30 @@ import {
     findInTree,
     isLayout,
     type DropTarget,
+    type EmailElement,
     type EmailTree,
+    type PreviewSource,
 } from "../types";
 
 interface PreviewPaneProps {
     tree: EmailTree;
-    formId: number;
-    forms: FormSummary[];
-    onFormChange: (id: number) => void;
+    /**
+     * Set by the global layout editor: `tree` is then the part being edited and
+     * this is both parts' drafts, so the canvas can show the other one too.
+     */
+    layout?: { header: EmailElement[]; footer: EmailElement[] };
+    layoutPart?: "header" | "footer";
+    /** The data the canvas renders with (sample, a form's entry, or an order). */
+    source: PreviewSource;
+    onSourceChange: (source: PreviewSource) => void;
     viewport: "desktop" | "mobile";
     selectedId: string | null;
     onSelect: (id: string | null) => void;
     onInsert: (type: string, target: DropTarget) => void;
     onInsertPattern: (patternId: string, target: DropTarget) => void;
     onMove: (id: string, target: DropTarget) => void;
+    /** Lets a click on an empty image block open the Media Library. */
+    onChangeProps?: (id: string, props: Record<string, unknown>) => void;
 }
 
 interface DropLine {
@@ -37,27 +47,39 @@ interface DropLine {
 const EDITOR_STYLE =
     PREVIEW_RESET_CSS +
     "[data-ff-el]{cursor:pointer}" +
+    "[data-ff-global]{opacity:.7;cursor:not-allowed}" +
+    "[data-ff-shadowed]{opacity:.35}" +
     "[data-ff-el]:hover>tr>td{box-shadow:inset 0 0 0 1px #badeff}" +
     "tbody.ff-selected>tr>td{box-shadow:inset 0 0 0 2px #0f92f7!important}";
 
 export function PreviewPane({
     tree,
-    formId,
-    forms,
-    onFormChange,
+    layout,
+    layoutPart,
+    source,
+    onSourceChange,
     viewport,
     selectedId,
     onSelect,
     onInsert,
     onInsertPattern,
     onMove,
+    onChangeProps,
 }: PreviewPaneProps) {
-    const preview = useEmailPreview();
-    const [html, setHtml] = useState("");
+    const { html, pending } = useCanvasRender({
+        tree,
+        form_id: source.formId || undefined,
+        order_id: source.orderId || undefined,
+        ...(layoutPart && layout ? { layout, layout_part: layoutPart } : {}),
+    });
     const [frameHeight, setFrameHeight] = useState(600);
+    // The email's own width, read from the rendered container. On desktop the
+    // frame never gets narrower than this (+ the document's gutters), so the
+    // email's mobile media query cannot fire in a narrow editor and stack
+    // columns the real inbox shows side by side.
+    const [emailWidth, setEmailWidth] = useState(600);
     const [dragging, setDragging] = useState(false);
     const [line, setLine] = useState<DropLine | null>(null);
-    const timer = useRef<number>();
     const frameRef = useRef<HTMLIFrameElement>(null);
 
     // Drag bookkeeping. `kind` distinguishes a palette insert (block flies in
@@ -82,8 +104,8 @@ export function PreviewPane({
     onMoveRef.current = onMove;
     const onSelectRef = useRef(onSelect);
     onSelectRef.current = onSelect;
-
-    const runPreview = preview.mutate;
+    const onChangePropsRef = useRef(onChangeProps);
+    onChangePropsRef.current = onChangeProps;
 
     const iframeDoc = () => frameRef.current?.contentDocument ?? null;
 
@@ -93,6 +115,8 @@ export function PreviewPane({
         if (!doc) return;
         const next = Math.max(doc.documentElement?.scrollHeight ?? 0, doc.body?.scrollHeight ?? 0);
         if (next > 0) setFrameHeight(next);
+        const width = Number(doc.querySelector(".ff-container")?.getAttribute("width") ?? 0);
+        if (width > 0) setEmailWidth(width);
     };
 
     const applySelection = (doc: Document, id: string | null) => {
@@ -161,9 +185,10 @@ export function PreviewPane({
             return;
         }
 
-        // Top level.
+        // Top level: every marked block not inside a column (a block in a
+        // background band sits one table deeper, but is still top level).
         const container = doc.querySelector<HTMLElement>(".ff-container");
-        const tops = Array.from(doc.querySelectorAll<HTMLElement>(".ff-container > tbody[data-ff-el]"));
+        const tops = topLevelBlocks(doc);
         const cr = container?.getBoundingClientRect();
         const { index, boundary } = pickIndex(tops, localY, cr);
         target.current = { colId: null, colIndex: 0, index };
@@ -194,6 +219,27 @@ export function PreviewPane({
         Array.prototype.indexOf.call(types, BLOCK_DRAG_TYPE) !== -1 ||
         Array.prototype.indexOf.call(types, BLOCK_PATTERN_TYPE) !== -1 ||
         Array.prototype.indexOf.call(types, BLOCK_MOVE_TYPE) !== -1;
+
+    // An image block with no picture yet shows a "Click to choose an image"
+    // placeholder on the canvas; clicking it opens the Media Library.
+    const pickImageFor = (id: string) => {
+        const change = onChangePropsRef.current;
+        const element = findInTree(treeRef.current.elements, id);
+        if (!change || element?.type !== "image" || String(element.props.url ?? "") !== "" || !canUseMediaLibrary()) {
+            return;
+        }
+        openMediaPicker({
+            title: __("Choose an image"),
+            buttonText: __("Use this image"),
+            onSelect: (image) => {
+                // Re-read the block: the tree may have changed while the modal was open.
+                const current = findInTree(treeRef.current.elements, id);
+                if (!current) return;
+                const alt = String(current.props.alt ?? "");
+                change(id, { ...current.props, url: image.url, ...(alt === "" && image.alt !== "" ? { alt: image.alt } : {}) });
+            },
+        });
+    };
 
     const handleFrameLoad = () => {
         measureFrame();
@@ -239,22 +285,26 @@ export function PreviewPane({
         doc.addEventListener("dragend", resetDrag);
         doc.addEventListener("click", (e) => {
             const el = (e.target as HTMLElement | null)?.closest?.("[data-ff-el]");
-            onSelectRef.current(el?.getAttribute("data-ff-el") ?? null);
+            const id = el?.getAttribute("data-ff-el") ?? null;
+            onSelectRef.current(id);
+            if (id) pickImageFor(id);
+        });
+        // Clicking a block focuses this iframe, whose key events never reach
+        // the editor window; forward shortcut chords so Ctrl/Cmd+Z still works.
+        doc.addEventListener("keydown", (e) => {
+            if (!e.ctrlKey && !e.metaKey) return;
+            const forwarded = new KeyboardEvent("keydown", {
+                key: e.key,
+                ctrlKey: e.ctrlKey,
+                metaKey: e.metaKey,
+                shiftKey: e.shiftKey,
+                altKey: e.altKey,
+                cancelable: true,
+            });
+            window.dispatchEvent(forwarded);
+            if (forwarded.defaultPrevented) e.preventDefault();
         });
     };
-
-    useEffect(() => {
-        window.clearTimeout(timer.current);
-        timer.current = window.setTimeout(() => {
-            runPreview(
-                { tree, form_id: formId || undefined },
-                { onSuccess: (result) => setHtml(result) },
-            );
-        }, 500);
-        return () => window.clearTimeout(timer.current);
-        // runPreview is referentially stable.
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [tree, formId]);
 
     // Switching viewport reflows the iframe to a new height; re-measure.
     useEffect(() => {
@@ -318,23 +368,15 @@ export function PreviewPane({
 
     return (
         <div className="ff:flex ff:h-full ff:min-w-0 ff:flex-1 ff:flex-col ff:bg-slate-100">
-            <div className="ff:flex ff:items-center ff:justify-end ff:gap-2 ff:border-b ff:border-slate-200 ff:bg-white ff:px-4 ff:py-2">
-                {preview.isPending && (
+            <div className="ff:relative ff:z-20 ff:flex ff:items-center ff:justify-end ff:gap-2 ff:border-b ff:border-slate-200 ff:bg-white ff:px-4 ff:py-2">
+                {pending && (
                     <span className="ff:mr-auto ff:text-xs ff:text-slate-400">{__("Rendering…")}</span>
                 )}
                 <span className="ff:text-xs ff:text-slate-500">{__("Preview with data from")}</span>
-                <Select
-                    aria-label={__("Preview form")}
-                    value={String(formId)}
-                    onChange={(e) => onFormChange(Number(e.target.value))}
-                    options={[
-                        { value: "0", label: __("Sample data") },
-                        ...forms.map((f) => ({ value: String(f.id), label: f.title || __("Untitled form") })),
-                    ]}
-                />
+                <PreviewSourcePicker value={source} onChange={onSourceChange} className="ff:w-72" align="right" />
             </div>
             <div
-                className="ff:relative ff:flex ff:flex-1 ff:items-start ff:justify-center ff:overflow-auto ff:p-4"
+                className="ff:relative ff:flex ff:flex-1 ff:items-start ff:overflow-auto ff:p-4"
                 onDragOver={handlePaneDragOver}
                 onDrop={handlePaneDrop}
             >
@@ -344,9 +386,18 @@ export function PreviewPane({
                     srcDoc={html}
                     onLoad={handleFrameLoad}
                     scrolling="no"
-                    style={{ height: frameHeight, pointerEvents: dragging ? "none" : undefined }}
+                    // Desktop is never narrower than the email: below width + 20px the
+                    // email's phone rule kicks in and stacks columns, so a narrow
+                    // editor would show the phone layout. The pane scrolls instead.
+                    style={{
+                        height: frameHeight,
+                        minWidth: viewport === "desktop" ? emailWidth + 48 : undefined,
+                        pointerEvents: dragging ? "none" : undefined,
+                    }}
                     className={cn(
-                        "ff:rounded-lg ff:border ff:border-slate-200 ff:bg-white ff:shadow-sm",
+                        // mx-auto, not justify-center: a centered flex item wider than
+                        // the pane overflows to the left, where it cannot be scrolled to.
+                        "ff:mx-auto ff:shrink-0 ff:rounded-card ff:border ff:border-slate-200 ff:bg-white ff:shadow-sm",
                         viewport === "desktop" ? "ff:w-full ff:max-w-3xl" : "ff:w-[390px]",
                     )}
                 />
@@ -364,5 +415,12 @@ export function PreviewPane({
                 )}
             </div>
         </div>
+    );
+}
+
+/** Marked blocks at the top level of the email (not inside a column or a global part). */
+function topLevelBlocks(doc: Document): HTMLElement[] {
+    return Array.from(doc.querySelectorAll<HTMLElement>(".ff-container tbody[data-ff-el]")).filter(
+        (el) => !el.parentElement?.closest("[data-ff-col]") && !el.closest("[data-ff-global]"),
     );
 }

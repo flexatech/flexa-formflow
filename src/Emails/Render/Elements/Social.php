@@ -25,7 +25,10 @@ final class Social extends BaseElement {
 	}
 
 	public function defaults(): array {
-		$defaults = [ 'align' => 'center' ];
+		$defaults = [
+			'align' => 'center',
+			'color' => '',
+		];
 		foreach ( array_keys( self::NETWORKS ) as $network ) {
 			$defaults[ $network ] = '';
 		}
@@ -34,14 +37,17 @@ final class Social extends BaseElement {
 	}
 
 	public function render( array $props, RenderContext $ctx, array $design ): string {
+		// Side padding: 40px at the top level, none inside Columns (the wrapper has it).
+		$px = $this->horizontal_padding( $ctx );
+
 		$align = esc_attr( $this->str( $props, 'align', 'center' ) );
 		// Social labels are links, so they follow the template's link color
 		// (which itself falls back to the brand color).
-		$link = esc_attr( (string) ( $design['linkColor'] ?? $design['brandColor'] ) );
+		$link = esc_attr( $this->color( $props, 'color', (string) ( $design['linkColor'] ?? $design['brandColor'] ) ) );
 
 		$links = [];
 		foreach ( self::NETWORKS as $network => $label ) {
-			$url = esc_url( $this->str( $props, $network ) );
+			$url = esc_url( $this->resolve_text( $this->str( $props, $network ), $ctx ) );
 			if ( '' !== $url ) {
 				$links[] = '<a href="' . $url . '" style="display:inline-block;margin:0 8px;font-size:13px;font-weight:600;color:' . $link . ';text-decoration:none;">' . esc_html( $label ) . '</a>';
 			}
@@ -49,13 +55,13 @@ final class Social extends BaseElement {
 
 		if ( [] === $links ) {
 			if ( $ctx->is_preview ) {
-				return '<tr><td align="' . $align . '" style="padding:12px 40px;font-size:12px;color:#9a9a9a;">'
+				return '<tr><td align="' . $align . '" style="padding:12px ' . $px . 'px;font-size:12px;color:#9a9a9a;">'
 					. esc_html__( 'Add social profile URLs in the block settings', 'flexa-formflow' ) . '</td></tr>';
 			}
 
 			return '';
 		}
 
-		return '<tr><td align="' . $align . '" style="padding:12px 40px;">' . implode( '<span style="color:#c9c9c9;">&middot;</span>', $links ) . '</td></tr>';
+		return '<tr><td align="' . $align . '" style="padding:12px ' . $px . 'px;">' . implode( '<span style="color:#c9c9c9;">&middot;</span>', $links ) . '</td></tr>';
 	}
 }

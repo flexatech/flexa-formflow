@@ -1,4 +1,4 @@
-import { Copy, Mail, Pencil, Plus, Trash2 } from "lucide-react";
+import { Copy, Download, Mail, Pencil, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/custom/EmptyState";
@@ -21,7 +21,11 @@ import {
     useDuplicateEmailTemplate,
     useEmailTemplatesList,
 } from "./useEmailTemplates";
+import { BulkLayoutBar } from "./layout/BulkLayoutBar";
+import { LayoutBadge } from "./layout/LayoutBadge";
+import { useEmailLayout } from "./layout/useEmailLayout";
 import type { EmailTemplate } from "./types";
+import { downloadTemplates } from "./templateTransfer";
 
 /**
  * The "Form Emails" tab body of the Emails screen. The page title and the
@@ -35,6 +39,7 @@ export function FormEmailsTab() {
     const deleteTemplate = useDeleteEmailTemplate();
     const showToast = useUiStore((s) => s.showToast);
     const [confirmDelete, setConfirmDelete] = useState<EmailTemplate | null>(null);
+    const { data: layout } = useEmailLayout();
 
     const onCreate = () => {
         createTemplate.mutate(__("Untitled template"), {
@@ -62,6 +67,12 @@ export function FormEmailsTab() {
     };
 
     const items = data ?? [];
+    const showLayout = Boolean(layout?.enabled);
+    const [selected, setSelected] = useState<number[]>([]);
+    // Drop ticks for templates that are gone (deleted, or a refetch).
+    const picked = selected.filter((id) => items.some((t) => t.id === id));
+    const allPicked = items.length > 0 && picked.length === items.length;
+    const toggle = (id: number) => setSelected(picked.includes(id) ? picked.filter((x) => x !== id) : [...picked, id]);
 
     return (
         <>
@@ -80,11 +91,25 @@ export function FormEmailsTab() {
                     }
                 />
             ) : (
+                <>
+                <BulkLayoutBar selected={picked} onClear={() => setSelected([])} />
                 <div className="ff:overflow-hidden ff:rounded-xl ff:border ff:border-slate-200 ff:bg-white">
                     <table className="ff:w-full ff:border-collapse ff:text-sm">
                         <thead>
                             <tr className="ff:border-b ff:border-slate-200 ff:text-left ff:text-xs ff:uppercase ff:tracking-wide ff:text-slate-500">
+                                {showLayout && (
+                                    <th className="ff:w-10 ff:py-3 ff:pl-5">
+                                        <input
+                                            type="checkbox"
+                                            className="flexa-formflow-check"
+                                            aria-label={__("Select all templates")}
+                                            checked={allPicked}
+                                            onChange={() => setSelected(allPicked ? [] : items.map((t) => t.id))}
+                                        />
+                                    </th>
+                                )}
                                 <th className="ff:px-5 ff:py-3 ff:font-medium">{__("Template")}</th>
+                                {showLayout && <th className="ff:px-5 ff:py-3 ff:font-medium">{__("Header & footer")}</th>}
                                 <th className="ff:px-5 ff:py-3 ff:font-medium">{__("Updated")}</th>
                                 <th className="ff:px-5 ff:py-3" />
                             </tr>
@@ -96,21 +121,42 @@ export function FormEmailsTab() {
                                     className="ff:group ff:cursor-pointer ff:border-b ff:border-slate-100 ff:transition-colors ff:last:border-0 ff:hover:bg-slate-50"
                                     onClick={() => navigate(`/emails/${template.id}/edit`)}
                                 >
+                                    {showLayout && (
+                                        <td className="ff:w-10 ff:py-3.5 ff:pl-5" onClick={(e) => e.stopPropagation()}>
+                                            <input
+                                                type="checkbox"
+                                                className="flexa-formflow-check"
+                                                aria-label={sprintf(__("Select %s"), template.title || __("Untitled template"))}
+                                                checked={picked.includes(template.id)}
+                                                onChange={() => toggle(template.id)}
+                                            />
+                                        </td>
+                                    )}
                                     <td className="ff:px-5 ff:py-3.5 ff:font-medium ff:text-slate-900">
                                         {template.title || __("Untitled template")}
                                     </td>
+                                    {showLayout && (
+                                        <td className="ff:px-5 ff:py-3.5">
+                                            <LayoutBadge
+                                                settings={template.tree.settings ?? {}}
+                                                elements={template.tree.elements}
+                                                kind="form"
+                                            />
+                                        </td>
+                                    )}
                                     <td className="ff:px-5 ff:py-3.5 ff:text-slate-500">
                                         {formatDate(template.updated_at)}
                                     </td>
                                     <td className="ff:px-5 ff:py-3.5">
                                         <div
-                                            className="ff:flex ff:justify-end ff:gap-1 ff:opacity-0 ff:transition-opacity ff:group-hover:opacity-100"
+                                            className="ff:flex ff:justify-end ff:gap-1"
                                             onClick={(e) => e.stopPropagation()}
                                         >
                                             <Button
                                                 variant="ghost"
                                                 size="icon"
                                                 aria-label={__("Edit template")}
+                                                className="ff:text-slate-400 ff:hover:text-slate-900"
                                                 onClick={() => navigate(`/emails/${template.id}/edit`)}
                                             >
                                                 <Pencil aria-hidden className="ff:h-4 ff:w-4" />
@@ -119,6 +165,7 @@ export function FormEmailsTab() {
                                                 variant="ghost"
                                                 size="icon"
                                                 aria-label={__("Duplicate template")}
+                                                className="ff:text-slate-400 ff:hover:text-slate-900"
                                                 onClick={() => onDuplicate(template)}
                                             >
                                                 <Copy aria-hidden className="ff:h-4 ff:w-4" />
@@ -126,8 +173,18 @@ export function FormEmailsTab() {
                                             <Button
                                                 variant="ghost"
                                                 size="icon"
+                                                aria-label={__("Export template")}
+                                                title={__("Download as .json to import on another site")}
+                                                className="ff:text-slate-400 ff:hover:text-slate-900"
+                                                onClick={() => downloadTemplates([template], template.title)}
+                                            >
+                                                <Download aria-hidden className="ff:h-4 ff:w-4" />
+                                            </Button>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
                                                 aria-label={__("Delete template")}
-                                                className="ff:text-red-600 ff:hover:bg-red-50"
+                                                className="ff:text-red-300 ff:hover:bg-red-50 ff:hover:text-red-600"
                                                 onClick={() => setConfirmDelete(template)}
                                             >
                                                 <Trash2 aria-hidden className="ff:h-4 ff:w-4" />
@@ -139,6 +196,7 @@ export function FormEmailsTab() {
                         </tbody>
                     </table>
                 </div>
+                </>
             )}
 
             <Dialog open={confirmDelete !== null} onOpenChange={(open) => !open && setConfirmDelete(null)}>

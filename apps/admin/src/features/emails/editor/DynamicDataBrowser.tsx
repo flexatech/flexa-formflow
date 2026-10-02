@@ -14,14 +14,16 @@ import { useDynamicData } from "../useEmailTemplates";
  */
 export function DynamicDataBrowser({
     formId,
+    orderId = 0,
     canInsert,
     onInsert,
 }: {
     formId: number;
+    orderId?: number;
     canInsert: boolean;
     onInsert: (token: string) => void;
 }) {
-    const { data: categories, isLoading } = useDynamicData(formId);
+    const { data: categories, isLoading } = useDynamicData(formId, orderId);
     const [search, setSearch] = useState("");
 
     const filtered = useMemo(() => {
@@ -62,7 +64,7 @@ export function DynamicDataBrowser({
                         aria-label={__("Search dynamic data")}
                         className={cn(
                             "flexa-formflow-control",
-                            "ff:w-full ff:rounded-md ff:py-1 ff:pl-7 ff:pr-2 ff:text-xs ff:text-slate-700 ff:outline-none",
+                            "ff:w-full ff:rounded-field ff:py-1 ff:pl-7 ff:pr-2 ff:text-xs ff:text-slate-700 ff:outline-none",
                         )}
                     />
                 </span>

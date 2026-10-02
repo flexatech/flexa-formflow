@@ -18,9 +18,12 @@ import {
     type LogicOperator,
     type ResponsiveWidth,
 } from "../types";
+import { SpamProtectionSettings } from "./SpamProtectionSettings";
 
 interface InspectorProps {
     config: FormConfig;
+    /** Whether the form is live; limits the CAPTCHA choices to working ones. */
+    published: boolean;
     field: FormField | null;
     onChange: (config: FormConfig) => void;
     onFieldChange: (patch: Partial<FormField>) => void;
@@ -39,7 +42,7 @@ const TABS: { value: InspectorTab; label: () => string }[] = [
  * Right column: bound to the selected field with a Settings / Validation / Logic
  * / Style tab strip; with nothing selected it edits the form-level settings.
  */
-export function Inspector({ config, field, onChange, onFieldChange }: InspectorProps) {
+export function Inspector({ config, published, field, onChange, onFieldChange }: InspectorProps) {
     const [tab, setTab] = useState<InspectorTab>("settings");
 
     if (!field) {
@@ -74,6 +77,7 @@ export function Inspector({ config, field, onChange, onFieldChange }: InspectorP
                         }
                     />
                 </Row>
+                <SpamProtectionSettings config={config} published={published} onChange={onChange} />
                 <p className="ff:text-xs ff:text-slate-400">
                     {__("Select a field on the canvas to edit its options.")}
                 </p>

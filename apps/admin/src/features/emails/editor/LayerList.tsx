@@ -8,7 +8,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { Copy, GripVertical, Plus, Trash2 } from "lucide-react";
 import { cn } from "@/lib/cn";
-import { BLOCK_DRAG_TYPE, ELEMENT_TYPES, elementDef, type EmailElement } from "../types";
+import { BLOCK_DRAG_TYPE, availableElementTypes, elementDef, type EmailElement } from "../types";
 import { __ } from "@/lib/i18n";
 
 interface LayerListProps {
@@ -74,7 +74,7 @@ export function LayerList({
                     {__("Add block")}
                 </p>
                 <div className="ff:grid ff:grid-cols-2 ff:gap-1.5">
-                    {ELEMENT_TYPES.map((def) => {
+                    {availableElementTypes().map((def) => {
                         const Icon = def.icon;
                         return (
                             <button

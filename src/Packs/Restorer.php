@@ -6,6 +6,7 @@ namespace Flexa\FormFlow\Packs;
 
 use Flexa\FormFlow\Concerns\HasInstance;
 use Flexa\FormFlow\Domain\EmailTemplates\EmailTemplateRepository;
+use Flexa\FormFlow\Emails\TemplateOrigin;
 use Flexa\FormFlow\Domain\Forms\FormRepository;
 use Flexa\FormFlow\Domain\Library\LibraryRepository;
 use Flexa\FormFlow\Domain\Packs\PackContent;
@@ -112,7 +113,7 @@ final class Restorer {
 			if ( $this->exists( 'emails', $content, $ids ) ) {
 				continue;
 			}
-			$new_id = EmailTemplateRepository::instance()->create( $content->name, $content->payload );
+			$new_id = EmailTemplateRepository::instance()->create( $content->name, TemplateOrigin::pack_tree( $manifest->id, $content ) );
 			$old_id = $ids['emails'][ $content->ref ] ?? 0;
 			if ( $old_id > 0 ) {
 				$remap_emails[ $old_id ] = $new_id;
@@ -232,18 +233,21 @@ final class Restorer {
 			$config['trigger']  = $trigger;
 		}
 
-		$actions = is_array( $config['actions'] ?? null ) ? $config['actions'] : [];
-		foreach ( $actions as $index => $action ) {
-			if ( ! is_array( $action ) || ! is_array( $action['config'] ?? null ) ) {
-				continue;
+		// Both branches can send email with a pack template.
+		foreach ( [ 'actions', 'else_actions' ] as $branch ) {
+			$actions = is_array( $config[ $branch ] ?? null ) ? $config[ $branch ] : [];
+			foreach ( $actions as $index => $action ) {
+				if ( ! is_array( $action ) || ! is_array( $action['config'] ?? null ) ) {
+					continue;
+				}
+				$template_id = (int) ( $action['config']['template_id'] ?? 0 );
+				if ( ! isset( $remap_emails[ $template_id ] ) ) {
+					continue;
+				}
+				$action['config']['template_id'] = $remap_emails[ $template_id ];
+				$actions[ $index ]               = $action;
+				$config[ $branch ]               = $actions;
 			}
-			$template_id = (int) ( $action['config']['template_id'] ?? 0 );
-			if ( ! isset( $remap_emails[ $template_id ] ) ) {
-				continue;
-			}
-			$action['config']['template_id'] = $remap_emails[ $template_id ];
-			$actions[ $index ]               = $action;
-			$config['actions']               = $actions;
 		}
 
 		return $config;

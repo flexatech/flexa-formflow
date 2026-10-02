@@ -15,6 +15,9 @@ defined( 'ABSPATH' ) || exit;
  * Gmail, Outlook, and Apple Mail.
  */
 abstract class BaseElement {
+	/** The email's side padding: top-level blocks inset their content by this much. */
+	public const SECTION_PADDING_X = 40;
+
 	abstract public function type(): string;
 
 	/**
@@ -38,8 +41,12 @@ abstract class BaseElement {
 		return array_merge( $this->defaults(), $props );
 	}
 
-	protected function resolve_text( string $text, RenderContext $ctx ): string {
-		return Tokens::resolve( $text, $ctx );
+	/**
+	 * Resolve merge tags. Use the raw mode for values that are escaped right
+	 * after (esc_html, esc_url, esc_attr); rich text uses the HTML mode.
+	 */
+	protected function resolve_text( string $text, RenderContext $ctx, string $mode = Tokens::MODE_RAW ): string {
+		return Tokens::resolve( $text, $ctx, $mode );
 	}
 
 	/**
@@ -63,7 +70,9 @@ abstract class BaseElement {
 			'br'     => [],
 		];
 
-		$html = wp_kses( $this->resolve_text( $text, $ctx ), $allowed );
+		// Token values are escaped as they are inserted, so only the author's own
+		// markup reaches wp_kses; a visitor's answer always shows as text.
+		$html = wp_kses( $this->resolve_text( $text, $ctx, Tokens::MODE_HTML ), $allowed );
 
 		return '' === $link_color ? $html : $this->apply_link_color( $html, $link_color );
 	}
@@ -90,6 +99,18 @@ abstract class BaseElement {
 			},
 			$html
 		);
+	}
+
+	/**
+	 * A block's horizontal padding. At the top level it is `$padding_x` (the
+	 * email's 40px side padding unless the block lets the author change it).
+	 * Inside Columns the wrapper already holds those 40px, so the block adds
+	 * only what goes beyond them: 0 for the default, never the 40px twice.
+	 */
+	protected function horizontal_padding( RenderContext $ctx, int $padding_x = self::SECTION_PADDING_X ): int {
+		$padding_x = max( 0, $padding_x );
+
+		return $ctx->inside_column ? max( 0, $padding_x - self::SECTION_PADDING_X ) : $padding_x;
 	}
 
 	protected function row( string $inner, string $padding = '12px 40px' ): string {

@@ -6,12 +6,172 @@
 	'use strict';
 
 	var config = window.flexaFormFlowFront || {};
+	var text = config.i18n || {};
+	// How long a provider script gets to load before the widget offers a retry.
+	var SCRIPT_TIMEOUT = 15000;
+
+	/*
+	 * CAPTCHA adapters: one per provider, the same four calls each. A form keeps
+	 * its own widget id and token, so several forms (and providers) can share a
+	 * page without touching each other.
+	 */
+	var adapters = {
+		turnstile: {
+			ready: function () {
+				return !! ( window.turnstile && window.turnstile.render );
+			},
+			render: function ( el, state, form ) {
+				return window.turnstile.render( el, {
+					sitekey: state.sitekey,
+					action: 'flexa_formflow_submit',
+					cdata: form.dataset.uuid,
+					callback: function ( token ) {
+						state.token = token;
+						hideCaptchaStatus( state );
+					},
+					'expired-callback': function () {
+						state.token = '';
+					},
+					'error-callback': function () {
+						state.token = '';
+						showCaptchaStatus( state, text.widgetFailed );
+						return true;
+					},
+				} );
+			},
+			reset: function ( id ) {
+				window.turnstile.reset( id );
+			},
+		},
+		recaptcha_v2: {
+			ready: function () {
+				return !! ( window.grecaptcha && window.grecaptcha.render );
+			},
+			render: function ( el, state ) {
+				return window.grecaptcha.render( el, {
+					sitekey: state.sitekey,
+					callback: function ( token ) {
+						state.token = token;
+						hideCaptchaStatus( state );
+					},
+					'expired-callback': function () {
+						state.token = '';
+					},
+					'error-callback': function () {
+						state.token = '';
+						showCaptchaStatus( state, text.widgetFailed );
+					},
+				} );
+			},
+			reset: function ( id ) {
+				window.grecaptcha.reset( id );
+			},
+		},
+	};
+
+	function showCaptchaStatus( state, message ) {
+		state.message.textContent = message || '';
+		state.status.hidden = false;
+	}
+
+	function hideCaptchaStatus( state ) {
+		state.status.hidden = true;
+		state.message.textContent = '';
+	}
+
+	// Wait for the provider's global; on timeout, offer a retry that loads the
+	// script again (a blocked or failed request never leaves the form hanging).
+	function whenReady( adapter, done, fail ) {
+		var started = Date.now();
+		( function poll() {
+			if ( adapter.ready() ) {
+				done();
+			} else if ( Date.now() - started > SCRIPT_TIMEOUT ) {
+				fail();
+			} else {
+				window.setTimeout( poll, 200 );
+			}
+		} )();
+	}
+
+	function reloadScript( src ) {
+		var script = document.createElement( 'script' );
+		script.src = src;
+		script.async = true;
+		document.head.appendChild( script );
+	}
+
+	function initCaptcha( form ) {
+		var el = form.querySelector( '.flexa-formflow-captcha[data-sitekey]' );
+		if ( ! el ) {
+			return null;
+		}
+		var state = {
+			provider: el.dataset.provider,
+			sitekey: el.dataset.sitekey,
+			adapter: adapters[ el.dataset.provider ],
+			widget: el.querySelector( '.flexa-formflow-captcha__widget' ),
+			status: el.querySelector( '.flexa-formflow-captcha__status' ),
+			message: el.querySelector( '.flexa-formflow-captcha__message' ),
+			retry: el.querySelector( '.flexa-formflow-captcha__retry' ),
+			id: null,
+			token: '',
+			unavailable: el.dataset.unavailable === '1' || ! adapters[ el.dataset.provider ],
+		};
+
+		if ( state.unavailable ) {
+			state.retry.hidden = true;
+			showCaptchaStatus( state, text.unavailable );
+			return state;
+		}
+
+		function mount() {
+			whenReady(
+				state.adapter,
+				function () {
+					if ( state.id === null ) {
+						state.id = state.adapter.render( state.widget, state, form );
+					}
+				},
+				function () {
+					showCaptchaStatus( state, text.loadFailed );
+				}
+			);
+		}
+
+		state.retry.addEventListener( 'click', function () {
+			hideCaptchaStatus( state );
+			if ( state.id !== null ) {
+				resetCaptcha( state );
+				return;
+			}
+			if ( ! state.adapter.ready() && el.dataset.script ) {
+				reloadScript( el.dataset.script );
+			}
+			mount();
+		} );
+
+		mount();
+		return state;
+	}
+
+	// Tokens are single-use: after any answer from the server, get a fresh one.
+	function resetCaptcha( state ) {
+		state.token = '';
+		if ( state.id !== null ) {
+			try {
+				state.adapter.reset( state.id );
+			} catch ( e ) {
+				// A widget the provider already tore down: nothing to reset.
+			}
+		}
+	}
 
 	function collect( form ) {
 		var fields = {};
 		form.querySelectorAll( '[name]' ).forEach( function ( input ) {
 			var name = input.name;
-			if ( name === 'ff_website' || name === '_ff_ts' ) {
+			if ( name === 'ff_website' || name === '_ff_ts' || name.indexOf( 'cf-turnstile' ) === 0 || name.indexOf( 'g-recaptcha' ) === 0 ) {
 				return;
 			}
 			if ( input.type === 'checkbox' ) {
@@ -64,6 +224,16 @@
 	}
 
 	function wire( form ) {
+		var captcha = initCaptcha( form );
+		// Interaction signal for the server's timing check: a person typing,
+		// clicking or autofilling produces these; a script posting directly does not.
+		var interactions = 0;
+		[ 'input', 'keydown', 'pointerdown', 'change' ].forEach( function ( type ) {
+			form.addEventListener( type, function () {
+				interactions++;
+			}, true );
+		} );
+
 		form.addEventListener( 'submit', function ( event ) {
 			event.preventDefault();
 			if ( form.dataset.pending === '1' || ! config.restUrl ) {
@@ -75,6 +245,16 @@
 			var message = form.querySelector( '.flexa-formflow-message' );
 			var honeypot = form.querySelector( '[name="ff_website"]' );
 			var timestamp = form.querySelector( '[name="_ff_ts"]' );
+
+			if ( captcha && captcha.unavailable ) {
+				showCaptchaStatus( captcha, text.unavailable );
+				return;
+			}
+			if ( captcha && ! captcha.token ) {
+				showCaptchaStatus( captcha, text.verify );
+				captcha.widget.scrollIntoView( { behavior: 'smooth', block: 'center' } );
+				return;
+			}
 
 			form.dataset.pending = '1';
 			if ( button ) {
@@ -88,6 +268,8 @@
 					fields: collect( form ),
 					ff_website: honeypot ? honeypot.value : '',
 					_ff_ts: timestamp ? parseInt( timestamp.value, 10 ) : 0,
+					_ff_i: interactions,
+					captcha_token: captcha ? captcha.token : '',
 				} ),
 			} )
 				.then( function ( response ) {
@@ -96,6 +278,9 @@
 					} );
 				} )
 				.then( function ( result ) {
+					if ( captcha ) {
+						resetCaptcha( captcha );
+					}
 					if ( result.ok ) {
 						var success = document.createElement( 'p' );
 						success.className = 'flexa-formflow-success';
@@ -108,14 +293,24 @@
 					if ( data.errors ) {
 						showErrors( form, data.errors );
 					}
+					// A failed verification: keep everything typed, show the
+					// reason next to the widget and let the visitor verify again.
+					if ( captcha && data.captcha ) {
+						showCaptchaStatus( captcha, result.body.message || text.widgetFailed );
+						captcha.retry.hidden = data.retry === false;
+						return;
+					}
 					if ( message ) {
 						message.textContent = result.body.message || '';
 						message.hidden = ! result.body.message;
 					}
 				} )
 				.catch( function () {
+					if ( captcha ) {
+						resetCaptcha( captcha );
+					}
 					if ( message ) {
-						message.textContent = form.dataset.networkError || 'Something went wrong. Please try again.';
+						message.textContent = form.dataset.networkError || text.network || 'Something went wrong. Please try again.';
 						message.hidden = false;
 					}
 				} )

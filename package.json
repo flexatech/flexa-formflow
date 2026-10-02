@@ -1,7 +1,7 @@
 {
     "name": "flexa-formflow",
     "private": true,
-    "version": "1.0.0",
+    "version": "1.2.0",
     "type": "module",
     "packageManager": "pnpm@9.12.0",
     "scripts": {
@@ -10,7 +10,8 @@
         "build": "tsc -p apps/admin/tsconfig.json --noEmit && vite build -c apps/admin/vite.config.ts",
         "preview": "vite preview -c apps/admin/vite.config.ts",
         "type-check": "tsc -p apps/admin/tsconfig.json --noEmit",
-        "format": "prettier --write \"apps/**/*.{ts,tsx,css}\""
+        "format": "prettier --write \"apps/**/*.{ts,tsx,css}\"",
+        "test": "vitest run -c apps/admin/vitest.config.ts"
     },
     "dependencies": {
         "@dnd-kit/core": "^6.3.1",
@@ -38,7 +39,8 @@
         "prettier": "^3.4.2",
         "tailwindcss": "^4.0.0",
         "typescript": "^5.7.2",
-        "vite": "^6.0.0"
+        "vite": "^6.0.0",
+        "vitest": "^3.2.4"
     },
     "engines": {
         "node": ">=20",

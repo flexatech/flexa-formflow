@@ -50,7 +50,7 @@ final class Installer {
 		}
 
 		foreach ( $manifest->emails as $content ) {
-			$email_ids[ $content->ref ] = EmailTemplateRepository::instance()->create( $content->name, $content->payload );
+			$email_ids[ $content->ref ] = EmailTemplateRepository::instance()->create( $content->name, \Flexa\FormFlow\Emails\TemplateOrigin::pack_tree( $manifest->id, $content ) );
 			++$created['emails'];
 		}
 

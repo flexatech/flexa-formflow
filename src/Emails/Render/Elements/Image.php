@@ -25,6 +25,9 @@ final class Image extends BaseElement {
 	}
 
 	public function render( array $props, RenderContext $ctx, array $design ): string {
+		// Side padding: 40px at the top level, none inside Columns (the wrapper has it).
+		$px = $this->horizontal_padding( $ctx );
+
 		$src = esc_url( $this->str( $props, 'url' ) );
 		if ( '' === $src ) {
 			if ( ! $ctx->is_preview ) {
@@ -32,8 +35,8 @@ final class Image extends BaseElement {
 			}
 			$width = (int) $design['width'] - 80;
 
-			return '<tr><td align="center" style="padding:8px 40px;"><div style="width:100%;max-width:' . $width . 'px;background:#ececec;color:#9a9a9a;padding:40px 0;text-align:center;font-size:13px;border-radius:4px;">'
-				. esc_html__( 'Choose an image', 'flexa-formflow' ) . '</div></td></tr>';
+			return '<tr><td align="center" style="padding:8px ' . $px . 'px;"><div style="width:100%;max-width:' . $width . 'px;background:#ececec;color:#9a9a9a;padding:40px 0;text-align:center;font-size:13px;border-radius:4px;">'
+				. ( $ctx->editor ? esc_html__( 'Click to choose an image', 'flexa-formflow' ) : esc_html__( 'Choose an image', 'flexa-formflow' ) ) . '</div></td></tr>';
 		}
 
 		$align     = esc_attr( $this->str( $props, 'align', 'center' ) );
@@ -47,6 +50,6 @@ final class Image extends BaseElement {
 			$img = '<a href="' . $link . '">' . $img . '</a>';
 		}
 
-		return '<tr><td align="' . $align . '" style="padding:8px 40px;">' . $img . '</td></tr>';
+		return '<tr><td align="' . $align . '" style="padding:8px ' . $px . 'px;">' . $img . '</td></tr>';
 	}
 }

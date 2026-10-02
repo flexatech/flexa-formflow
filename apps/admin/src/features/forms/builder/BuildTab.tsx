@@ -51,6 +51,7 @@ import { Inspector } from "./Inspector";
 
 interface BuildTabProps {
     config: FormConfig;
+    published: boolean;
     onChange: (config: FormConfig) => void;
 }
 
@@ -58,7 +59,7 @@ interface BuildTabProps {
  * Palette · canvas · inspector. Palette items add on click and drag onto the
  * canvas; canvas cards reorder with dnd-kit sortable.
  */
-export function BuildTab({ config, onChange }: BuildTabProps) {
+export function BuildTab({ config, published, onChange }: BuildTabProps) {
     const selectedFieldId = useUiStore((s) => s.selectedFieldId);
     const setSelectedField = useUiStore((s) => s.setSelectedField);
     const [paletteDrag, setPaletteDrag] = useState<FieldType | null>(null);
@@ -187,6 +188,7 @@ export function BuildTab({ config, onChange }: BuildTabProps) {
                 <aside className="ff:overflow-y-auto ff:border-l ff:border-slate-200 ff:bg-white ff:p-4">
                     <Inspector
                         config={config}
+                        published={published}
                         field={selected}
                         onChange={onChange}
                         onFieldChange={(patch) =>

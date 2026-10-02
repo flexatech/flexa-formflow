@@ -29,6 +29,9 @@ final class Enqueue {
 			return;
 		}
 
+		// The image and logo blocks pick from the Media Library (wp.media).
+		wp_enqueue_media();
+
 		$this->enqueue_prod( self::HANDLE, 'src/main.tsx' );
 
 		if ( function_exists( 'wp_set_script_translations' ) ) {
@@ -52,6 +55,7 @@ final class Enqueue {
 				'locale'            => determine_locale(),
 				'theme'             => $this->detect_admin_theme(),
 				'canManageSettings' => Capabilities::can_manage_settings(),
+				'canUpload'         => current_user_can( 'upload_files' ),
 				'hasWooCommerce'    => class_exists( \WooCommerce::class ),
 				'onboarding'        => OnboardingState::all(),
 				'extensions'        => Registry::all(),

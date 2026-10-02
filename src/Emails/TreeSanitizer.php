@@ -42,14 +42,41 @@ final class TreeSanitizer {
 		if ( isset( $incoming['direction'] ) && 'rtl' === $incoming['direction'] ) {
 			$settings['direction'] = 'rtl';
 		}
+		// Per-template opt-out of the global header/footer; stored only when set.
+		foreach ( [ 'hideGlobalHeader', 'hideGlobalFooter' ] as $flag ) {
+			if ( ! empty( $incoming[ $flag ] ) ) {
+				$settings[ $flag ] = true;
+			}
+		}
+		// Which header/footer set the template uses: `none`, or a set id (kept as an
+		// id-shaped string; an unknown one falls back to the default at render time).
+		if ( isset( $incoming['layoutSet'] ) && is_string( $incoming['layoutSet'] ) && preg_match( '/^[A-Za-z0-9_-]{1,40}$/', $incoming['layoutSet'] ) ) {
+			$settings['layoutSet'] = $incoming['layoutSet'];
+		}
+
+		// An email's own copy of a global part (the "Override for this email"
+		// mode). Kept as a block list, even an empty one, so the mode survives.
+		foreach ( [ 'headerOverride', 'footerOverride' ] as $key ) {
+			if ( isset( $incoming[ $key ] ) && is_array( $incoming[ $key ] ) ) {
+				$settings[ $key ] = self::sanitize_elements( $incoming[ $key ], true );
+			}
+		}
 
 		$nodes = isset( $tree['elements'] ) && is_array( $tree['elements'] ) ? $tree['elements'] : [];
 
-		return [
+		$clean = [
 			'version'  => 1,
 			'settings' => $settings,
 			'elements' => self::sanitize_elements( $nodes, true ),
 		];
+
+		// Where the design came from, so it can be reset (see TemplateOrigin).
+		$origin = TemplateOrigin::sanitize( $tree['origin'] ?? null );
+		if ( null !== $origin ) {
+			$clean['origin'] = $origin;
+		}
+
+		return $clean;
 	}
 
 	/**

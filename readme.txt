@@ -4,7 +4,7 @@ Tags: forms, form builder, email builder, contact form, form entries
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.0.0
+Stable tag: 1.2.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -18,7 +18,11 @@ Flexa FormFlow joins two tools that usually live in separate plugins: a form bui
 
 Drag fields from the palette onto the canvas, reorder them, and edit each one in the inspector. Field types: text, email, paragraph, dropdown, radio, checkbox, number, date, and hidden. Every field carries a per-breakpoint width, so you can lay fields out in columns on desktop and let them stack on mobile without touching CSS.
 
-Place a form with the `[flexa_formflow id="123"]` shortcode or the Flexa FormFlow block. Submissions are protected by a honeypot and a submit-time trap, so common spam bots never reach your inbox.
+Place a form with the `[flexa_formflow id="123"]` shortcode or the Flexa FormFlow block.
+
+**Spam protection**
+
+Every form is protected automatically by invisible built-in checks (a honeypot, timing checks and a per-visitor rate limit), with no setting to forget. For an extra layer, pick Cloudflare Turnstile or Google reCAPTCHA v2 on any form. Keys are entered once in Settings, secret keys are stored encrypted, and every CAPTCHA answer is verified on your server before an entry is saved or an email is sent.
 
 **Entries**
 
@@ -26,7 +30,7 @@ Every submission is stored. Browse them in a list with a quick peek panel, open 
 
 **Visual email builder**
 
-Design the notification email with a block editor: headings, text, buttons, images, dividers, spacers, columns, and a fields table that renders the whole submission. Insert form data visually with `{field:ID}` tokens and headers like `{form_title}`, no shortcode syntax to memorize. Save designs to a template library, set global styles once, preview in desktop and mobile widths, and send yourself a test before going live.
+Design the notification email with a block editor: headings, text, buttons, images, dividers, spacers, columns, and a fields table that renders the whole submission. Start faster from the pattern library: ready-made headers, intros, banners, calls to action, galleries, offers and footers (plus order and shipping sections on WooCommerce stores) that you preview, insert, and then edit like any other block. A global header and footer keeps branding in one place, and each email can use it, keep its own copy, or turn it off. Insert form data visually with `{field:ID}` tokens and headers like `{form_title}`, no shortcode syntax to memorize. Save designs to a template library, set global styles once, preview in desktop and mobile widths, and send yourself a test before going live.
 
 Each form can send an admin notification and an optional confirmation to the person who filled it in. When no custom design is chosen, a clean default layout is used.
 
@@ -62,7 +66,7 @@ The frontend form script (`assets/frontend/form.js`) and the block editor script
 
 == External services ==
 
-FormFlow stores your forms, entries, and templates in your own database and does not send them anywhere. Two optional features can send data off your site, described below. Neither is on by default.
+FormFlow stores your forms, entries, and templates in your own database and does not send them anywhere. Three optional features can send data off your site, described below. None is on by default.
 
 **AI assistant (optional).** This only works after you add an AI provider API key in Settings, and a request is sent only when an admin clicks one of the AI tools in the builder. Nothing is sent automatically or on the front end. What each tool sends to the provider you selected:
 
@@ -78,6 +82,13 @@ Each request also carries your API key and the model name, which the provider ne
 Your API key is stored encrypted and is never shown in the browser after you save it.
 
 FormFlow calls these providers directly with `wp_remote_post()` instead of the WordPress AI Client (`wp_ai_client_prompt()`). The AI Client only exists in WordPress 7.0 and later, and FormFlow supports WordPress 6.5 and later, so a direct request is the only way to offer the same AI tools on every supported version. The request goes from your server straight to the provider you picked, using your own API key; there is no FormFlow server or proxy in between.
+
+**CAPTCHA (optional).** Only a form you set to use a CAPTCHA, after you add that provider's keys in Settings, uses one. On pages showing such a form, the visitor's browser loads the provider's script and talks to the provider to show the challenge. When the form is sent, your server sends the provider your secret key, the visitor's answer token and the visitor's IP address to check the answer. No form field values are sent. Pages without a CAPTCHA form load nothing from either provider.
+
+* Cloudflare Turnstile: script from `https://challenges.cloudflare.com`, checks sent to `https://challenges.cloudflare.com/turnstile/v0/siteverify`. See the [Cloudflare Website and Online Services Terms](https://www.cloudflare.com/website-terms/) and [Privacy Policy](https://www.cloudflare.com/privacypolicy/).
+* Google reCAPTCHA v2: script from `https://www.google.com/recaptcha/`, checks sent to `https://www.google.com/recaptcha/api/siteverify`. See the [Google Terms of Service](https://policies.google.com/terms) and [Privacy Policy](https://policies.google.com/privacy).
+
+The "Test keys" button in Settings sends your secret key and a dummy token to the selected provider to confirm the key works; no visitor data is involved.
 
 **Workflow webhooks (optional).** A workflow can include a "Send webhook" action. It only runs if you add it to a workflow yourself and enter a URL. Each time that workflow runs (for example, when a form is submitted), FormFlow sends a POST request to the URL you entered with the form ID, form title, entry ID, submission time, and the submitted field values as JSON. There is no fixed third-party service: the data goes only to the address you choose, and the terms and privacy policy of that endpoint apply. Local and private-network addresses are refused.
 
@@ -116,6 +127,15 @@ The admin app is written in React and TypeScript and compiled to the files in `a
 5. Plugin settings.
 
 == Changelog ==
+
+= 1.2.0 =
+* Email pattern library: 44 ready-made sections for any site (header, intro, banner, call to action, gallery, offer, footer), plus 12 order and shipping sections on WooCommerce stores, with search, categories, thumbnails and a large preview. Inserted blocks stay fully editable, and undo works.
+* Global header and footer: pick a ready-made template, and choose per email to use the global one, keep its own copy, or turn it off.
+* Logos follow your site logo, or your site name when there is none.
+* New merge tags for the site tagline and logo, and for order subtotal, discount, shipping, tax and addresses. A tag with no value is left empty in sent emails instead of showing raw.
+* Spam protection: always-on built-in checks with rate limiting, plus optional Cloudflare Turnstile or Google reCAPTCHA v2 per form, verified on your server.
+* Form builder: a "Run test" button that checks a sample submission step by step without saving it or sending email.
+* Library packs: deleted items can be restored, and a pack can be installed again after its content was removed.
 
 = 1.0.0 =
 * Form builder: drag-and-drop canvas, nine field types, per-field responsive column widths, required and placeholder options.

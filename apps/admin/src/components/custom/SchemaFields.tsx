@@ -1,6 +1,7 @@
 import { AlertCircle, CheckCircle2, ExternalLink, Plus, Trash2 } from "lucide-react";
 import { useEffect } from "react";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Select } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { __ } from "@/lib/i18n";
@@ -119,8 +120,8 @@ function renderControl(
     switch (field.control) {
         case "textarea":
             return (
-                <textarea
-                    className="flexa-formflow-control ff:min-h-16 ff:w-full ff:rounded-md ff:border ff:border-slate-300 ff:bg-white ff:px-3 ff:py-2 ff:text-sm ff:shadow-sm"
+                <Textarea
+                    className="ff:min-h-16"
                     value={str}
                     disabled={disabled}
                     placeholder={field.placeholder}

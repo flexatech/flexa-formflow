@@ -28,6 +28,9 @@ final class FooterText extends BaseElement {
 	}
 
 	public function render( array $props, RenderContext $ctx, array $design ): string {
+		// Side padding: 40px at the top level, none inside Columns (the wrapper has it).
+		$px = $this->horizontal_padding( $ctx );
+
 		$align = esc_attr( $this->str( $props, 'align', 'center' ) );
 		$color = esc_attr( $this->color( $props, 'color', '#8a8a8a' ) );
 
@@ -38,6 +41,6 @@ final class FooterText extends BaseElement {
 		$fallback = is_string( $global ) && '' !== $global ? $global : self::DEFAULT_HTML;
 		$html     = $this->rich_text( $this->str( $props, 'html', $fallback ), $ctx, (string) ( $design['linkColor'] ?? '' ) );
 
-		return '<tr><td align="' . $align . '" style="padding:20px 40px 28px;font-size:12px;line-height:1.6;color:' . $color . ';">' . $html . '</td></tr>';
+		return '<tr><td align="' . $align . '" style="padding:20px ' . $px . 'px 28px;font-size:12px;line-height:1.6;color:' . $color . ';">' . $html . '</td></tr>';
 	}
 }

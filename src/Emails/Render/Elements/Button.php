@@ -27,6 +27,9 @@ final class Button extends BaseElement {
 	}
 
 	public function render( array $props, RenderContext $ctx, array $design ): string {
+		// Side padding: 40px at the top level, none inside Columns (the wrapper has it).
+		$px = $this->horizontal_padding( $ctx );
+
 		$align  = esc_attr( $this->str( $props, 'align', 'center' ) );
 		$url    = esc_url( $this->resolve_text( $this->str( $props, 'url' ), $ctx ) );
 		$bg     = esc_attr( $this->color( $props, 'bgColor', (string) $design['brandColor'] ) );
@@ -37,7 +40,7 @@ final class Button extends BaseElement {
 
 		// Padded <a> inside a colored <td>: the only button pattern Outlook
 		// renders with the full area clickable-looking.
-		return '<tr><td align="' . $align . '" style="padding:16px 40px;">'
+		return '<tr><td align="' . $align . '" style="padding:16px ' . $px . 'px;">'
 			. '<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>'
 			. '<td bgcolor="' . $bg . '" style="border-radius:' . $radius . 'px;">'
 			. '<a href="' . $url . '" style="display:inline-block;padding:12px 28px;font-size:' . $size . 'px;font-weight:600;color:' . $color . ';text-decoration:none;border-radius:' . $radius . 'px;">' . $text . '</a>'
