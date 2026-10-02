@@ -138,7 +138,7 @@ Found while testing, not addressed here:
   grammar allows them. `eeee` silently becomes an empty value, and `1e5`
   silently becomes `100000`.
 
-## [1.2.0] - 2026-10-02
+= 1.2.0 =
 
 ### Added
 
@@ -286,8 +286,13 @@ Found while testing, not addressed here:
   nothing is stored, sent or run; the response does not say which check fired.
 - Submit bodies over 128 KB are refused.
 
-## [1.0.0]
+= 1.1.0 =
 
+* Pack restore: a pack's detail page now reports any of its installed items that were deleted and lets you put back only those, without losing the rest of the pack.
+* Fixed: a pack could get stuck reporting "already installed" after any of its content was deleted, with no way to reinstall it.
+* Fixed: resetting site data, or removing the plugin with "Delete data on uninstall" turned on, could leave packs marked as installed on an otherwise empty site.
+
+= 1.0.0 =
 First release, prepared for the WordPress.org directory.
 
 ### Added
