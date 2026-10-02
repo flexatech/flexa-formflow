@@ -293,6 +293,7 @@ Found while testing, not addressed here:
 * Fixed: resetting site data, or removing the plugin with "Delete data on uninstall" turned on, could leave packs marked as installed on an otherwise empty site.
 
 = 1.0.0 =
+
 First release, prepared for the WordPress.org directory.
 
 ### Added
