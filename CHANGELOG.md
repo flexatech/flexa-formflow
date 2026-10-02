@@ -14,6 +14,8 @@ versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-09-30
+
 ### Added
 
 - Pack restore. A pack's detail page now reports which of its installed items

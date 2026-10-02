@@ -4,7 +4,7 @@ Tags: forms, form builder, email builder, contact form, form entries
 Requires at least: 6.5
 Tested up to: 7.1
 Requires PHP: 8.1
-Stable tag: 1.0.0
+Stable tag: 1.1.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -116,6 +116,11 @@ The admin app is written in React and TypeScript and compiled to the files in `a
 5. Plugin settings.
 
 == Changelog ==
+
+= 1.1.0 =
+* Pack restore: a pack's detail page now reports any of its installed items that were deleted and lets you put back only those, without losing the rest of the pack.
+* Fixed: a pack could get stuck reporting "already installed" after any of its content was deleted, with no way to reinstall it.
+* Fixed: resetting site data, or removing the plugin with "Delete data on uninstall" turned on, could leave packs marked as installed on an otherwise empty site.
 
 = 1.0.0 =
 * Form builder: drag-and-drop canvas, nine field types, per-field responsive column widths, required and placeholder options.
