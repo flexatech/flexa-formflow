@@ -384,6 +384,9 @@ export function PreviewPane({
                     ref={frameRef}
                     title={__("Email preview")}
                     srcDoc={html}
+                    // Same origin so handleFrameLoad can style the document and wire the
+                    // drag handlers; no allow-scripts, so nothing in the email can run.
+                    sandbox="allow-same-origin"
                     onLoad={handleFrameLoad}
                     scrolling="no"
                     // Desktop is never narrower than the email: below width + 20px the

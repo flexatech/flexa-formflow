@@ -93,7 +93,9 @@ export function FormPreviewDialog({
                         <iframe
                             title={__("Form preview")}
                             srcDoc={preview.data ?? ""}
-                            // A look-only preview: same origin so it can be sized, scripts off.
+                            // A look-only preview. Same origin so it can be sized; leaving out
+                            // allow-forms and allow-scripts is what stops the preview form from
+                            // submitting (FormPreviewEndpoint relies on this instead of a script).
                             sandbox="allow-same-origin"
                             className={cn(
                                 "ff:h-full ff:rounded-md ff:border ff:border-slate-200 ff:bg-white",

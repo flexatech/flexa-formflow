@@ -61,8 +61,8 @@ final class FormPreviewEndpoint extends Endpoint {
 
 	/**
 	 * Wrap the form markup in a standalone HTML document: the frontend stylesheet
-	 * inlined, a neutral page background, and a guard that stops the preview form
-	 * from actually submitting inside the iframe.
+	 * inlined over a neutral page background. The preview form cannot submit
+	 * because the iframe that loads this is sandboxed; see below.
 	 */
 	private function document( string $markup ): string {
 		$css_path = FLEXA_FORMFLOW_PATH . 'assets/frontend/form.css';
@@ -70,10 +70,15 @@ final class FormPreviewEndpoint extends Endpoint {
 		$css  = is_readable( $css_path ) ? (string) file_get_contents( $css_path ) : ''; // phpcs:ignore WordPress.WP.AlternativeFunctions.file_get_contents_file_get_contents
 		$body = __( 'This is a preview. The form does not submit here.', 'flexa-formflow' );
 
-		// Inline <style> and <script> are required here: this is a standalone
-		// document returned over REST and loaded into the preview iframe's srcdoc,
-		// not a WordPress page, so there is no enqueue pipeline to go through. The
-		// CSS is the plugin's own stylesheet and the script only blocks submit.
+		// The inline <style> is required here: this is a standalone document
+		// returned over REST into an iframe's srcdoc, not a WordPress page, so there
+		// is no enqueue pipeline to go through. The CSS is the plugin's own
+		// stylesheet, read from disk above.
+		//
+		// There is deliberately no <script>. The one consumer loads this with
+		// sandbox="allow-same-origin" (see FormPreviewDialog.tsx), which leaves out
+		// allow-forms and allow-scripts, so the browser itself refuses the submit a
+		// script here used to cancel.
 		return '<!DOCTYPE html><html><head><meta charset="utf-8" />'
 			. '<meta name="viewport" content="width=device-width, initial-scale=1" />'
 			. '<style>'
@@ -84,7 +89,6 @@ final class FormPreviewEndpoint extends Endpoint {
 			. $css
 			. '</style></head><body>'
 			. '<div class="flexa-formflow-preview-wrap">' . $markup . '</div>'
-			. '<script>document.addEventListener("submit",function(e){e.preventDefault();},true);</script>'
 			. '<span hidden>' . esc_html( $body ) . '</span>'
 			. '</body></html>';
 	}
